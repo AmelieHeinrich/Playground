@@ -2,26 +2,48 @@
 
 #if TARGET_OS_IPHONE
 // iOS Implementation
-@implementation AppDelegate
+@implementation AppDelegate {
+    Application *_application;
+}
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    // Create Metal device
+    self.device = MTLCreateSystemDefaultDevice();
+    if (!self.device) {
+        NSLog(@"Metal is not supported on this device");
+        return NO;
+    }
+    
+    NSLog(@"Metal device created: %@", [self.device name]);
+    
     // Create the main window
     self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
-    self.window.backgroundColor = [UIColor systemBackgroundColor];
+    self.window.backgroundColor = [UIColor blackColor];
     
-    // Create a simple view controller
+    // Create MTKView
+    self.metalView = [[MTKView alloc] initWithFrame:self.window.bounds device:self.device];
+    self.metalView.delegate = self;
+    self.metalView.enableSetNeedsDisplay = NO;
+    self.metalView.preferredFramesPerSecond = 60;
+    self.metalView.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
+    
+    // Create a view controller for the Metal view
     UIViewController *rootViewController = [[UIViewController alloc] init];
-    rootViewController.view.backgroundColor = [UIColor systemBackgroundColor];
-    
-    // Add a label
-    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 300, 100)];
-    label.text = @"Hello, iOS!";
-    label.textAlignment = NSTextAlignmentCenter;
-    label.center = rootViewController.view.center;
-    [rootViewController.view addSubview:label];
+    rootViewController.view = self.metalView;
     
     self.window.rootViewController = rootViewController;
     [self.window makeKeyAndVisible];
+    
+    // Initialize Application
+    _application = new Application();
+    if (!_application->Initialize(self.device)) {
+        NSLog(@"Failed to initialize Application");
+        return NO;
+    }
+    
+    // Send initial resize event
+    CGSize size = self.metalView.drawableSize;
+    _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
     
     return YES;
 }
@@ -44,17 +66,46 @@
 
 - (void)applicationWillTerminate:(UIApplication *)application {
     // Called when the application is about to terminate
+    if (_application) {
+        delete _application;
+        _application = nullptr;
+    }
+}
+
+// MTKViewDelegate methods
+- (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size {
+    if (_application) {
+        _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
+    }
+}
+
+- (void)drawInMTKView:(MTKView *)view {
+    if (_application) {
+        id<CAMetalDrawable> drawable = view.currentDrawable;
+        _application->OnRender(drawable);
+    }
 }
 
 @end
 
 #else
 // macOS Implementation
-@implementation AppDelegate
+@implementation AppDelegate {
+    Application *_application;
+}
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    // Create Metal device
+    self.device = MTLCreateSystemDefaultDevice();
+    if (!self.device) {
+        NSLog(@"Metal is not supported on this device");
+        return;
+    }
+    
+    NSLog(@"Metal device created: %@", [self.device name]);
+    
     // Create the main window
-    NSRect frame = NSMakeRect(0, 0, 800, 600);
+    NSRect frame = NSMakeRect(0, 0, 1280, 720);
     self.window = [[NSWindow alloc] initWithContentRect:frame
                                               styleMask:(NSWindowStyleMaskTitled |
                                                         NSWindowStyleMaskClosable |
@@ -63,31 +114,31 @@
                                                 backing:NSBackingStoreBuffered
                                                   defer:NO];
     
-    [self.window setTitle:@"Playground"];
+    [self.window setTitle:@"Metal Playground"];
     [self.window center];
     
-    // Create a simple view with a label
-    NSView *contentView = [[NSView alloc] initWithFrame:frame];
+    // Create MTKView
+    self.metalView = [[MTKView alloc] initWithFrame:frame device:self.device];
+    self.metalView.delegate = self;
+    self.metalView.enableSetNeedsDisplay = NO;
+    self.metalView.preferredFramesPerSecond = 60;
+    self.metalView.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
     
-    NSTextField *label = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 300, 100)];
-    [label setStringValue:@"Hello, macOS!"];
-    [label setBezeled:NO];
-    [label setDrawsBackground:NO];
-    [label setEditable:NO];
-    [label setSelectable:NO];
-    [label setAlignment:NSTextAlignmentCenter];
-    [label setFont:[NSFont systemFontOfSize:24]];
-    
-    // Center the label in the window
-    CGFloat labelX = (frame.size.width - 300) / 2;
-    CGFloat labelY = (frame.size.height - 100) / 2;
-    [label setFrame:NSMakeRect(labelX, labelY, 300, 100)];
-    
-    [contentView addSubview:label];
-    [self.window setContentView:contentView];
+    [self.window setContentView:self.metalView];
     [self.window makeKeyAndOrderFront:nil];
     
-    NSLog(@"Window created and displayed");
+    // Initialize Application
+    _application = new Application();
+    if (!_application->Initialize(self.device)) {
+        NSLog(@"Failed to initialize Application");
+        return;
+    }
+    
+    // Send initial resize event
+    CGSize size = self.metalView.drawableSize;
+    _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
+    
+    NSLog(@"Application initialized and window displayed");
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
@@ -96,6 +147,24 @@
 
 - (void)applicationWillTerminate:(NSNotification *)notification {
     // Application will terminate
+    if (_application) {
+        delete _application;
+        _application = nullptr;
+    }
+}
+
+// MTKViewDelegate methods
+- (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size {
+    if (_application) {
+        _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
+    }
+}
+
+- (void)drawInMTKView:(MTKView *)view {
+    if (_application) {
+        id<CAMetalDrawable> drawable = view.currentDrawable;
+        _application->OnRender(drawable);
+    }
 }
 
 @end

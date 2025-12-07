@@ -48,6 +48,9 @@ if(IOS)
     target_link_libraries(${PROJECT_NAME}
         "-framework Foundation"
         "-framework UIKit"
+        "-framework Metal"
+        "-framework MetalKit"
+        "-framework QuartzCore"
     )
 
 elseif(MACOS)
@@ -66,6 +69,9 @@ elseif(MACOS)
     target_link_libraries(${PROJECT_NAME}
         "-framework Foundation"
         "-framework Cocoa"
+        "-framework Metal"
+        "-framework MetalKit"
+        "-framework QuartzCore"
     )
 endif()
 
