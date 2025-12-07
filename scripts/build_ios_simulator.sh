@@ -38,12 +38,12 @@ echo "Building project for iOS Simulator..."
 cmake --build . --config Release -- -sdk iphonesimulator
 
 # Check if build was successful
-if [ -d "Release-iphonesimulator/Playground.app" ]; then
+if [ -d "bin/Release/Playground.app" ]; then
     echo "✓ Build successful!"
-    echo "  Application bundle: ${BUILD_DIR}/Release-iphonesimulator/Playground.app"
+    echo "  Application bundle: ${BUILD_DIR}/bin/Release/Playground.app"
     echo ""
     echo "To run in simulator, use Xcode or:"
-    echo "  xcrun simctl install booted ${BUILD_DIR}/Release-iphonesimulator/Playground.app"
+    echo "  xcrun simctl install booted ${BUILD_DIR}/bin/Release/Playground.app"
     echo "  xcrun simctl launch booted com.example.Playground"
 else
     echo "✗ Build failed"
