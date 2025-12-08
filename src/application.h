@@ -11,6 +11,8 @@
 
 #include "metal/device.h"
 #include "metal/graphics_pipeline.h"
+#include "core/camera.h"
+#include "core/macos_input.h"
 
 class Application
 {
@@ -24,6 +26,9 @@ public:
     // Event callbacks
     void OnResize(uint32_t width, uint32_t height);
     
+    // Update callback - called before rendering
+    void OnUpdate(float deltaTime);
+    
     // UI callback - override this to draw ImGui UI
     virtual void OnUI();
 
@@ -31,6 +36,9 @@ public:
     // Can create any encoder type (render, compute, blit, acceleration structure, etc.)
     // Delegate will handle presentation in a separate command buffer after this
     void OnRender(id<MTLCommandBuffer> commandBuffer, id<CAMetalDrawable> drawable);
+
+    Camera& GetCamera() { return m_Camera; }
+    const Camera& GetCamera() const { return m_Camera; }
 
 private:
     id<MTLDevice> m_Device;
@@ -40,4 +48,7 @@ private:
     uint32_t m_Height;
 
     GraphicsPipeline m_GraphicsPipeline;
+    
+    Camera m_Camera;
+    MacOSInput m_Input;
 };

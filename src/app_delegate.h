@@ -2,6 +2,8 @@
 
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
+
+#include "metal_view.h"
 #include "application.h"
 
 #if TARGET_OS_IPHONE
@@ -10,7 +12,7 @@
 @interface AppDelegate : UIResponder <UIApplicationDelegate, MTKViewDelegate>
 
 @property (strong, nonatomic) UIWindow *window;
-@property (strong, nonatomic) MTKView *metalView;
+@property (strong, nonatomic) MetalView *metalView;
 @property (strong, nonatomic) id<MTLDevice> device;
 @property (strong, nonatomic) id<MTLCommandQueue> commandQueue;
 
@@ -24,7 +26,7 @@
 @interface AppDelegate : NSObject <NSApplicationDelegate, MTKViewDelegate>
 
 @property (strong, nonatomic) NSWindow *window;
-@property (strong, nonatomic) MTKView *metalView;
+@property (strong, nonatomic) MetalView *metalView;
 @property (strong, nonatomic) id<MTLDevice> device;
 @property (strong, nonatomic) id<MTLCommandQueue> commandQueue;
 

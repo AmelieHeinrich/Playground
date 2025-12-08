@@ -1,4 +1,5 @@
 #include "app_delegate.h"
+#import "metal_view.h"
 #include <objc/objc.h>
 #include <imgui.h>
 #include <imgui_impl_metal.h>
@@ -11,6 +12,7 @@
 // iOS Implementation
 @implementation AppDelegate {
     Application *_application;
+    CFTimeInterval _lastFrameTime;
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
@@ -28,7 +30,7 @@
     self.window.backgroundColor = [UIColor blackColor];
 
     // Create MTKView
-    self.metalView = [[MTKView alloc] initWithFrame:self.window.bounds device:self.device];
+    self.metalView = [[MetalView alloc] initWithFrame:self.window.bounds device:self.device];
     self.metalView.delegate = self;
     self.metalView.enableSetNeedsDisplay = NO;
     self.metalView.preferredFramesPerSecond = 60;
@@ -178,6 +180,12 @@
         return;
     }
 
+    CFTimeInterval currentTime = CACurrentMediaTime();
+    float deltaTime = _lastFrameTime > 0.0 ? (float)(currentTime - _lastFrameTime) : 0.016f;
+    _lastFrameTime = currentTime;
+
+    _application->OnUpdate(deltaTime);
+
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize.x = view.bounds.size.width;
     io.DisplaySize.y = view.bounds.size.height;
@@ -260,6 +268,7 @@
 // macOS Implementation
 @implementation AppDelegate {
     Application *_application;
+    CFTimeInterval _lastFrameTime;
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
@@ -289,7 +298,7 @@
     [self.window center];
 
     // Create MTKView
-    self.metalView = [[MTKView alloc] initWithFrame:frame device:self.device];
+    self.metalView = [[MetalView alloc] initWithFrame:frame device:self.device];
     self.metalView.delegate = self;
     self.metalView.enableSetNeedsDisplay = NO;
     self.metalView.preferredFramesPerSecond = 60;
@@ -297,6 +306,7 @@
 
     [self.window setContentView:self.metalView];
     [self.window makeKeyAndOrderFront:nil];
+    [self.window makeFirstResponder:self.metalView];
 
     // Create command queue
     self.commandQueue = [self.device newCommandQueue];
@@ -430,6 +440,12 @@
     if (!_application) {
         return;
     }
+
+    CFTimeInterval currentTime = CACurrentMediaTime();
+    float deltaTime = _lastFrameTime > 0.0 ? (float)(currentTime - _lastFrameTime) : 0.016f;
+    _lastFrameTime = currentTime;
+
+    _application->OnUpdate(deltaTime);
 
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize.x = view.bounds.size.width;

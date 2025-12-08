@@ -1,16 +1,21 @@
 #include "application.h"
 #include "metal/graphics_pipeline.h"
 
-#include <Metal/Metal.h>
+#import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
+
 #include <imgui.h>
+#include <simd/simd.h>
 
 Application::Application()
     : m_Device(nil)
     , m_CommandQueue(nil)
     , m_Width(0)
     , m_Height(0)
+    , m_Camera()
+    , m_Input()
 {
+    
 }
 
 Application::~Application()
@@ -52,16 +57,44 @@ void Application::OnResize(uint32_t width, uint32_t height)
 {
     m_Width = width;
     m_Height = height;
+    
+    if (height > 0) {
+        float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+        m_Camera.SetAspectRatio(aspectRatio);
+    }
+    
     NSLog(@"Application resized to: %ux%u", width, height);
+}
+
+void Application::OnUpdate(float deltaTime)
+{
+    m_Input.Update(deltaTime);
+    m_Camera.Update(m_Input, deltaTime);
 }
 
 void Application::OnUI()
 {
-    // Default implementation - can be overridden by subclasses
-    // Example UI
     ImGui::Begin("Application");
-    ImGui::Text("Override OnUI() to create your custom UI");
+    ImGui::Text("Metal Playground by Amélie Heinrich");
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    
+    ImGui::Separator();
+    ImGui::Text("Camera Controls");
+    ImGui::Text("WASD - Move, Space/Shift - Up/Down");
+    ImGui::Text("Right Mouse Button - Look Around");
+    
+    ImGuiIO& io = ImGui::GetIO();
+    if (!io.WantCaptureMouse) {
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Camera Active");
+    } else {
+        ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Camera Inactive");
+    }
+    
+    ImGui::Separator();
+    vector_float3 pos = m_Camera.GetPosition();
+    ImGui::Text("Position: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
+    ImGui::Text("Yaw: %.2f, Pitch: %.2f", m_Camera.GetYaw(), m_Camera.GetPitch());
+    
     ImGui::End();
 }
 
@@ -91,10 +124,13 @@ void Application::OnRender(id<MTLCommandBuffer> commandBuffer, id<CAMetalDrawabl
 
     renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(r * 0.3, g * 0.3, b * 0.3, 1.0);
 
+    matrix_float4x4 matrix = m_Camera.GetViewProjectionMatrix();
+    
     // Create render command encoder
     id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
     [renderEncoder setLabel:@"Triangle Rendering"];
     [renderEncoder setRenderPipelineState:m_GraphicsPipeline.GetPipelineState()];
+    [renderEncoder setVertexBytes:&matrix length:sizeof(matrix) atIndex:0];
     [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
     [renderEncoder endEncoding];
 }
