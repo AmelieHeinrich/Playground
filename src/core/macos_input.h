@@ -12,7 +12,8 @@ public:
     void Update(float deltaTime) override;
 
 private:
-    vector_float2 m_LastMousePos;
+    vector_float2 m_CurrentMousePos;
+    vector_float2 m_PreviousMousePos;
     bool m_FirstMouse;
     bool m_MouseButtonDown;
 };

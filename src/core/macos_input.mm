@@ -3,7 +3,8 @@
 #include <imgui.h>
 
 MacOSInput::MacOSInput()
-    : m_LastMousePos(simd_make_float2(0.0f, 0.0f))
+    : m_CurrentMousePos(simd_make_float2(0.0f, 0.0f))
+    , m_PreviousMousePos(simd_make_float2(0.0f, 0.0f))
     , m_FirstMouse(true)
     , m_MouseButtonDown(false)
 {
@@ -12,7 +13,7 @@ MacOSInput::MacOSInput()
 vector_float3 MacOSInput::GetMoveVector() const
 {
     ImGuiIO& io = ImGui::GetIO();
-    
+
     if (io.WantCaptureKeyboard) {
         return simd_make_float3(0.0f, 0.0f, 0.0f);
     }
@@ -44,41 +45,32 @@ vector_float3 MacOSInput::GetMoveVector() const
 vector_float2 MacOSInput::GetRotateVector() const
 {
     ImGuiIO& io = ImGui::GetIO();
-    
-    if (io.WantCaptureMouse) {
+
+    if (io.WantCaptureMouse || !m_MouseButtonDown || m_FirstMouse) {
         return simd_make_float2(0.0f, 0.0f);
     }
 
-    vector_float2 rotateVec = simd_make_float2(0.0f, 0.0f);
-
-    if (m_MouseButtonDown) {
-        vector_float2 currentMousePos = simd_make_float2(io.MousePos.x, io.MousePos.y);
-        
-        if (!m_FirstMouse) {
-            vector_float2 delta = currentMousePos - m_LastMousePos;
-            rotateVec.x = delta.x;
-            rotateVec.y = -delta.y;
-        }
-    }
-
-    return rotateVec;
+    vector_float2 delta = m_CurrentMousePos - m_PreviousMousePos;
+    return -simd_make_float2(delta.x, delta.y) * 0.1f;
 }
 
 void MacOSInput::Update(float deltaTime)
 {
     ImGuiIO& io = ImGui::GetIO();
-    
-    if (!io.WantCaptureMouse && ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
-        m_MouseButtonDown = true;
-        
-        vector_float2 currentMousePos = simd_make_float2(io.MousePos.x, io.MousePos.y);
-        
-        if (m_FirstMouse) {
-            m_LastMousePos = currentMousePos;
-            m_FirstMouse = false;
+
+    m_PreviousMousePos = m_CurrentMousePos;
+    m_CurrentMousePos = simd_make_float2(io.MousePos.x, io.MousePos.y);
+
+    bool isRightMouseDown = !io.WantCaptureMouse && ImGui::IsMouseDown(ImGuiMouseButton_Left);
+
+    if (isRightMouseDown) {
+        if (!m_MouseButtonDown) {
+            m_FirstMouse = true;
+            m_PreviousMousePos = m_CurrentMousePos;
         } else {
-            m_LastMousePos = currentMousePos;
+            m_FirstMouse = false;
         }
+        m_MouseButtonDown = true;
     } else {
         m_MouseButtonDown = false;
         m_FirstMouse = true;
