@@ -24,8 +24,19 @@ endif()
 # Collect all source files from src/
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.mm" "src/*.m" "src/*.c")
 
+# Collect all shader files from assets/shaders/
+file(GLOB_RECURSE SHADERS "assets/shaders/*.msl" "assets/shaders/*.metal")
+
 # Create the executable as an application bundle (works for both macOS and iOS)
-add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES})
+add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${SHADERS})
+
+# Add src/ to include directories
+target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+# Mark shader files as resources
+set_source_files_properties(${SHADERS} PROPERTIES
+    MACOSX_PACKAGE_LOCATION Resources/shaders
+)
 
 # Platform-specific bundle properties
 if(IOS)
