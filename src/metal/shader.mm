@@ -27,7 +27,11 @@ Shader ShaderCompiler::Compile(id<MTLDevice> device, const std::string& path, Sh
     NSString* nsSource = [NSString stringWithUTF8String:source.c_str()];
 
     MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
-    options.languageVersion = MTLLanguageVersion3_0;
+    if (@available(iOS 16.0, *)) {
+        options.languageVersion = MTLLanguageVersion3_0;
+    } else {
+        options.languageVersion = MTLLanguageVersion2_0;
+    }
 
     NSError* error = nil;
     id<MTLLibrary> library = [device newLibraryWithSource:nsSource

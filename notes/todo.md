@@ -1,7 +1,7 @@
 # TODO List
 
 - [x] Hello triangle
-- [ ] Simple native Apple UI for settings
+- [x] ImGui
 - [ ] Camera controls on mac and ios
 - [ ] Load a model
 - [ ] Add lights

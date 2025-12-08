@@ -16,16 +16,21 @@ class Application
 {
 public:
     Application();
-    ~Application();
+    virtual ~Application();
 
     // Initialize with Metal device
     bool Initialize(id<MTLDevice> device);
 
     // Event callbacks
     void OnResize(uint32_t width, uint32_t height);
+    
+    // UI callback - override this to draw ImGui UI
+    virtual void OnUI();
 
-    // Rendering
-    void OnRender(id<CAMetalDrawable> drawable);
+    // Rendering - now called by delegate, takes command buffer and drawable
+    // Can create any encoder type (render, compute, blit, acceleration structure, etc.)
+    // Delegate will handle presentation in a separate command buffer after this
+    void OnRender(id<MTLCommandBuffer> commandBuffer, id<CAMetalDrawable> drawable);
 
 private:
     id<MTLDevice> m_Device;

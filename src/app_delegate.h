@@ -12,6 +12,9 @@
 @property (strong, nonatomic) UIWindow *window;
 @property (strong, nonatomic) MTKView *metalView;
 @property (strong, nonatomic) id<MTLDevice> device;
+@property (strong, nonatomic) id<MTLCommandQueue> commandQueue;
+
+- (void)updateImGuiTheme;
 
 @end
 
@@ -23,6 +26,9 @@
 @property (strong, nonatomic) NSWindow *window;
 @property (strong, nonatomic) MTKView *metalView;
 @property (strong, nonatomic) id<MTLDevice> device;
+@property (strong, nonatomic) id<MTLCommandQueue> commandQueue;
+
+- (void)updateImGuiTheme;
 
 @end
 

@@ -3,6 +3,7 @@
 
 #include <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
+#include <imgui.h>
 
 Application::Application()
     : m_Device(nil)
@@ -54,21 +55,30 @@ void Application::OnResize(uint32_t width, uint32_t height)
     NSLog(@"Application resized to: %ux%u", width, height);
 }
 
-void Application::OnRender(id<CAMetalDrawable> drawable)
+void Application::OnUI()
 {
+    // Default implementation - can be overridden by subclasses
+    // Example UI
+    ImGui::Begin("Application");
+    ImGui::Text("Override OnUI() to create your custom UI");
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+}
+
+void Application::OnRender(id<MTLCommandBuffer> commandBuffer, id<CAMetalDrawable> drawable)
+{
+    [commandBuffer setLabel:@"Application Render"];
+    
     if (!drawable) {
         return;
     }
-
-    // Create command buffer
-    id<MTLCommandBuffer> commandBuffer = [m_CommandQueue commandBuffer];
-
-    // Set up render pass descriptor with a simple clear color
+    
+    // Set up render pass descriptor with drawable texture
     MTLRenderPassDescriptor *renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-
+    
     // Create a nice gradient-like clear color based on time
     static float hue = 0.0f;
     hue += 0.001f;
@@ -83,11 +93,8 @@ void Application::OnRender(id<CAMetalDrawable> drawable)
 
     // Create render command encoder
     id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+    [renderEncoder setLabel:@"Triangle Rendering"];
     [renderEncoder setRenderPipelineState:m_GraphicsPipeline.GetPipelineState()];
     [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
     [renderEncoder endEncoding];
-
-    // Present drawable
-    [commandBuffer presentDrawable:drawable];
-    [commandBuffer commit];
 }

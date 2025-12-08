@@ -21,6 +21,17 @@ else()
     set(MACOS FALSE)
 endif()
 
+# ============================================================================
+# Third-party Libraries
+# ============================================================================
+
+# Add ImGui library
+add_subdirectory(thirdparty/imgui)
+
+# ============================================================================
+# Main Executable Target
+# ============================================================================
+
 # Collect all source files from src/
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.mm" "src/*.m" "src/*.c")
 
@@ -33,10 +44,32 @@ add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${SHADERS})
 # Add src/ to include directories
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
+# Link ImGui library
+target_link_libraries(${PROJECT_NAME} PRIVATE imgui)
+
 # Mark shader files as resources
 set_source_files_properties(${SHADERS} PROPERTIES
     MACOSX_PACKAGE_LOCATION Resources/shaders
 )
+
+# Copy entire assets folder into the app bundle
+# iOS: files go directly in the app bundle
+# macOS: files go in Contents/Resources
+if(IOS)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
+        COMMENT "Copying assets folder to iOS app bundle"
+    )
+else()
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/assets"
+        COMMENT "Copying assets folder to macOS app bundle"
+    )
+endif()
 
 # Platform-specific bundle properties
 if(IOS)
@@ -56,7 +89,7 @@ if(IOS)
     )
 
     # Link iOS frameworks
-    target_link_libraries(${PROJECT_NAME}
+    target_link_libraries(${PROJECT_NAME} PRIVATE
         "-framework Foundation"
         "-framework UIKit"
         "-framework Metal"
@@ -77,7 +110,7 @@ elseif(MACOS)
     )
 
     # Link macOS frameworks
-    target_link_libraries(${PROJECT_NAME}
+    target_link_libraries(${PROJECT_NAME} PRIVATE
         "-framework Foundation"
         "-framework Cocoa"
         "-framework Metal"
