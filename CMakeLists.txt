@@ -44,6 +44,12 @@ add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${SHADERS})
 # Add src/ to include directories
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
+# Enable ARC (Automatic Reference Counting) for Objective-C/Objective-C++ files
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>
+    $<$<COMPILE_LANGUAGE:OBJC>:-fobjc-arc>
+)
+
 # Link ImGui library
 target_link_libraries(${PROJECT_NAME} PRIVATE imgui)
 
@@ -95,6 +101,7 @@ if(IOS)
         "-framework Metal"
         "-framework MetalKit"
         "-framework QuartzCore"
+        "-framework GameController"
     )
 
 elseif(MACOS)

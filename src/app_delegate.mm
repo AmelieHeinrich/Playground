@@ -1,18 +1,86 @@
 #include "app_delegate.h"
+
 #import "metal_view.h"
+
 #include <objc/objc.h>
 #include <imgui.h>
 #include <imgui_impl_metal.h>
 
 #if !TARGET_OS_IPHONE
 #include <imgui_impl_osx.h>
+#else
+#import <GameController/GameController.h>
 #endif
 
 #if TARGET_OS_IPHONE
+
+API_AVAILABLE(ios(15.0))
+@interface PlaygroundViewController : UIViewController
+@property (assign, nonatomic) AppDelegate *appDelegate;
+@end
+
+@implementation PlaygroundViewController {
+    GCVirtualController *_virtualController;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    if (!_virtualController) {
+        GCVirtualControllerConfiguration* config = [[GCVirtualControllerConfiguration alloc] init];
+        config.elements = [NSSet setWithArray:@[
+            GCInputLeftThumbstick,
+            GCInputRightThumbstick
+        ]];
+        _virtualController = [[GCVirtualController alloc] initWithConfiguration:config];
+    }
+    
+    if (GCController.controllers.count == 0 && _virtualController != nil) {
+        [_virtualController connectWithReplyHandler:nil];
+    }
+}
+
+- (void)controllerDidConnect:(NSNotification *)notification {
+    if (_virtualController != nil) {
+        BOOL hasPhysicalController = NO;
+        for (GCController *controller in GCController.controllers) {
+            if (controller != _virtualController.controller) {
+                hasPhysicalController = YES;
+                break;
+            }
+        }
+        if (hasPhysicalController) {
+            [_virtualController disconnect];
+        }
+    }
+}
+
+- (void)controllerDidDisconnect:(NSNotification *)notification {
+    if (GCController.controllers.count == 0 && _virtualController != nil) {
+        [_virtualController connectWithReplyHandler:nil];
+    }
+}
+
+- (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
+    [super traitCollectionDidChange:previousTraitCollection];
+    
+    if (@available(iOS 13.0, *)) {
+        if (self.traitCollection.userInterfaceStyle != previousTraitCollection.userInterfaceStyle) {
+            [self.appDelegate updateImGuiTheme];
+            NSLog(@"Theme changed to: %@", 
+                  self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark ? @"Dark" : @"Light");
+        }
+    }
+}
+
+@end
+
 // iOS Implementation
+API_AVAILABLE(ios(15.0))
 @implementation AppDelegate {
     Application *_application;
     CFTimeInterval _lastFrameTime;
+    PlaygroundViewController *_viewController;
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
@@ -36,11 +104,12 @@
     self.metalView.preferredFramesPerSecond = 60;
     self.metalView.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
 
-    // Create a view controller for the Metal view
-    UIViewController *rootViewController = [[UIViewController alloc] init];
-    rootViewController.view = self.metalView;
+    // Create a custom view controller for the Metal view
+    _viewController = [[PlaygroundViewController alloc] init];
+    _viewController.view = self.metalView;
+    _viewController.appDelegate = self;
 
-    self.window.rootViewController = rootViewController;
+    self.window.rootViewController = _viewController;
     [self.window makeKeyAndVisible];
 
     // Create command queue
@@ -98,14 +167,6 @@
     CGSize size = self.metalView.drawableSize;
     _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
 
-    // Observe trait collection changes for theme updates
-    if (@available(iOS 13.0, *)) {
-        [self.window.rootViewController.view addObserver:self
-                                              forKeyPath:@"traitCollection"
-                                                 options:NSKeyValueObservingOptionNew
-                                                 context:nil];
-    }
-
     return YES;
 }
 
@@ -127,16 +188,6 @@
 #endif
 }
 
-- (void)observeValueForKeyPath:(NSString *)keyPath
-                      ofObject:(id)object
-                        change:(NSDictionary *)change
-                       context:(void *)context {
-    if ([keyPath isEqualToString:@"traitCollection"]) {
-        [self updateImGuiTheme];
-        NSLog(@"Theme changed");
-    }
-}
-
 - (void)applicationWillResignActive:(UIApplication *)application {
     // Sent when the application is about to move from active to inactive state
 }
@@ -155,10 +206,6 @@
 
 - (void)applicationWillTerminate:(UIApplication *)application {
     // Called when the application is about to terminate
-    if (@available(iOS 13.0, *)) {
-        [self.window.rootViewController.view removeObserver:self forKeyPath:@"traitCollection"];
-    }
-
     ImGui_ImplMetal_Shutdown();
     ImGui::DestroyContext();
 

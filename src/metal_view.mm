@@ -11,16 +11,12 @@
 
 - (void)keyDown:(NSEvent *)event
 {
-    if (![self.delegate respondsToSelector:@selector(keyDown:)]) {
-        [super keyDown:event];
-    }
+    
 }
 
 - (void)keyUp:(NSEvent *)event
 {
-    if (![self.delegate respondsToSelector:@selector(keyUp:)]) {
-        [super keyUp:event];
-    }
+    
 }
 
 #endif
