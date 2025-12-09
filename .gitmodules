@@ -1,0 +1,3 @@
+[submodule "thirdparty/libktx"]
+	path = thirdparty/libktx
+	url = https://github.com/KhronosGroup/KTX-Software
