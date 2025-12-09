@@ -26,38 +26,82 @@ API_AVAILABLE(ios(15.0))
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    if (!_virtualController) {
-        GCVirtualControllerConfiguration* config = [[GCVirtualControllerConfiguration alloc] init];
-        config.elements = [NSSet setWithArray:@[
-            GCInputLeftThumbstick,
-            GCInputRightThumbstick
-        ]];
-        _virtualController = [[GCVirtualController alloc] initWithConfiguration:config];
-    }
+    // Set up controller notifications
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(controllerDidConnect:)
+                                                 name:GCControllerDidConnectNotification
+                                               object:nil];
     
-    if (GCController.controllers.count == 0 && _virtualController != nil) {
-        [_virtualController connectWithReplyHandler:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(controllerDidDisconnect:)
+                                                 name:GCControllerDidDisconnectNotification
+                                               object:nil];
+    
+    // Set up virtual controller (iOS 15.0+)
+    if (@available(iOS 15.0, *)) {
+        if (!_virtualController) {
+            GCVirtualControllerConfiguration* config = [[GCVirtualControllerConfiguration alloc] init];
+            config.elements = [NSSet setWithArray:@[
+                GCInputLeftThumbstick,
+            ]];
+            _virtualController = [[GCVirtualController alloc] initWithConfiguration:config];
+        }
     }
 }
 
-- (void)controllerDidConnect:(NSNotification *)notification {
-    if (_virtualController != nil) {
-        BOOL hasPhysicalController = NO;
-        for (GCController *controller in GCController.controllers) {
-            if (controller != _virtualController.controller) {
-                hasPhysicalController = YES;
-                break;
-            }
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    
+    // Connect virtual controller if no physical controllers are present (iOS 15.0+)
+    if (@available(iOS 15.0, *)) {
+        if (GCController.controllers.count == 0 && _virtualController != nil) {
+            [_virtualController connectWithReplyHandler:^(NSError * _Nullable error) {
+                if (error) {
+                    NSLog(@"Failed to connect virtual controller: %@", error);
+                } else {
+                    NSLog(@"Virtual controller connected successfully");
+                }
+            }];
         }
-        if (hasPhysicalController) {
+    }
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    if (@available(iOS 15.0, *)) {
+        if (_virtualController) {
             [_virtualController disconnect];
         }
     }
 }
 
+- (void)controllerDidConnect:(NSNotification *)notification {
+    if (@available(iOS 15.0, *)) {
+        if (_virtualController != nil) {
+            BOOL hasPhysicalController = NO;
+            for (GCController *controller in GCController.controllers) {
+                if (controller != _virtualController.controller) {
+                    hasPhysicalController = YES;
+                    break;
+                }
+            }
+            if (hasPhysicalController) {
+                NSLog(@"Physical controller connected. Disconnecting virtual controller");
+                [_virtualController disconnect];
+            }
+        }
+    }
+}
+
 - (void)controllerDidDisconnect:(NSNotification *)notification {
-    if (GCController.controllers.count == 0 && _virtualController != nil) {
-        [_virtualController connectWithReplyHandler:nil];
+    if (@available(iOS 15.0, *)) {
+        if (GCController.controllers.count == 0 && _virtualController != nil) {
+            [_virtualController connectWithReplyHandler:^(NSError * _Nullable error) {
+                if (error) {
+                    NSLog(@"Failed to connect virtual controller: %@", error);
+                }
+            }];
+        }
     }
 }
 
@@ -76,7 +120,6 @@ API_AVAILABLE(ios(15.0))
 @end
 
 // iOS Implementation
-API_AVAILABLE(ios(15.0))
 @implementation AppDelegate {
     Application *_application;
     CFTimeInterval _lastFrameTime;
@@ -104,10 +147,14 @@ API_AVAILABLE(ios(15.0))
     self.metalView.preferredFramesPerSecond = 60;
     self.metalView.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
 
-    // Create a custom view controller for the Metal view
+    // Create a custom view controller
     _viewController = [[PlaygroundViewController alloc] init];
-    _viewController.view = self.metalView;
     _viewController.appDelegate = self;
+    
+    // Add MetalView as a subview so virtual controller can display on top
+    self.metalView.frame = _viewController.view.bounds;
+    self.metalView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    [_viewController.view addSubview:self.metalView];
 
     self.window.rootViewController = _viewController;
     [self.window makeKeyAndVisible];
@@ -122,6 +169,8 @@ API_AVAILABLE(ios(15.0))
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    
+    io.FontGlobalScale = 0.6f;
 
     // Setup Dear ImGui style based on system appearance
 #if TARGET_OS_IPHONE
