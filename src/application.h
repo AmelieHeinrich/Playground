@@ -49,6 +49,7 @@ private:
     uint32_t m_Height;
 
     GraphicsPipeline m_GraphicsPipeline;
+    id<MTLTexture> m_Texture;
 
     Camera m_Camera;
 

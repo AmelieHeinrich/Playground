@@ -14,7 +14,6 @@ GraphicsPipeline GraphicsPipeline::Create(const GraphicsPipelineDesc& desc)
     MTLRenderPipelineDescriptor* descriptor = [[MTLRenderPipelineDescriptor alloc] init];
     if (shader.HasStage(ShaderStage::VERTEX)) descriptor.vertexFunction = shader.GetFunction(ShaderStage::VERTEX);
     if (shader.HasStage(ShaderStage::FRAGMENT)) descriptor.fragmentFunction = shader.GetFunction(ShaderStage::FRAGMENT);
-    descriptor.supportIndirectCommandBuffers = YES;
 
     for (int i = 0; i < desc.ColorFormats.size(); ++i) {
         descriptor.colorAttachments[i].pixelFormat = desc.ColorFormats[i];

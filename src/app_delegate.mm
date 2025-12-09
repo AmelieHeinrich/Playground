@@ -25,18 +25,18 @@ API_AVAILABLE(ios(15.0))
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    
+
     // Set up controller notifications
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(controllerDidConnect:)
                                                  name:GCControllerDidConnectNotification
                                                object:nil];
-    
+
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(controllerDidDisconnect:)
                                                  name:GCControllerDidDisconnectNotification
                                                object:nil];
-    
+
     // Set up virtual controller (iOS 15.0+)
     if (@available(iOS 15.0, *)) {
         if (!_virtualController) {
@@ -51,7 +51,7 @@ API_AVAILABLE(ios(15.0))
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    
+
     // Connect virtual controller if no physical controllers are present (iOS 15.0+)
     if (@available(iOS 15.0, *)) {
         if (GCController.controllers.count == 0 && _virtualController != nil) {
@@ -107,11 +107,11 @@ API_AVAILABLE(ios(15.0))
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
     [super traitCollectionDidChange:previousTraitCollection];
-    
+
     if (@available(iOS 13.0, *)) {
         if (self.traitCollection.userInterfaceStyle != previousTraitCollection.userInterfaceStyle) {
             [self.appDelegate updateImGuiTheme];
-            NSLog(@"Theme changed to: %@", 
+            NSLog(@"Theme changed to: %@",
                   self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark ? @"Dark" : @"Light");
         }
     }
@@ -150,7 +150,7 @@ API_AVAILABLE(ios(15.0))
     // Create a custom view controller
     _viewController = [[PlaygroundViewController alloc] init];
     _viewController.appDelegate = self;
-    
+
     // Add MetalView as a subview so virtual controller can display on top
     self.metalView.frame = _viewController.view.bounds;
     self.metalView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
@@ -169,7 +169,7 @@ API_AVAILABLE(ios(15.0))
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    
+
     io.FontGlobalScale = 0.6f;
 
     // Setup Dear ImGui style based on system appearance
@@ -193,7 +193,7 @@ API_AVAILABLE(ios(15.0))
     // Load custom font
     NSString* fontPath = [[NSBundle mainBundle] pathForResource:@"SFMonoRegular"
                                                          ofType:@"ttf"
-                                                    inDirectory:@"assets/fonts"];
+                                                    inDirectory:@"fonts"];
     if (fontPath) {
         io.FontDefault = io.Fonts->AddFontFromFileTTF([fontPath UTF8String], 16.0f);
         NSLog(@"Loaded SF Mono font from: %@", fontPath);
@@ -219,7 +219,7 @@ API_AVAILABLE(ios(15.0))
     return YES;
 }
 
-- (UIInterfaceOrientationMask)application:(UIApplication *)application 
+- (UIInterfaceOrientationMask)application:(UIApplication *)application
     supportedInterfaceOrientationsForWindow:(UIWindow *)window {
     return UIInterfaceOrientationMaskLandscape;
 }
@@ -436,7 +436,7 @@ API_AVAILABLE(ios(15.0))
     // Load custom font
     NSString* fontPath = [[NSBundle mainBundle] pathForResource:@"SFMonoRegular"
                                                          ofType:@"ttf"
-                                                    inDirectory:@"assets/fonts"];
+                                                    inDirectory:@"fonts"];
     if (fontPath) {
         io.FontDefault = io.Fonts->AddFontFromFileTTF([fontPath UTF8String], 16.0f);
         NSLog(@"Loaded SF Mono font from: %@", fontPath);

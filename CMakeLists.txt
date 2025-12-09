@@ -38,8 +38,14 @@ file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.mm" "src/*.m" "src/*.c")
 # Collect all shader files from assets/shaders/
 file(GLOB_RECURSE SHADERS "assets/shaders/*.msl" "assets/shaders/*.metal")
 
+# Collect all texture files from assets/textures/
+file(GLOB_RECURSE TEXTURES "assets/textures/*")
+
+# Collect all font files from assets/fonts/
+file(GLOB_RECURSE FONTS "assets/fonts/*")
+
 # Create the executable as an application bundle (works for both macOS and iOS)
-add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${SHADERS})
+add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${SHADERS} ${TEXTURES} ${FONTS})
 
 # Add src/ to include directories
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -58,22 +64,44 @@ set_source_files_properties(${SHADERS} PROPERTIES
     MACOSX_PACKAGE_LOCATION Resources/shaders
 )
 
-# Copy entire assets folder into the app bundle
+# Mark texture files as resources
+set_source_files_properties(${TEXTURES} PROPERTIES
+    MACOSX_PACKAGE_LOCATION Resources/textures
+)
+
+# Mark font files as resources
+set_source_files_properties(${FONTS} PROPERTIES
+    MACOSX_PACKAGE_LOCATION Resources/fonts
+)
+
+# Copy asset subdirectories into the app bundle
 # iOS: files go directly in the app bundle
 # macOS: files go in Contents/Resources
 if(IOS)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
-        COMMENT "Copying assets folder to iOS app bundle"
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/textures"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/textures"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/fonts"
+        COMMENT "Copying asset subdirectories to iOS app bundle"
     )
 else()
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/assets"
-        COMMENT "Copying assets folder to macOS app bundle"
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/shaders"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/textures"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/textures"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/fonts"
+        COMMENT "Copying asset subdirectories to macOS app bundle"
     )
 endif()
 
@@ -85,13 +113,13 @@ if(IOS)
         MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.example.${PROJECT_NAME}"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "amelieheinrich.${PROJECT_NAME}"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info-iOS.plist.in"
         XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"  # iPhone and iPad
         XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "13.0"
         XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
         XCODE_ATTRIBUTE_DEVELOPMENT_TEAM ""
-        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.example.${PROJECT_NAME}"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "amelieheinrich.${PROJECT_NAME}"
     )
 
     # Link iOS frameworks
@@ -111,7 +139,7 @@ elseif(MACOS)
         MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.example.${PROJECT_NAME}"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "amelieheinrich.${PROJECT_NAME}"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info-macOS.plist.in"
         XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET "10.15"
     )

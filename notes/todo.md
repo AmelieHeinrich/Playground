@@ -2,7 +2,8 @@
 
 - [x] Hello triangle
 - [x] ImGui
-- [ ] Camera controls on mac and ios
+- [x] Camera controls on mac and ios
+- [ ] Load a compressed texture
 - [ ] Load a model
 - [ ] Add lights
 - [ ] Pathtracing mode
