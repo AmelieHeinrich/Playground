@@ -1,0 +1,250 @@
+#include "mesh_loader.h"
+#include "asset/texture_cache.h"
+#include "ktx2_loader.h"
+#include "metal/device.h"
+#include "texture_cache.h"
+
+#include <fs.h>
+#include <iostream>
+
+struct L_SubmeshData {
+    uint32_t IndexOffset;
+    uint32_t IndexCount;
+    uint32_t MaterialIndex;
+};
+
+struct L_MaterialData {
+    char AlbedoPath[256];
+    char NormalPath[256];
+};
+
+struct vec3 {
+    float x, y, z;
+};
+
+struct L_StaticMeshHeader {
+    uint32_t VertexCount;
+    uint32_t IndexCount;
+    uint32_t VertexFormat;
+    uint32_t IndexFormat;
+    uint32_t SubmeshCount;
+    uint32_t MaterialCount;
+    vec3 Min;
+    vec3 Max;
+    uint32_t SubmeshTableOffset;
+    uint32_t MaterialTableOffset;
+    uint32_t VBOffset;
+    uint32_t VBSize;
+    uint32_t IBOffset;
+    uint32_t IBSize;
+};
+
+// Helper function to convert texture path to .ktx2 format
+static std::string ConvertToKTX2Path(const std::string& originalPath)
+{
+    // Find the last dot in the path
+    size_t lastDot = originalPath.find_last_of('.');
+    if (lastDot == std::string::npos) {
+        // No extension found, just append .ktx2
+        return originalPath + ".ktx2";
+    }
+
+    // Replace the extension with .ktx2
+    return originalPath.substr(0, lastDot) + ".ktx2";
+}
+
+// Helper function to make texture path relative to model path
+static std::string MakeRelativeTexturePath(const std::string& modelPath, const std::string& texturePath)
+{
+    // Find the directory of the model file
+    size_t lastSlash = modelPath.find_last_of('/');
+    if (lastSlash == std::string::npos) {
+        // Model is in root, return texture path as-is
+        return texturePath;
+    }
+
+    // Get the directory path (everything before the last slash)
+    std::string modelDir = modelPath.substr(0, lastSlash + 1);
+
+    // Combine model directory with texture path
+    return modelDir + texturePath;
+}
+
+Model::~Model()
+{
+    Cleanup();
+}
+
+void Model::Cleanup()
+{
+    // Release textures
+    Textures.clear();
+
+    // Release vertex buffer and index buffer (shared across all meshes, so only release once)
+    if (!Meshes.empty()) {
+        if (Meshes[0].VertexBuffer) {
+            [Meshes[0].VertexBuffer release];
+        }
+        if (Meshes[0].IndexBuffer) {
+            [Meshes[0].IndexBuffer release];
+        }
+    }
+
+    // Clear all data
+    Meshes.clear();
+    Materials.clear();
+}
+
+bool Model::Load(const std::string& path)
+{
+    // Load the binary mesh file
+    fs::BinaryResult result = fs::LoadBinaryFile(path);
+    if (!result.success) {
+        NSLog(@"Failed to load model from path: %s, error: %s", path.c_str(), result.error.c_str());
+        return false;
+    }
+
+    const uint8_t* bytes = result.data.data();
+    size_t fileSize = result.data.size();
+
+    // Read header
+    if (fileSize < sizeof(L_StaticMeshHeader)) {
+        NSLog(@"File too small to contain valid mesh header");
+        return false;
+    }
+
+    L_StaticMeshHeader header;
+    memcpy(&header, bytes, sizeof(L_StaticMeshHeader));
+
+    NSLog(@"Loading mesh: %d vertices, %d indices, %d submeshes, %d materials",
+          header.VertexCount, header.IndexCount, header.SubmeshCount, header.MaterialCount);
+
+    // Read submesh data
+    L_SubmeshData* submeshData = (L_SubmeshData*)(bytes + header.SubmeshTableOffset);
+
+    // Read material data
+    L_MaterialData* materialData = (L_MaterialData*)(bytes + header.MaterialTableOffset);
+
+    // Get vertex and index data pointers
+    const Vertex* vertexData = (Vertex*)(bytes + header.VBOffset);
+    const uint32_t* indexData = (uint32_t*)(bytes + header.IBOffset);
+
+    // Create vertex buffer (single buffer for all submeshes)
+    id<MTLBuffer> vertexBuffer = [Device::GetDevice() newBufferWithBytes:vertexData
+                                                      length:header.VBSize
+                                                     options:MTLResourceStorageModeShared];
+    if (!vertexBuffer) {
+        NSLog(@"Failed to create vertex buffer");
+        return false;
+    }
+    vertexBuffer.label = @"Mesh Vertex Buffer";
+
+    // Create index buffer for this model
+    id<MTLBuffer> indexBuffer = [Device::GetDevice() newBufferWithBytes:indexData
+                                                     length:header.IBSize
+                                                    options:MTLResourceStorageModeShared];
+    if (!indexBuffer) {
+        NSLog(@"Failed to create index buffer");
+        [vertexBuffer release];
+        return false;
+    }
+    indexBuffer.label = @"Mesh Index Buffer";
+
+    // Load textures and build texture array
+    Textures.clear();
+    std::unordered_map<std::string, int> texturePathToIndex;
+
+    for (uint32_t i = 0; i < header.MaterialCount; i++) {
+        // Process albedo texture
+        if (materialData[i].AlbedoPath[0] != '\0') {
+            std::string albedoPath(materialData[i].AlbedoPath);
+            if (texturePathToIndex.find(albedoPath) == texturePathToIndex.end()) {
+                int texIndex = (int)Textures.size();
+                texturePathToIndex[albedoPath] = texIndex;
+
+                // Convert to .ktx2 format and make relative to model path
+                std::string ktx2Path = ConvertToKTX2Path(albedoPath);
+                std::string fullPath = MakeRelativeTexturePath(path, ktx2Path);
+
+                MeshTexture tex;
+                tex.Texture = TextureCache::GetTexture(fullPath);
+                if (tex.Texture) {
+                    Textures.push_back(tex);
+                } else {
+                    NSLog(@"Failed to load albedo texture: %s", fullPath.c_str());
+                    // Still add a null entry to maintain indices
+                    Textures.push_back(tex);
+                }
+            }
+        }
+
+        // Process normal texture
+        if (materialData[i].NormalPath[0] != '\0') {
+            std::string normalPath(materialData[i].NormalPath);
+            if (texturePathToIndex.find(normalPath) == texturePathToIndex.end()) {
+                int texIndex = Textures.size();
+                texturePathToIndex[normalPath] = texIndex;
+
+                // Convert to .ktx2 format and make relative to model path
+                std::string ktx2Path = ConvertToKTX2Path(normalPath);
+                std::string fullPath = MakeRelativeTexturePath(path, ktx2Path);
+
+                MeshTexture tex;
+                tex.Texture = KTX2Loader::LoadKTX2(fullPath);
+                if (tex.Texture) {
+                    Textures.push_back(tex);
+                } else {
+                    NSLog(@"Failed to load normal texture: %s", fullPath.c_str());
+                    // Still add a null entry to maintain indices
+                    Textures.push_back(tex);
+                }
+            }
+        }
+    }
+
+    // Build materials with texture indices
+    Materials.clear();
+    Materials.reserve(header.MaterialCount);
+    for (uint32_t i = 0; i < header.MaterialCount; i++) {
+        MeshMaterial mat;
+        mat.AlbedoIndex = -1;
+        mat.NormalIndex = -1;
+        mat.PBRIndex = -1;
+
+        if (materialData[i].AlbedoPath[0] != '\0') {
+            std::string albedoPath(materialData[i].AlbedoPath);
+            auto it = texturePathToIndex.find(albedoPath);
+            if (it != texturePathToIndex.end()) {
+                mat.AlbedoIndex = it->second;
+            }
+        }
+
+        if (materialData[i].NormalPath[0] != '\0') {
+            std::string normalPath(materialData[i].NormalPath);
+            auto it = texturePathToIndex.find(normalPath);
+            if (it != texturePathToIndex.end()) {
+                mat.NormalIndex = it->second;
+            }
+        }
+
+        Materials.push_back(mat);
+    }
+
+    // Build submeshes
+    Meshes.clear();
+    Meshes.reserve(header.SubmeshCount);
+    for (uint32_t i = 0; i < header.SubmeshCount; i++) {
+        Mesh mesh;
+        mesh.VertexBuffer = vertexBuffer;
+        mesh.IndexBuffer = indexBuffer;
+        mesh.IndexOffset = submeshData[i].IndexOffset;
+        mesh.IndexCount = submeshData[i].IndexCount;
+        mesh.MaterialIndex = submeshData[i].MaterialIndex;
+        Meshes.push_back(mesh);
+    }
+
+    NSLog(@"Successfully loaded mesh with %lu submeshes, %lu materials, %lu textures",
+          Meshes.size(), Materials.size(), Textures.size());
+
+    return true;
+}

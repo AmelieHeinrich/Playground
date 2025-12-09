@@ -101,6 +101,7 @@ Temporary Items
 # ASTC, compressed GLTF
 *.astc
 *.mesh
+*.ktx2
 
 # Package managers
 .conan/

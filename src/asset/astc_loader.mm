@@ -1,7 +1,9 @@
 #include "astc_loader.h"
+#include "mipmapper.h"
 #include "fs.h"
 
 #include <metal/device.h>
+#include <cmath>
 
 struct AstcHeader {
     uint8_t magic[4];
@@ -32,6 +34,18 @@ static MTLPixelFormat astcToPixelFormat(uint8_t bx, uint8_t by) {
     return MTLPixelFormatInvalid;
 }
 
+static uint32_t CalculateMipLevels(uint32_t width, uint32_t height) {
+    uint32_t levels = 1;
+    uint32_t dimension = std::max(width, height);
+    
+    while (dimension > 1) {
+        dimension >>= 1;
+        levels++;
+    }
+    
+    return levels;
+}
+
 id<MTLTexture> ASTCLoader::LoadASTC(const std::string& path)
 {
     auto file = fs::LoadBinaryFile(path);
@@ -39,9 +53,14 @@ id<MTLTexture> ASTCLoader::LoadASTC(const std::string& path)
         NSLog(@"Failed to load ASTC file: %s", file.error.c_str());
         return nil;
     }
-    
+
     uint8_t* fileData = file.data.data();
     uint64_t fileSize = file.data.size();
+
+    if (fileSize < 16) {
+        NSLog(@"ASTC file too small: %s", path.c_str());
+        return nil;
+    }
 
     // Parse header
     AstcHeader header;
@@ -53,68 +72,65 @@ id<MTLTexture> ASTCLoader::LoadASTC(const std::string& path)
     header.dimY = read24(fileData + 10);
     header.dimZ = read24(fileData + 13);
 
+    // Validate magic number
+    if (header.magic[0] != 0x13 || header.magic[1] != 0xAB ||
+        header.magic[2] != 0xA1 || header.magic[3] != 0x5C) {
+        NSLog(@"Invalid ASTC magic number in file: %s", path.c_str());
+        return nil;
+    }
+
     MTLPixelFormat format = astcToPixelFormat(header.blockDimX, header.blockDimY);
-    if (format == MTLPixelFormatInvalid) return nil;
+    if (format == MTLPixelFormatInvalid) {
+        NSLog(@"Unsupported ASTC block size %ux%u", header.blockDimX, header.blockDimY);
+        return nil;
+    }
 
     uint32_t width  = header.dimX;
     uint32_t height = header.dimY;
 
-    // Assume file contains mips sequentially
-    // Compute how many mips until the data ends
-    std::vector<size_t> mipOffsets;
-    std::vector<size_t> mipSizes;
+    // Calculate number of mip levels
+    uint32_t mipCount = CalculateMipLevels(width, height);
 
-    size_t offset = 16;
-    uint32_t w = width, h = height;
+    // Calculate the size of the base mip level
+    uint32_t blocksX = (width + header.blockDimX - 1) / header.blockDimX;
+    uint32_t blocksY = (height + header.blockDimY - 1) / header.blockDimY;
+    size_t baseMipSize = blocksX * blocksY * 16; // ASTC blocks are always 16 bytes
 
-    while (offset < fileSize) {
-        uint32_t blocksX = (w + header.blockDimX - 1) / header.blockDimX;
-        uint32_t blocksY = (h + header.blockDimY - 1) / header.blockDimY;
-
-        size_t mipSize = blocksX * blocksY * 16;
-
-        mipOffsets.push_back(offset);
-        mipSizes.push_back(mipSize);
-
-        offset += mipSize;
-
-        // Next mip
-        w = std::max(1u, w >> 1);
-        h = std::max(1u, h >> 1);
-        if (w == 1 && h == 1) break;
+    // Verify we have enough data for the base mip
+    if (fileSize < 16 + baseMipSize) {
+        NSLog(@"ASTC file doesn't contain enough data for base mip: %s", path.c_str());
+        return nil;
     }
 
-    NSUInteger mipCount = mipOffsets.size();
-
-    // --- Create Metal texture ---
+    // Create Metal texture descriptor with mipmaps
     MTLTextureDescriptor *desc =
         [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:format
                                                            width:width
                                                           height:height
-                                                       mipmapped:(mipCount > 1)];
+                                                       mipmapped:YES];
     desc.usage = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
+    desc.mipmapLevelCount = mipCount;
 
     id<MTLTexture> texture = [Device::GetDevice() newTextureWithDescriptor:desc];
+    texture.label = [NSString stringWithFormat:@"%s", path.c_str()];
 
-    // Upload mips
-    for (NSUInteger mip = 0; mip < mipCount; ++mip) {
-        w = std::max(1u, width  >> mip);
-        h = std::max(1u, height >> mip);
+    // Upload base mip level (level 0)
+    uint32_t bytesPerRow = blocksX * 16;
+    MTLRegion region = {
+        {0, 0, 0},
+        {width, height, 1}
+    };
 
-        // Calculate bytes per row for compressed format
-        uint32_t blocksX = (w + header.blockDimX - 1) / header.blockDimX;
-        uint32_t bytesPerRow = blocksX * 16; // ASTC blocks are always 16 bytes
+    [texture replaceRegion:region
+              mipmapLevel:0
+                withBytes:fileData + 16
+              bytesPerRow:bytesPerRow];
 
-        MTLRegion region = {
-            {0,0,0},
-            {w,h,1}
-        };
+    // Request mipmap generation
+    Mipmapper::RequestMipmaps(texture);
 
-        [texture replaceRegion:region
-                  mipmapLevel:mip
-                    withBytes:fileData + mipOffsets[mip]
-                  bytesPerRow:bytesPerRow];
-    }
+    NSLog(@"Loaded ASTC texture: %s (%ux%u, %u mip levels requested)", 
+          path.c_str(), width, height, mipCount);
 
     return texture;
 }

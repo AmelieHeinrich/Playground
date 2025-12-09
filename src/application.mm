@@ -1,5 +1,6 @@
 #include "application.h"
 #include "asset/astc_loader.h"
+#include "asset/texture_cache.h"
 #include "metal/graphics_pipeline.h"
 
 #import <Metal/Metal.h>
@@ -21,7 +22,7 @@ Application::Application()
 
 Application::~Application()
 {
-    // Release Metal resources
+    TextureCache::Shutdown();
     m_CommandQueue = nil;
     m_Device = nil;
 }
@@ -45,11 +46,14 @@ bool Application::Initialize(id<MTLDevice> device)
 
     // Test pipeline
     GraphicsPipelineDesc desc;
-    desc.Path = "shaders/triangle.metal";
+    desc.Path = "shaders/model.metal";
     desc.ColorFormats = {MTLPixelFormatBGRA8Unorm};
+    desc.DepthEnabled = true;
+    desc.DepthFormat = MTLPixelFormatDepth32Float;
+    desc.DepthFunc = MTLCompareFunctionLess;
 
     m_GraphicsPipeline = GraphicsPipeline::Create(desc);
-    m_Texture = ASTCLoader::LoadASTC("textures/hachiware.astc");
+    m_Model.Load("models/Sponza/Sponza.mesh");
 
     NSLog(@"Application initialized successfully with Metal device: %@", [m_Device name]);
     return true;
@@ -63,6 +67,15 @@ void Application::OnResize(uint32_t width, uint32_t height)
     if (height > 0) {
         float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
         m_Camera.SetAspectRatio(aspectRatio);
+    }
+
+    // Resize depth buffer
+    MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:m_Width height:m_Height mipmapped:NO];
+    descriptor.usage = MTLTextureUsageRenderTarget;
+    m_DepthBuffer = [m_Device newTextureWithDescriptor:descriptor];
+    if (!m_DepthBuffer) {
+        NSLog(@"Failed to resize Metal depth buffer");
+        return;
     }
 
     NSLog(@"Application resized to: %ux%u", width, height);
@@ -103,6 +116,10 @@ void Application::OnRender(id<MTLCommandBuffer> commandBuffer, id<CAMetalDrawabl
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+    renderPassDescriptor.depthAttachment.texture = m_DepthBuffer;
+    renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
+    renderPassDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
+    renderPassDescriptor.depthAttachment.clearDepth = 1.0;
 
     // Create a nice gradient-like clear color based on time
     static float hue = 0.0f;
@@ -122,8 +139,14 @@ void Application::OnRender(id<MTLCommandBuffer> commandBuffer, id<CAMetalDrawabl
     id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
     [renderEncoder setLabel:@"Triangle Rendering"];
     [renderEncoder setRenderPipelineState:m_GraphicsPipeline.GetPipelineState()];
+    [renderEncoder setDepthStencilState:m_GraphicsPipeline.GetDepthStencilState()];
     [renderEncoder setVertexBytes:&matrix length:sizeof(matrix) atIndex:0];
-    [renderEncoder setFragmentTexture:m_Texture atIndex:0];
-    [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+    for (auto& mesh : m_Model.Meshes) {
+        id<MTLTexture> albedo = m_Model.Textures[m_Model.Materials[mesh.MaterialIndex].AlbedoIndex].Texture;
+
+        [renderEncoder setVertexBuffer:mesh.VertexBuffer offset:0 atIndex:1];
+        [renderEncoder setFragmentTexture:albedo atIndex:0];
+        [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:mesh.IndexCount indexType:MTLIndexTypeUInt32 indexBuffer:mesh.IndexBuffer indexBufferOffset:mesh.IndexOffset * sizeof(uint32_t)];
+    }
     [renderEncoder endEncoding];
 }

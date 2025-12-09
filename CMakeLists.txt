@@ -29,6 +29,13 @@ endif()
 add_subdirectory(thirdparty/imgui)
 
 # ============================================================================
+# Tools
+# ============================================================================
+
+# Add tools subdirectory
+add_subdirectory(tools)
+
+# ============================================================================
 # Main Executable Target
 # ============================================================================
 
@@ -44,8 +51,11 @@ file(GLOB_RECURSE TEXTURES "assets/textures/*")
 # Collect all font files from assets/fonts/
 file(GLOB_RECURSE FONTS "assets/fonts/*")
 
+# Collect all model files from assets/models/
+file(GLOB_RECURSE MODELS "assets/models/*")
+
 # Create the executable as an application bundle (works for both macOS and iOS)
-add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${SHADERS} ${TEXTURES} ${FONTS})
+add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${SHADERS} ${TEXTURES} ${FONTS} ${MODELS})
 
 # Add src/ to include directories
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -74,6 +84,11 @@ set_source_files_properties(${FONTS} PROPERTIES
     MACOSX_PACKAGE_LOCATION Resources/fonts
 )
 
+# Mark model files as resources
+set_source_files_properties(${MODELS} PROPERTIES
+    MACOSX_PACKAGE_LOCATION Resources/models
+)
+
 # Copy asset subdirectories into the app bundle
 # iOS: files go directly in the app bundle
 # macOS: files go in Contents/Resources
@@ -88,6 +103,9 @@ if(IOS)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
             "$<TARGET_FILE_DIR:${PROJECT_NAME}>/fonts"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/models"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/models"
         COMMENT "Copying asset subdirectories to iOS app bundle"
     )
 else()
@@ -101,6 +119,9 @@ else()
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
             "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/fonts"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/models"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/models"
         COMMENT "Copying asset subdirectories to macOS app bundle"
     )
 endif()

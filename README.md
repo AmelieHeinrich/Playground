@@ -6,6 +6,7 @@ Playground where I mess around with Metal on iOS and macOS.
 
 - iOS 15.0+
 - macOS 13.0+
+- KTX Texture Tools (for ASTC compression)
 
 ## Building and running
 

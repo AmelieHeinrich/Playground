@@ -1,5 +1,6 @@
 #pragma once
 
+#include "asset/mesh_loader.h"
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 
@@ -48,8 +49,9 @@ private:
     uint32_t m_Width;
     uint32_t m_Height;
 
+    id<MTLTexture> m_DepthBuffer;
     GraphicsPipeline m_GraphicsPipeline;
-    id<MTLTexture> m_Texture;
+    Model m_Model;
 
     Camera m_Camera;
 
