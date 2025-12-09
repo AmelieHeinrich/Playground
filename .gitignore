@@ -98,6 +98,10 @@ Temporary Items
 *.tmp
 *.temp
 
+# ASTC, compressed GLTF
+*.astc
+*.mesh
+
 # Package managers
 .conan/
 vcpkg_installed/
