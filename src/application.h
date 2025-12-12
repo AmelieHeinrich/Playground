@@ -3,6 +3,7 @@
 #include "asset/mesh_loader.h"
 #include "metal/residency_set.h"
 #include "metal/texture.h"
+#include "renderer/world.h"
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 
@@ -54,8 +55,7 @@ private:
 
     Texture m_DepthBuffer;
     GraphicsPipeline m_GraphicsPipeline;
-    Model m_Model;
-
+    World m_World;
     Camera m_Camera;
 
 #if TARGET_OS_IPHONE

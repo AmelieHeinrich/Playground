@@ -84,8 +84,14 @@ file(GLOB_RECURSE FONTS "assets/fonts/*")
 # Collect all model files from assets/models/
 file(GLOB_RECURSE MODELS "assets/models/*")
 
+set_source_files_properties(
+    ${CMAKE_SOURCE_DIR}/raw_assets/AppAssets.xcassets
+    PROPERTIES
+    MACOSX_PACKAGE_LOCATION Resources
+)
+
 # Create the executable as an application bundle (works for both macOS and iOS)
-add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${SHADERS})
+add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${SHADERS} ${CMAKE_SOURCE_DIR}/raw_assets/AppAssets.xcassets)
 
 # Source group for Xcode
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SOURCES} ${HEADERS})
@@ -182,6 +188,7 @@ if(IOS)
         XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
         XCODE_ATTRIBUTE_DEVELOPMENT_TEAM ""
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "amelieheinrich.${PROJECT_NAME}"
+        XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon iOS"
     )
 
     # Link iOS frameworks
@@ -204,6 +211,7 @@ elseif(MACOS)
         MACOSX_BUNDLE_GUI_IDENTIFIER "amelieheinrich.${PROJECT_NAME}"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info-macOS.plist.in"
         XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET "10.15"
+        XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon macOS"
     )
 
     # Link macOS frameworks

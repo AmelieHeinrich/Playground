@@ -11,7 +11,7 @@ public:
     Texture(MTLTextureDescriptor* descriptor);
     ~Texture();
 
-    void SetDescriptor(MTLTextureDescriptor* descriptor) { m_Descriptor = descriptor; }
+    void SetDescriptor(MTLTextureDescriptor* descriptor);
     void Resize(uint32_t width, uint32_t height);
     id<MTLTexture> GetTexture() const { return m_Texture; }
 

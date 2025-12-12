@@ -12,6 +12,7 @@ CommandBuffer::CommandBuffer(NSString* name)
 void CommandBuffer::Commit()
 {
     [m_CommandBuffer commit];
+    [m_CommandBuffer waitUntilCompleted];
 }
 
 RenderEncoder CommandBuffer::RenderPass(const RenderPassInfo& info)

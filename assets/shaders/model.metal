@@ -35,5 +35,8 @@ fragment float4 fs_main(VSOutput in [[stage_in]],
                         texture2d<float> albedoTexture [[texture(0)]])
 {
     constexpr sampler textureSampler(mag_filter::linear, min_filter::linear, address::repeat);
-    return albedoTexture.sample(textureSampler, in.uv);
+    float4 color = albedoTexture.sample(textureSampler, in.uv);
+    if (color.a < 0.25)
+        discard_fragment();
+    return color;
 }

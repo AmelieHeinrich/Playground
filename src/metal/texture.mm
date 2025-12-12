@@ -2,14 +2,22 @@
 #include "device.h"
 
 Texture::Texture(MTLTextureDescriptor* descriptor)
-    : m_Descriptor(descriptor)
+    : m_Descriptor([descriptor copy])
 {
     Resize((uint32_t)descriptor.width, (uint32_t)descriptor.height);
 }
 
 Texture::~Texture()
 {
-    Device::GetResidencySet().RemoveResource(m_Texture);
+    if (m_Texture) {
+        Device::GetResidencySet().RemoveResource(m_Texture);
+    }
+    m_Descriptor = nil;
+}
+
+void Texture::SetDescriptor(MTLTextureDescriptor* descriptor)
+{
+    m_Descriptor = [descriptor copy];
 }
 
 void Texture::Resize(uint32_t width, uint32_t height)

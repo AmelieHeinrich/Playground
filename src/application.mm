@@ -65,7 +65,7 @@ bool Application::Initialize(id<MTLDevice> device)
     desc.DepthFunc = MTLCompareFunctionLess;
 
     m_GraphicsPipeline = GraphicsPipeline::Create(desc);
-    m_Model.Load("models/Sponza/Sponza.mesh");
+    m_World.AddModel("models/Sponza/Sponza.mesh");
 
     NSLog(@"Application initialized successfully with Metal device: %@", [m_Device name]);
     return true;
@@ -119,21 +119,22 @@ void Application::OnRender(id<CAMetalDrawable> drawable)
 
     matrix_float4x4 matrix = m_Camera.GetViewProjectionMatrix();
     CommandBuffer cmdBuffer;
-    
+
     RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
                                                  .AddTexture(drawable.texture)
                                                  .AddDepthStencilTexture(m_DepthBuffer)
                                                  .SetName(@"Forward Pass"));
     encoder.SetGraphicsPipeline(m_GraphicsPipeline);
     encoder.SetBytes(ShaderStage::VERTEX, &matrix, sizeof(matrix), 0);
-    for (auto& mesh : m_Model.Meshes) {
-        id<MTLTexture> albedo = m_Model.Textures[m_Model.Materials[mesh.MaterialIndex].AlbedoIndex].Texture;
+    for (auto& entity : m_World.GetEntities()) {
+        for (auto& mesh : entity.Mesh.Meshes) {
+            id<MTLTexture> albedo = entity.Mesh.Textures[entity.Mesh.Materials[mesh.MaterialIndex].AlbedoIndex].Texture;
 
-        encoder.SetBuffer(ShaderStage::VERTEX, mesh.VertexBuffer, 1);
-        encoder.SetTexture(ShaderStage::FRAGMENT, albedo, 0);
-        encoder.DrawIndexed(MTLPrimitiveTypeTriangle, mesh.IndexBuffer, mesh.IndexCount, mesh.IndexOffset * sizeof(uint32_t));
+            encoder.SetBuffer(ShaderStage::VERTEX, mesh.VertexBuffer, 1);
+            encoder.SetTexture(ShaderStage::FRAGMENT, albedo, 0);
+            encoder.DrawIndexed(MTLPrimitiveTypeTriangle, mesh.IndexBuffer, mesh.IndexCount, mesh.IndexOffset * sizeof(uint32_t));
+        }
     }
     encoder.End();
-
     cmdBuffer.Commit();
 }
