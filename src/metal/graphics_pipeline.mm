@@ -13,9 +13,11 @@ GraphicsPipeline GraphicsPipeline::Create(const GraphicsPipelineDesc& desc)
     Shader shader = ShaderCompiler::Compile(Device::GetDevice(), desc.Path, ShaderType::GRAPHICS);
 
     MTLRenderPipelineDescriptor* descriptor = [[MTLRenderPipelineDescriptor alloc] init];
-    if (shader.HasStage(ShaderStage::VERTEX)) descriptor.vertexFunction = shader.GetFunction(ShaderStage::VERTEX);
-    if (shader.HasStage(ShaderStage::FRAGMENT)) descriptor.fragmentFunction = shader.GetFunction(ShaderStage::FRAGMENT);
+    if (shader.HasStage(ShaderStage::VERTEX)) pipeline.m_VertexFunction = shader.GetFunction(ShaderStage::VERTEX);
+    if (shader.HasStage(ShaderStage::FRAGMENT)) pipeline.m_FragmentFunction = shader.GetFunction(ShaderStage::FRAGMENT);
 
+    descriptor.vertexFunction = pipeline.m_VertexFunction;
+    descriptor.fragmentFunction = pipeline.m_FragmentFunction;
     for (int i = 0; i < desc.ColorFormats.size(); ++i) {
         descriptor.colorAttachments[i].pixelFormat = desc.ColorFormats[i];
         if (desc.EnableBlend) {
