@@ -117,36 +117,23 @@ void Application::OnRender(id<CAMetalDrawable> drawable)
         return;
     }
 
-    CommandBuffer cmdBuffer;
-    id<MTLCommandBuffer> commandBuffer = cmdBuffer.GetCommandBuffer();
-
-    // Set up render pass descriptor with drawable texture
-    MTLRenderPassDescriptor *renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-    renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
-    renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-    renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
-    renderPassDescriptor.depthAttachment.texture = m_DepthBuffer.GetTexture();
-    renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-    renderPassDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
-    renderPassDescriptor.depthAttachment.clearDepth = 1.0;
-
     matrix_float4x4 matrix = m_Camera.GetViewProjectionMatrix();
-
-    // Create render command encoder
-    id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-    [renderEncoder setLabel:@"Triangle Rendering"];
-    [renderEncoder setRenderPipelineState:m_GraphicsPipeline.GetPipelineState()];
-    [renderEncoder setDepthStencilState:m_GraphicsPipeline.GetDepthStencilState()];
-    [renderEncoder setVertexBytes:&matrix length:sizeof(matrix) atIndex:0];
+    CommandBuffer cmdBuffer;
+    
+    RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
+                                                 .AddTexture(drawable.texture)
+                                                 .AddDepthStencilTexture(m_DepthBuffer)
+                                                 .SetName(@"Forward Pass"));
+    encoder.SetGraphicsPipeline(m_GraphicsPipeline);
+    encoder.SetBytes(ShaderStage::VERTEX, &matrix, sizeof(matrix), 0);
     for (auto& mesh : m_Model.Meshes) {
         id<MTLTexture> albedo = m_Model.Textures[m_Model.Materials[mesh.MaterialIndex].AlbedoIndex].Texture;
 
-        [renderEncoder setVertexBuffer:mesh.VertexBuffer offset:0 atIndex:1];
-        [renderEncoder setFragmentTexture:albedo atIndex:0];
-        [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:mesh.IndexCount indexType:MTLIndexTypeUInt32 indexBuffer:mesh.IndexBuffer indexBufferOffset:mesh.IndexOffset * sizeof(uint32_t)];
+        encoder.SetBuffer(ShaderStage::VERTEX, mesh.VertexBuffer, 1);
+        encoder.SetTexture(ShaderStage::FRAGMENT, albedo, 0);
+        encoder.DrawIndexed(MTLPrimitiveTypeTriangle, mesh.IndexBuffer, mesh.IndexCount, mesh.IndexOffset * sizeof(uint32_t));
     }
-    [renderEncoder endEncoding];
+    encoder.End();
 
     cmdBuffer.Commit();
 }

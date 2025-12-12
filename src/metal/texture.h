@@ -13,9 +13,11 @@ public:
 
     void SetDescriptor(MTLTextureDescriptor* descriptor) { m_Descriptor = descriptor; }
     void Resize(uint32_t width, uint32_t height);
-    id<MTLTexture> GetTexture() { return m_Texture; }
+    id<MTLTexture> GetTexture() const { return m_Texture; }
 
     bool Valid() { return m_Texture != nil; }
+
+    void SetLabel(NSString* label) { m_Texture.label = label; }
 private:
     id<MTLTexture> m_Texture;
     MTLTextureDescriptor* m_Descriptor;

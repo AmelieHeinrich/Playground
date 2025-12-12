@@ -79,18 +79,6 @@ void Model::Cleanup()
 {
     // Release textures
     Textures.clear();
-
-    // Release vertex buffer and index buffer (shared across all meshes, so only release once)
-    if (!Meshes.empty()) {
-        if (Meshes[0].VertexBuffer) {
-            [Meshes[0].VertexBuffer release];
-        }
-        if (Meshes[0].IndexBuffer) {
-            [Meshes[0].IndexBuffer release];
-        }
-    }
-
-    // Clear all data
     Meshes.clear();
     Materials.clear();
 }
@@ -128,27 +116,6 @@ bool Model::Load(const std::string& path)
     // Get vertex and index data pointers
     const Vertex* vertexData = (Vertex*)(bytes + header.VBOffset);
     const uint32_t* indexData = (uint32_t*)(bytes + header.IBOffset);
-
-    // Create vertex buffer (single buffer for all submeshes)
-    id<MTLBuffer> vertexBuffer = [Device::GetDevice() newBufferWithBytes:vertexData
-                                                      length:header.VBSize
-                                                     options:MTLResourceStorageModeShared];
-    if (!vertexBuffer) {
-        NSLog(@"Failed to create vertex buffer");
-        return false;
-    }
-    vertexBuffer.label = @"Mesh Vertex Buffer";
-
-    // Create index buffer for this model
-    id<MTLBuffer> indexBuffer = [Device::GetDevice() newBufferWithBytes:indexData
-                                                     length:header.IBSize
-                                                    options:MTLResourceStorageModeShared];
-    if (!indexBuffer) {
-        NSLog(@"Failed to create index buffer");
-        [vertexBuffer release];
-        return false;
-    }
-    indexBuffer.label = @"Mesh Index Buffer";
 
     // Load textures and build texture array
     Textures.clear();
@@ -235,8 +202,8 @@ bool Model::Load(const std::string& path)
     Meshes.reserve(header.SubmeshCount);
     for (uint32_t i = 0; i < header.SubmeshCount; i++) {
         Mesh mesh;
-        mesh.VertexBuffer = vertexBuffer;
-        mesh.IndexBuffer = indexBuffer;
+        mesh.VertexBuffer.Initialize(vertexData, header.VBSize);
+        mesh.IndexBuffer.Initialize(indexData, header.IBSize);
         mesh.IndexOffset = submeshData[i].IndexOffset;
         mesh.IndexCount = submeshData[i].IndexCount;
         mesh.MaterialIndex = submeshData[i].MaterialIndex;

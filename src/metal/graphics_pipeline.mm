@@ -8,6 +8,7 @@
 GraphicsPipeline GraphicsPipeline::Create(const GraphicsPipelineDesc& desc)
 {
     GraphicsPipeline pipeline;
+    pipeline.m_Desc = desc;
 
     Shader shader = ShaderCompiler::Compile(Device::GetDevice(), desc.Path, ShaderType::GRAPHICS);
 
@@ -37,10 +38,10 @@ GraphicsPipeline GraphicsPipeline::Create(const GraphicsPipelineDesc& desc)
 
         pipeline.m_DepthStencilState = [Device::GetDevice() newDepthStencilStateWithDescriptor:depthStencilDescriptor];
     }
+    descriptor.label = [NSString stringWithUTF8String:desc.Path.c_str()];
 
     NSError* error = nil;
     pipeline.m_PipelineState = [Device::GetDevice() newRenderPipelineStateWithDescriptor:descriptor error:&error];
-
     if (!pipeline.m_PipelineState) {
         NSLog(@"Failed to create pipeline state: %@", error);
     }

@@ -7,6 +7,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "metal/buffer.h"
+
 struct Vertex
 {
     simd::float3 position;
@@ -17,8 +19,8 @@ struct Vertex
 
 struct Mesh
 {
-    id<MTLBuffer> VertexBuffer;
-    id<MTLBuffer> IndexBuffer;
+    Buffer VertexBuffer;
+    Buffer IndexBuffer;
 
     uint32_t IndexOffset;
     uint32_t IndexCount;

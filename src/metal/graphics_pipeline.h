@@ -27,9 +27,13 @@ public:
 
     static GraphicsPipeline Create(const GraphicsPipelineDesc& desc);
 
-    id<MTLRenderPipelineState> GetPipelineState() { return m_PipelineState; };
-    id<MTLDepthStencilState> GetDepthStencilState() { return m_DepthStencilState; };
+    id<MTLRenderPipelineState> GetPipelineState() const { return m_PipelineState; }
+    id<MTLDepthStencilState> GetDepthStencilState() const { return m_DepthStencilState; }
+
+    GraphicsPipelineDesc GetDesc() { return m_Desc; };
 private:
     id<MTLRenderPipelineState> m_PipelineState;
     id<MTLDepthStencilState> m_DepthStencilState;
+
+    GraphicsPipelineDesc m_Desc;
 };
