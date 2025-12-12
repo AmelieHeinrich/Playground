@@ -6,6 +6,7 @@
 #include <cstring>
 #include <vector>
 
+API_AVAILABLE(macos(15.0))
 id<MTLTexture> KTX2Loader::LoadKTX2(const std::string& path)
 {
     // Load file into memory
@@ -48,7 +49,7 @@ id<MTLTexture> KTX2Loader::LoadKTX2(const std::string& path)
     bool isCubemap = ktx2Texture->isCubemap;
 
     // Convert format
-    MTLPixelFormat mtlFormat = MTLPixelFormatASTC_6x6_sRGB;
+    MTLPixelFormat mtlFormat = MTLPixelFormatASTC_6x6_LDR;
     if (mtlFormat == MTLPixelFormatInvalid) {
         NSLog(@"Unsupported texture format in: %s", path.c_str());
         ktxTexture_Destroy(texture);

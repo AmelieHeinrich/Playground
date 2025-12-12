@@ -3,11 +3,14 @@
 - [x] Hello triangle
 - [x] ImGui
 - [x] Camera controls on mac and ios
-- [ ] Load a compressed texture
-- [ ] Load a model
+- [x] Load a compressed texture
+- [x] Load a model
 - [ ] Add lights
 - [ ] Pathtracing mode
 - [ ] Clustered light culling
-- [ ] ReSTIR DI
+- [ ] DDGI
+- [ ] Glossy SSR
 - [ ] SVGF
+- [ ] Clouds
+- [ ] ReSTIR DI
 - [ ] TAA

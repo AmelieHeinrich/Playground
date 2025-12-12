@@ -15,6 +15,7 @@ static uint32_t read24(const uint8_t* p) {
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16);
 }
 
+API_AVAILABLE(macos(15.0))
 static MTLPixelFormat astcToPixelFormat(uint8_t bx, uint8_t by) {
     if (bx == 4  && by == 4)  return MTLPixelFormatASTC_4x4_LDR;
     if (bx == 5  && by == 4)  return MTLPixelFormatASTC_5x4_LDR;
@@ -46,6 +47,7 @@ static uint32_t CalculateMipLevels(uint32_t width, uint32_t height) {
     return levels;
 }
 
+API_AVAILABLE(macos(15.0))
 id<MTLTexture> ASTCLoader::LoadASTC(const std::string& path)
 {
     auto file = fs::LoadBinaryFile(path);

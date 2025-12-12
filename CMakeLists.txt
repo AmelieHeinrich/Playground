@@ -69,6 +69,9 @@ add_subdirectory(tools)
 # Collect all source files from src/
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.mm" "src/*.m" "src/*.c")
 
+# Collect all header files from src/
+file(GLOB_RECURSE HEADERS "src/*.h")
+
 # Collect all shader files from assets/shaders/
 file(GLOB_RECURSE SHADERS "assets/shaders/*.msl" "assets/shaders/*.metal")
 
@@ -82,7 +85,10 @@ file(GLOB_RECURSE FONTS "assets/fonts/*")
 file(GLOB_RECURSE MODELS "assets/models/*")
 
 # Create the executable as an application bundle (works for both macOS and iOS)
-add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${SHADERS} ${TEXTURES} ${FONTS} ${MODELS})
+add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${SHADERS})
+
+# Source group for Xcode
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SOURCES} ${HEADERS})
 
 # Add src/ to include directories
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")

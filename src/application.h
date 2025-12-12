@@ -1,6 +1,8 @@
 #pragma once
 
 #include "asset/mesh_loader.h"
+#include "metal/residency_set.h"
+#include "metal/texture.h"
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 
@@ -16,7 +18,7 @@
 #include "metal/graphics_pipeline.h"
 #include "core/camera.h"
 
-class Application
+class API_AVAILABLE(macos(15.0), ios(16.0)) Application
 {
 public:
     Application();
@@ -37,7 +39,7 @@ public:
     // Rendering - now called by delegate, takes command buffer and drawable
     // Can create any encoder type (render, compute, blit, acceleration structure, etc.)
     // Delegate will handle presentation in a separate command buffer after this
-    void OnRender(id<MTLCommandBuffer> commandBuffer, id<CAMetalDrawable> drawable);
+    void OnRender(id<CAMetalDrawable> drawable);
 
     Camera& GetCamera() { return m_Camera; }
     const Camera& GetCamera() const { return m_Camera; }
@@ -45,11 +47,12 @@ public:
 private:
     id<MTLDevice> m_Device;
     id<MTLCommandQueue> m_CommandQueue;
+    ResidencySet m_ResidencySet;
 
     uint32_t m_Width;
     uint32_t m_Height;
 
-    id<MTLTexture> m_DepthBuffer;
+    Texture m_DepthBuffer;
     GraphicsPipeline m_GraphicsPipeline;
     Model m_Model;
 

@@ -182,7 +182,7 @@ bool Model::Load(const std::string& path)
         if (materialData[i].NormalPath[0] != '\0') {
             std::string normalPath(materialData[i].NormalPath);
             if (texturePathToIndex.find(normalPath) == texturePathToIndex.end()) {
-                int texIndex = Textures.size();
+                int texIndex = (int)Textures.size();
                 texturePathToIndex[normalPath] = texIndex;
 
                 // Convert to .ktx2 format and make relative to model path

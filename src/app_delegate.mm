@@ -306,9 +306,7 @@ API_AVAILABLE(ios(15.0))
     ImGui::Render();
 
     // Application rendering (separate command buffer for compute, blit, AS, etc.)
-    id<MTLCommandBuffer> renderCommandBuffer = [self.commandQueue commandBuffer];
-    _application->OnRender(renderCommandBuffer, view.currentDrawable);
-    [renderCommandBuffer commit];
+    _application->OnRender(view.currentDrawable);
 
     // Presentation command buffer (for final UI and presentation)
     id<MTLCommandBuffer> presentationCommandBuffer = [self.commandQueue commandBuffer];
@@ -570,9 +568,7 @@ API_AVAILABLE(ios(15.0))
     ImGui::Render();
 
     // Application rendering (separate command buffer for compute, blit, AS, etc.)
-    id<MTLCommandBuffer> renderCommandBuffer = [self.commandQueue commandBuffer];
-    _application->OnRender(renderCommandBuffer, view.currentDrawable);
-    [renderCommandBuffer commit];
+    _application->OnRender(view.currentDrawable);
 
     // Presentation command buffer (for final UI and presentation)
     id<MTLCommandBuffer> presentationCommandBuffer = [self.commandQueue commandBuffer];

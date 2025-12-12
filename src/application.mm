@@ -1,6 +1,7 @@
 #include "application.h"
 #include "asset/astc_loader.h"
 #include "asset/texture_cache.h"
+#include "metal/command_buffer.h"
 #include "metal/graphics_pipeline.h"
 
 #import <Metal/Metal.h>
@@ -43,6 +44,17 @@ bool Application::Initialize(id<MTLDevice> device)
         NSLog(@"Failed to create Metal command queue");
         return false;
     }
+    Device::SetCommandQueue(m_CommandQueue);
+
+    // Residency set
+    m_ResidencySet.Initialize();
+    [m_CommandQueue addResidencySet:m_ResidencySet.GetResidencySet()];
+    Device::SetResidencySet(&m_ResidencySet);
+
+    // Set descriptor
+    MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:m_Width height:m_Height mipmapped:NO];
+    descriptor.usage = MTLTextureUsageRenderTarget;
+    m_DepthBuffer.SetDescriptor(descriptor);
 
     // Test pipeline
     GraphicsPipelineDesc desc;
@@ -70,19 +82,15 @@ void Application::OnResize(uint32_t width, uint32_t height)
     }
 
     // Resize depth buffer
-    MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:m_Width height:m_Height mipmapped:NO];
-    descriptor.usage = MTLTextureUsageRenderTarget;
-    m_DepthBuffer = [m_Device newTextureWithDescriptor:descriptor];
-    if (!m_DepthBuffer) {
-        NSLog(@"Failed to resize Metal depth buffer");
-        return;
-    }
+    m_DepthBuffer.Resize(m_Width, m_Height);
 
     NSLog(@"Application resized to: %ux%u", width, height);
 }
 
 void Application::OnUpdate(float deltaTime)
 {
+    m_ResidencySet.Update();
+
     m_Input.Update(deltaTime);
     m_Camera.Update(m_Input, deltaTime);
 }
@@ -103,35 +111,25 @@ void Application::OnUI()
     ImGui::End();
 }
 
-void Application::OnRender(id<MTLCommandBuffer> commandBuffer, id<CAMetalDrawable> drawable)
+void Application::OnRender(id<CAMetalDrawable> drawable)
 {
-    [commandBuffer setLabel:@"Application Render"];
-
     if (!drawable) {
         return;
     }
+
+    CommandBuffer cmdBuffer;
+    id<MTLCommandBuffer> commandBuffer = cmdBuffer.GetCommandBuffer();
 
     // Set up render pass descriptor with drawable texture
     MTLRenderPassDescriptor *renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-    renderPassDescriptor.depthAttachment.texture = m_DepthBuffer;
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+    renderPassDescriptor.depthAttachment.texture = m_DepthBuffer.GetTexture();
     renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
     renderPassDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
     renderPassDescriptor.depthAttachment.clearDepth = 1.0;
-
-    // Create a nice gradient-like clear color based on time
-    static float hue = 0.0f;
-    hue += 0.001f;
-    if (hue > 1.0f) hue = 0.0f;
-
-    // Simple animated color (cycling through hues)
-    float r = (sin(hue * 6.28318f) + 1.0f) * 0.5f;
-    float g = (sin(hue * 6.28318f + 2.094395f) + 1.0f) * 0.5f;
-    float b = (sin(hue * 6.28318f + 4.188790f) + 1.0f) * 0.5f;
-
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(r * 0.3, g * 0.3, b * 0.3, 1.0);
 
     matrix_float4x4 matrix = m_Camera.GetViewProjectionMatrix();
 
@@ -149,4 +147,6 @@ void Application::OnRender(id<MTLCommandBuffer> commandBuffer, id<CAMetalDrawabl
         [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:mesh.IndexCount indexType:MTLIndexTypeUInt32 indexBuffer:mesh.IndexBuffer indexBufferOffset:mesh.IndexOffset * sizeof(uint32_t)];
     }
     [renderEncoder endEncoding];
+
+    cmdBuffer.Commit();
 }
