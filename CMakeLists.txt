@@ -73,7 +73,7 @@ file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.mm" "src/*.m" "src/*.c")
 file(GLOB_RECURSE HEADERS "src/*.h")
 
 # Collect all shader files from assets/shaders/
-file(GLOB_RECURSE SHADERS "assets/shaders/*.msl" "assets/shaders/*.metal")
+file(GLOB_RECURSE SHADERS "assets/shaders/*")
 
 # Collect all texture files from assets/textures/
 file(GLOB_RECURSE TEXTURES "assets/textures/*")
@@ -95,6 +95,7 @@ add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${SHADERS} ${
 
 # Source group for Xcode
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SOURCES} ${HEADERS})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/assets FILES ${SHADERS})
 
 # Add src/ to include directories
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")

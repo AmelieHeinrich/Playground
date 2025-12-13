@@ -10,7 +10,7 @@ class Pass
 public:
     virtual ~Pass() = default;
 
-    virtual void Resize(int width, int height) = 0;
+    virtual void Resize(int width, int height) {}
     virtual void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) = 0;
-    virtual void DebugUI() = 0;
+    virtual void DebugUI() {}
 };

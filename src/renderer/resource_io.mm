@@ -4,28 +4,25 @@ std::unordered_map<std::string, Resource> ResourceIO::s_Resources;
 
 Resource& ResourceIO::CreateTexture(const std::string& name, MTLTextureDescriptor* descriptor)
 {
-    Resource resource;
-    resource.Type = ResourceType::TEXTURE;
-    resource.Texture.SetDescriptor(descriptor);
-    s_Resources[name] = resource;
+    s_Resources[name] = {};
+    s_Resources[name].Type = ResourceType::TEXTURE;
+    s_Resources[name].Texture.SetDescriptor(descriptor);
     return s_Resources[name];
 }
 
 Resource& ResourceIO::CreateBuffer(const std::string& name, uint64_t size)
 {
-    Resource resource;
-    resource.Type = ResourceType::BUFFER;
-    resource.Buffer.Initialize(size);
-    s_Resources[name] = resource;
+    s_Resources[name] = {};
+    s_Resources[name].Type = ResourceType::BUFFER;
+    s_Resources[name].Buffer.Initialize(size);
     return s_Resources[name];
 }
 
 Resource& ResourceIO::CreateArgumentBuffer(const std::string& name, id<MTLFunction> function, int index)
 {
-    Resource resource;
-    resource.Type = ResourceType::ARGUMENT_BUFFER;
-    resource.ArgBuffer.Initialize(function, index);
-    s_Resources[name] = resource;
+    s_Resources[name] = {};
+    s_Resources[name].Type = ResourceType::ARGUMENT_BUFFER;
+    s_Resources[name].ArgBuffer.Initialize(function, index);
     return s_Resources[name];
 }
 

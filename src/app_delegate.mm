@@ -397,6 +397,7 @@ API_AVAILABLE(ios(15.0))
     self.metalView.enableSetNeedsDisplay = NO;
     self.metalView.preferredFramesPerSecond = 60;
     self.metalView.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
+    self.metalView.framebufferOnly = NO;
 
     [self.window setContentView:self.metalView];
     [self.window makeKeyAndOrderFront:nil];

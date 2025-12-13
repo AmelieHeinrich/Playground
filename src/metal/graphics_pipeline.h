@@ -17,6 +17,8 @@ struct GraphicsPipelineDesc
     MTLPixelFormat DepthFormat = MTLPixelFormatInvalid;
     bool DepthEnabled = false;
     MTLCompareFunction DepthFunc = MTLCompareFunctionNever;
+
+    bool SupportsIndirect = false;
 };
 
 class GraphicsPipeline

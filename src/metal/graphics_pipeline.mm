@@ -15,6 +15,7 @@ GraphicsPipeline GraphicsPipeline::Create(const GraphicsPipelineDesc& desc)
     MTLRenderPipelineDescriptor* descriptor = [[MTLRenderPipelineDescriptor alloc] init];
     if (shader.HasStage(ShaderStage::VERTEX)) pipeline.m_VertexFunction = shader.GetFunction(ShaderStage::VERTEX);
     if (shader.HasStage(ShaderStage::FRAGMENT)) pipeline.m_FragmentFunction = shader.GetFunction(ShaderStage::FRAGMENT);
+    if (desc.SupportsIndirect) descriptor.supportIndirectCommandBuffers = YES;
 
     descriptor.vertexFunction = pipeline.m_VertexFunction;
     descriptor.fragmentFunction = pipeline.m_FragmentFunction;

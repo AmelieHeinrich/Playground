@@ -1,5 +1,7 @@
 #pragma once
 
+#include "metal/blit_encoder.h"
+#include "metal/compute_encoder.h"
 #include "metal/render_encoder.h"
 #include "metal/texture.h"
 #import <Metal/Metal.h>
@@ -62,9 +64,15 @@ public:
     ~CommandBuffer() = default;
 
     RenderEncoder RenderPass(const RenderPassInfo& info);
+    ComputeEncoder ComputePass(NSString* name = @"Compute Pass");
+    BlitEncoder BlitPass(NSString* name = @"Blit Pass");
 
     void Commit();
     id<MTLCommandBuffer> GetCommandBuffer() { return m_CommandBuffer; }
+    id<MTLTexture> GetDrawable() { return m_Drawable; }
+
+    void SetDrawable(id<MTLTexture> drawable) { m_Drawable = drawable; }
 private:
     id<MTLCommandBuffer> m_CommandBuffer;
+    id<MTLTexture> m_Drawable;
 };

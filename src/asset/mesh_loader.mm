@@ -197,13 +197,16 @@ bool Model::Load(const std::string& path)
         Materials.push_back(mat);
     }
 
+    // Create shared vertex and index buffers for the entire model
+    VertexBuffer.Initialize(vertexData, header.VBSize);
+    IndexBuffer.Initialize(indexData, header.IBSize);
+
     // Build submeshes
     Meshes.clear();
     Meshes.reserve(header.SubmeshCount);
     for (uint32_t i = 0; i < header.SubmeshCount; i++) {
         Mesh mesh;
-        mesh.VertexBuffer.Initialize(vertexData, header.VBSize);
-        mesh.IndexBuffer.Initialize(indexData, header.IBSize);
+        mesh.VertexOffset = 0; // All submeshes share the same vertex buffer, starting at 0
         mesh.IndexOffset = submeshData[i].IndexOffset;
         mesh.IndexCount = submeshData[i].IndexCount;
         mesh.MaterialIndex = submeshData[i].MaterialIndex;

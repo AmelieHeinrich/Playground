@@ -13,6 +13,7 @@ Buffer::Buffer(uint64_t size)
 
 Buffer::~Buffer()
 {
+    if (!m_Buffer) return;
     Device::GetResidencySet().RemoveResource(m_Buffer);
     m_Buffer = nil;
 }

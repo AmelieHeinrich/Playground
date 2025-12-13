@@ -34,3 +34,13 @@ RenderEncoder CommandBuffer::RenderPass(const RenderPassInfo& info)
 
     return RenderEncoder(m_CommandBuffer, descriptor, info.Name);
 }
+
+ComputeEncoder CommandBuffer::ComputePass(NSString* name)
+{
+    return ComputeEncoder(m_CommandBuffer, name);
+}
+
+BlitEncoder CommandBuffer::BlitPass(NSString* name)
+{
+    return BlitEncoder(m_CommandBuffer, name);
+}

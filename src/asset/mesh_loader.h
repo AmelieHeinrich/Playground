@@ -19,9 +19,7 @@ struct Vertex
 
 struct Mesh
 {
-    Buffer VertexBuffer;
-    Buffer IndexBuffer;
-
+    uint32_t VertexOffset;
     uint32_t IndexOffset;
     uint32_t IndexCount;
     int MaterialIndex = -1;
@@ -41,6 +39,9 @@ struct MeshTexture
 
 struct Model
 {
+    Buffer VertexBuffer;
+    Buffer IndexBuffer;
+    
     std::vector<Mesh> Meshes;
     std::vector<MeshMaterial> Materials;
     std::vector<MeshTexture> Textures;

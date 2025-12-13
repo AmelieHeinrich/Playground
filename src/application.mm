@@ -3,6 +3,7 @@
 #include "asset/texture_cache.h"
 #include "metal/command_buffer.h"
 #include "metal/graphics_pipeline.h"
+#include "renderer/renderer.h"
 
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
@@ -51,20 +52,10 @@ bool Application::Initialize(id<MTLDevice> device)
     [m_CommandQueue addResidencySet:m_ResidencySet.GetResidencySet()];
     Device::SetResidencySet(&m_ResidencySet);
 
-    // Set descriptor
-    MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:m_Width height:m_Height mipmapped:NO];
-    descriptor.usage = MTLTextureUsageRenderTarget;
-    m_DepthBuffer.SetDescriptor(descriptor);
+    // Create renderer
+    m_Renderer = new Renderer();
 
-    // Test pipeline
-    GraphicsPipelineDesc desc;
-    desc.Path = "shaders/model.metal";
-    desc.ColorFormats = {MTLPixelFormatBGRA8Unorm};
-    desc.DepthEnabled = true;
-    desc.DepthFormat = MTLPixelFormatDepth32Float;
-    desc.DepthFunc = MTLCompareFunctionLess;
-
-    m_GraphicsPipeline = GraphicsPipeline::Create(desc);
+    // Add model
     m_World.AddModel("models/Sponza/Sponza.mesh");
 
     NSLog(@"Application initialized successfully with Metal device: %@", [m_Device name]);
@@ -82,7 +73,7 @@ void Application::OnResize(uint32_t width, uint32_t height)
     }
 
     // Resize depth buffer
-    m_DepthBuffer.Resize(m_Width, m_Height);
+    m_Renderer->Resize((int)width, (int)height);
 
     NSLog(@"Application resized to: %ux%u", width, height);
 }
@@ -90,7 +81,6 @@ void Application::OnResize(uint32_t width, uint32_t height)
 void Application::OnUpdate(float deltaTime)
 {
     m_ResidencySet.Update();
-
     m_Input.Update(deltaTime);
     m_Camera.Update(m_Input, deltaTime);
 }
@@ -108,6 +98,8 @@ void Application::OnUI()
     ImGui::Text("Right Mouse Button - Look Around");
 #endif
 
+    ImGui::Separator();
+    m_Renderer->DebugUI();
     ImGui::End();
 }
 
@@ -117,24 +109,8 @@ void Application::OnRender(id<CAMetalDrawable> drawable)
         return;
     }
 
-    matrix_float4x4 matrix = m_Camera.GetViewProjectionMatrix();
     CommandBuffer cmdBuffer;
-
-    RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
-                                                 .AddTexture(drawable.texture)
-                                                 .AddDepthStencilTexture(m_DepthBuffer)
-                                                 .SetName(@"Forward Pass"));
-    encoder.SetGraphicsPipeline(m_GraphicsPipeline);
-    encoder.SetBytes(ShaderStage::VERTEX, &matrix, sizeof(matrix), 0);
-    for (auto& entity : m_World.GetEntities()) {
-        for (auto& mesh : entity.Mesh.Meshes) {
-            id<MTLTexture> albedo = entity.Mesh.Textures[entity.Mesh.Materials[mesh.MaterialIndex].AlbedoIndex].Texture;
-
-            encoder.SetBuffer(ShaderStage::VERTEX, mesh.VertexBuffer, 1);
-            encoder.SetTexture(ShaderStage::FRAGMENT, albedo, 0);
-            encoder.DrawIndexed(MTLPrimitiveTypeTriangle, mesh.IndexBuffer, mesh.IndexCount, mesh.IndexOffset * sizeof(uint32_t));
-        }
-    }
-    encoder.End();
+    cmdBuffer.SetDrawable(drawable.texture);
+    m_Renderer->Render(cmdBuffer, m_World, m_Camera);
     cmdBuffer.Commit();
 }

@@ -18,6 +18,9 @@ public:
     bool Valid() { return m_Texture != nil; }
 
     void SetLabel(NSString* label) { m_Texture.label = label; }
+
+    uint32_t Width() const { return m_Descriptor.width; }
+    uint32_t Height() const { return m_Descriptor.height; }
 private:
     id<MTLTexture> m_Texture;
     MTLTextureDescriptor* m_Descriptor;

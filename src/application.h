@@ -18,6 +18,7 @@
 #include "metal/device.h"
 #include "metal/graphics_pipeline.h"
 #include "core/camera.h"
+#include "renderer/renderer.h"
 
 class API_AVAILABLE(macos(15.0), ios(16.0)) Application
 {
@@ -53,10 +54,9 @@ private:
     uint32_t m_Width;
     uint32_t m_Height;
 
-    Texture m_DepthBuffer;
-    GraphicsPipeline m_GraphicsPipeline;
     World m_World;
     Camera m_Camera;
+    Renderer* m_Renderer;
 
 #if TARGET_OS_IPHONE
     IOSInput m_Input;
