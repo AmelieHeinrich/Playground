@@ -16,6 +16,7 @@ struct L_SubmeshData {
 struct L_MaterialData {
     char AlbedoPath[256];
     char NormalPath[256];
+    char ORMPath[256];
 };
 
 struct vec3 {
@@ -167,6 +168,29 @@ bool Model::Load(const std::string& path)
                 }
             }
         }
+
+        // Process ORM (PBR) texture
+        if (materialData[i].ORMPath[0] != '\0') {
+            std::string ormPath(materialData[i].ORMPath);
+            if (texturePathToIndex.find(ormPath) == texturePathToIndex.end()) {
+                int texIndex = (int)Textures.size();
+                texturePathToIndex[ormPath] = texIndex;
+
+                // Convert to .ktx2 format and make relative to model path
+                std::string ktx2Path = ConvertToKTX2Path(ormPath);
+                std::string fullPath = MakeRelativeTexturePath(path, ktx2Path);
+
+                MeshTexture tex;
+                tex.Texture = KTX2Loader::LoadKTX2(fullPath);
+                if (tex.Texture) {
+                    Textures.push_back(tex);
+                } else {
+                    NSLog(@"Failed to load ORM texture: %s", fullPath.c_str());
+                    // Still add a null entry to maintain indices
+                    Textures.push_back(tex);
+                }
+            }
+        }
     }
 
     // Build materials with texture indices
@@ -194,12 +218,22 @@ bool Model::Load(const std::string& path)
             }
         }
 
+        if (materialData[i].ORMPath[0] != '\0') {
+            std::string ormPath(materialData[i].ORMPath);
+            auto it = texturePathToIndex.find(ormPath);
+            if (it != texturePathToIndex.end()) {
+                mat.PBRIndex = it->second;
+            }
+        }
+
         Materials.push_back(mat);
     }
 
     // Create shared vertex and index buffers for the entire model
     VertexBuffer.Initialize(vertexData, header.VBSize);
+    VertexBuffer.SetLabel([NSString stringWithFormat:@"VB %s", path.c_str()]);
     IndexBuffer.Initialize(indexData, header.IBSize);
+    IndexBuffer.SetLabel([NSString stringWithFormat:@"IB %s", path.c_str()]);
 
     // Build submeshes
     Meshes.clear();

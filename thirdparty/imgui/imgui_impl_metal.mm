@@ -387,6 +387,7 @@ void ImGui_ImplMetal_UpdateTexture(ImTextureData* tex)
         textureDescriptor.storageMode = MTLStorageModeShared;
     #endif
         id <MTLTexture> texture = [bd->SharedMetalContext.device newTextureWithDescriptor:textureDescriptor];
+        texture.label = @"ImGui Texture";
         [texture replaceRegion:MTLRegionMake2D(0, 0, (NSUInteger)tex->Width, (NSUInteger)tex->Height) mipmapLevel:0 withBytes:tex->Pixels bytesPerRow:(NSUInteger)tex->Width * 4];
         MetalTexture* backend_tex = [[MetalTexture alloc] initWithTexture:texture];
 
@@ -708,6 +709,7 @@ static void ImGui_ImplMetal_InvalidateDeviceObjectsForPlatformWindows()
 
     // No luck; make a new buffer
     id<MTLBuffer> backing = [device newBufferWithLength:length options:MTLResourceStorageModeShared];
+    backing.label = @"ImGui Backing Buffer";
     return [[MetalBuffer alloc] initWithBuffer:backing];
 }
 
@@ -797,6 +799,7 @@ static void ImGui_ImplMetal_InvalidateDeviceObjectsForPlatformWindows()
     pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
     pipelineDescriptor.depthAttachmentPixelFormat = self.framebufferDescriptor.depthPixelFormat;
     pipelineDescriptor.stencilAttachmentPixelFormat = self.framebufferDescriptor.stencilPixelFormat;
+    pipelineDescriptor.label = @"ImGui Pipeline";
 
     id<MTLRenderPipelineState> renderPipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
     if (error != nil)

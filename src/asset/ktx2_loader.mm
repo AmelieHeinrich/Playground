@@ -79,6 +79,7 @@ id<MTLTexture> KTX2Loader::LoadKTX2(const std::string& path)
 
     desc.usage = MTLTextureUsageShaderRead;
     desc.mipmapLevelCount = numLevels;
+    desc.resourceOptions = MTLResourceStorageModeShared;
 
     // Create Metal texture
     id<MTLTexture> metalTexture = [Device::GetDevice() newTextureWithDescriptor:desc];

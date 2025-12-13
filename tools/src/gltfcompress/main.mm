@@ -78,7 +78,7 @@ struct mat4 {
     mat4(const float* data) {
         memcpy(m, data, 16 * sizeof(float));
     }
-    
+
     mat4(const double* data) {
         for(int i = 0; i < 16; i++)
             m[i] = static_cast<float>(data[i]);
@@ -231,6 +231,7 @@ struct L_SubmeshData {
 struct L_MaterialData {
     char AlbedoPath[256];
     char NormalPath[256];
+    char ORMPath[256];
 };
 
 struct L_StaticMeshHeader {
@@ -460,6 +461,7 @@ bool CompressGLTF(const std::string& inputPath, const std::string& outputPath)
         // Initialize paths to empty strings
         memset(m.AlbedoPath, 0, sizeof(m.AlbedoPath));
         memset(m.NormalPath, 0, sizeof(m.NormalPath));
+        memset(m.ORMPath, 0, sizeof(m.ORMPath));
 
         // Get albedo texture path
         if (mat.pbrMetallicRoughness.baseColorTexture.index >= 0) {
@@ -484,6 +486,20 @@ bool CompressGLTF(const std::string& inputPath, const std::string& outputPath)
                     const std::string& uri = input.images[texture.source].uri;
                     if (!uri.empty()) {
                         strncpy(m.NormalPath, uri.c_str(), sizeof(m.NormalPath) - 1);
+                    }
+                }
+            }
+        }
+
+        // Get ORM (Occlusion-Roughness-Metallic) texture path
+        if (mat.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0) {
+            int texIndex = mat.pbrMetallicRoughness.metallicRoughnessTexture.index;
+            if (texIndex < (int)input.textures.size()) {
+                const auto& texture = input.textures[texIndex];
+                if (texture.source >= 0 && texture.source < (int)input.images.size()) {
+                    const std::string& uri = input.images[texture.source].uri;
+                    if (!uri.empty()) {
+                        strncpy(m.ORMPath, uri.c_str(), sizeof(m.ORMPath) - 1);
                     }
                 }
             }

@@ -43,6 +43,7 @@ API_AVAILABLE(ios(15.0))
             GCVirtualControllerConfiguration* config = [[GCVirtualControllerConfiguration alloc] init];
             config.elements = [NSSet setWithArray:@[
                 GCInputLeftThumbstick,
+                GCInputRightThumbstick
             ]];
             _virtualController = [[GCVirtualController alloc] initWithConfiguration:config];
         }
@@ -146,6 +147,7 @@ API_AVAILABLE(ios(15.0))
     self.metalView.enableSetNeedsDisplay = NO;
     self.metalView.preferredFramesPerSecond = 60;
     self.metalView.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
+    self.metalView.framebufferOnly = NO;
 
     // Create a custom view controller
     _viewController = [[PlaygroundViewController alloc] init];

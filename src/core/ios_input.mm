@@ -6,10 +6,6 @@
 IOSInput::IOSInput()
     : m_MoveVector(simd_make_float3(0.0f, 0.0f, 0.0f))
     , m_RotateVector(simd_make_float2(0.0f, 0.0f))
-    , m_CurrentMousePos(simd_make_float2(0.0f, 0.0f))
-    , m_PreviousMousePos(simd_make_float2(0.0f, 0.0f))
-    , m_FirstMouse(true)
-    , m_MouseButtonDown(false)
 {
     // Set up controller connection notifications
     [[NSNotificationCenter defaultCenter] addObserverForName:GCControllerDidConnectNotification
@@ -39,42 +35,14 @@ vector_float3 IOSInput::GetMoveVector() const
 
 vector_float2 IOSInput::GetRotateVector() const
 {
-    ImGuiIO& io = ImGui::GetIO();
-
-    if (io.WantCaptureMouse || !m_MouseButtonDown || m_FirstMouse) {
-        return simd_make_float2(0.0f, 0.0f);
-    }
-
-    vector_float2 delta = m_CurrentMousePos - m_PreviousMousePos;
-    return -simd_make_float2(delta.x, delta.y) * 0.3f;
+    return m_RotateVector;
 }
 
 void IOSInput::Update(float deltaTime)
 {
-    ImGuiIO& io = ImGui::GetIO();
-    
-    // Update mouse position tracking
-    m_PreviousMousePos = m_CurrentMousePos;
-    m_CurrentMousePos = simd_make_float2(io.MousePos.x, io.MousePos.y);
-
-    // Track mouse button state (touch acts as left mouse button in ImGui)
-    bool isMouseDown = !io.WantCaptureMouse && ImGui::IsMouseDown(ImGuiMouseButton_Left);
-
-    if (isMouseDown) {
-        if (!m_MouseButtonDown) {
-            m_FirstMouse = true;
-            m_PreviousMousePos = m_CurrentMousePos;
-        } else {
-            m_FirstMouse = false;
-        }
-        m_MouseButtonDown = true;
-    } else {
-        m_MouseButtonDown = false;
-        m_FirstMouse = true;
-    }
-    
-    // Reset move vector
+    // Reset move and rotate vectors
     m_MoveVector = simd_make_float3(0.0f, 0.0f, 0.0f);
+    m_RotateVector = simd_make_float2(0.0f, 0.0f);
     
     // Get the first connected controller
     GCController *controller = [GCController controllers].firstObject;
@@ -107,4 +75,16 @@ void IOSInput::Update(float deltaTime)
     if (gamepad.leftShoulder.isPressed) {
         m_MoveVector.y = -1.0f;  // Move down
     }
+    
+    // Right thumbstick -> Rotation vector
+    float rightX = gamepad.rightThumbstick.xAxis.value;
+    float rightY = gamepad.rightThumbstick.yAxis.value;
+    
+    // Apply deadzone
+    const float deadzone = 0.1f;
+    if (fabsf(rightX) < deadzone) rightX = 0.0f;
+    if (fabsf(rightY) < deadzone) rightY = 0.0f;
+    
+    m_RotateVector.x = -rightX * 2.0f;   // Horizontal rotation
+    m_RotateVector.y = rightY * 2.0f;  // Vertical rotation (inverted for natural camera control)
 }
