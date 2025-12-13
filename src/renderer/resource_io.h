@@ -9,6 +9,9 @@
 #include <unordered_map>
 #include <string>
 
+constexpr const char* DEFAULT_WHITE = "Default/White";
+constexpr const char* DEFAULT_BLACK = "Default/Black";
+
 enum class ResourceType
 {
     TEXTURE,
@@ -29,6 +32,9 @@ struct Resource
 class ResourceIO
 {
 public:
+    static void Initialize();
+    static void Shutdown();
+    
     static Resource& CreateTexture(const std::string& name, MTLTextureDescriptor* descriptor);
     static Resource& CreateBuffer(const std::string& name, uint64_t size);
     static Resource& CreateArgumentBuffer(const std::string& name, id<MTLFunction> function, int index);

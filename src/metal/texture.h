@@ -13,15 +13,14 @@ public:
 
     void SetDescriptor(MTLTextureDescriptor* descriptor);
     void Resize(uint32_t width, uint32_t height);
+    void UploadData(const void* data, uint64_t size, uint64_t bpp);
+    
     id<MTLTexture> GetTexture() const { return m_Texture; }
-
     bool Valid() { return m_Texture != nil; }
-
     void SetLabel(NSString* label) { m_Texture.label = label; }
-
-    uint32_t Width() const { return m_Descriptor.width; }
-    uint32_t Height() const { return m_Descriptor.height; }
+    uint32_t Width() const { return (uint32_t)m_Descriptor.width; }
+    uint32_t Height() const { return (uint32_t)m_Descriptor.height; }
 private:
-    id<MTLTexture> m_Texture;
+    id<MTLTexture> m_Texture = nil;
     MTLTextureDescriptor* m_Descriptor;
 };

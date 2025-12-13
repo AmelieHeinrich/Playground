@@ -24,6 +24,9 @@ Application::Application()
 
 Application::~Application()
 {
+    delete m_World;
+    delete m_Renderer;
+    
     TextureCache::Shutdown();
     m_CommandQueue = nil;
     m_Device = nil;
@@ -55,8 +58,38 @@ bool Application::Initialize(id<MTLDevice> device)
     // Create renderer
     m_Renderer = new Renderer();
 
-    // Add model
-    m_World.AddModel("models/Sponza/Sponza.mesh");
+    // World
+    m_World = new World();
+    m_World->AddModel("models/Sponza/Sponza.mesh");
+    
+    // Create random lights
+    int lightCount = 16;
+    for (int i = 0; i < lightCount; i++) {
+        PointLight light;
+        
+        // Random position within Sponza bounds
+        // Sponza is roughly: X: [-12, 12], Y: [0, 15], Z: [-5, 5]
+        light.Position = simd::float3{
+            -12.0f + static_cast<float>(rand()) / RAND_MAX * 24.0f,  // X: -12 to 12
+            0.5f + static_cast<float>(rand()) / RAND_MAX * 14.0f,     // Y: 0.5 to 14.5
+            -5.0f + static_cast<float>(rand()) / RAND_MAX * 10.0f     // Z: -5 to 5
+        };
+        
+        // Random radius between 2 and 8
+        light.Radius = 2.0f + static_cast<float>(rand()) / RAND_MAX * 6.0f;
+        
+        // Random bright color (avoid too dark colors by using 0.3 to 1.0 range)
+        light.Color = simd::float3{
+            0.3f + static_cast<float>(rand()) / RAND_MAX * 0.7f,
+            0.3f + static_cast<float>(rand()) / RAND_MAX * 0.7f,
+            0.3f + static_cast<float>(rand()) / RAND_MAX * 0.7f
+        };
+        
+        // Scale up the color for more intensity
+        light.Color *= 10.0f;
+        
+        m_World->GetLightList().AddPointLight(light);
+    }
 
     NSLog(@"Application initialized successfully with Metal device: %@", [m_Device name]);
     return true;
@@ -81,6 +114,7 @@ void Application::OnResize(uint32_t width, uint32_t height)
 void Application::OnUpdate(float deltaTime)
 {
     m_ResidencySet.Update();
+    m_World->Update();
     m_Input.Update(deltaTime);
     m_Camera.Update(m_Input, deltaTime);
 }
@@ -111,6 +145,6 @@ void Application::OnRender(id<CAMetalDrawable> drawable)
 
     CommandBuffer cmdBuffer;
     cmdBuffer.SetDrawable(drawable.texture);
-    m_Renderer->Render(cmdBuffer, m_World, m_Camera);
+    m_Renderer->Render(cmdBuffer, *m_World, m_Camera);
     cmdBuffer.Commit();
 }

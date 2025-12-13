@@ -2,6 +2,27 @@
 
 std::unordered_map<std::string, Resource> ResourceIO::s_Resources;
 
+void ResourceIO::Initialize()
+{
+    // Default textures
+    MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm_sRGB width:1 height:1 mipmapped:NO];
+    descriptor.usage = MTLTextureUsageShaderRead;
+    
+    uint32_t whiteColor = 0xFFFFFFFF;
+    uint32_t blackColor = 0xFF000000;
+    
+    Resource& white = CreateTexture(DEFAULT_WHITE, descriptor);
+    white.Texture.UploadData(&whiteColor, sizeof(whiteColor), sizeof(uint8_t) * 4);
+    
+    Resource& black = CreateTexture(DEFAULT_BLACK, descriptor);
+    black.Texture.UploadData(&blackColor, sizeof(blackColor), sizeof(uint8_t) * 4);
+}
+
+void ResourceIO::Shutdown()
+{
+    s_Resources.clear();
+}
+
 Resource& ResourceIO::CreateTexture(const std::string& name, MTLTextureDescriptor* descriptor)
 {
     s_Resources[name] = {};

@@ -36,7 +36,7 @@ Shader ShaderCompiler::Compile(id<MTLDevice> device, const std::string& path, Sh
     } else {
         options.languageVersion = MTLLanguageVersion2_0;
     }
-
+    
     NSError* error = nil;
     id<MTLLibrary> library = [device newLibraryWithSource:nsSource
                                      options:options
@@ -54,21 +54,21 @@ Shader ShaderCompiler::Compile(id<MTLDevice> device, const std::string& path, Sh
     NSArray<NSString*>* functionNames = [library functionNames];
     for (NSString* functionName in functionNames) {
         std::string entryPoint = [functionName UTF8String];
-        
+
         // Check if this is a known entry point
         auto it = ENTRY_POINT_MAP.find(entryPoint);
         if (it != ENTRY_POINT_MAP.end()) {
             ShaderStage stage = it->second;
             id<MTLFunction> function = [library newFunctionWithName:functionName];
-            
+
             if (function) {
                 ShaderModule module;
                 module.Stage = stage;
                 module.Function = function;
                 module.EntryPoint = entryPoint;
-                
+
                 shader.AvailableModules[stage] = module;
-                
+
                 NSLog(@"Found shader entry point: %s (stage: %d)", entryPoint.c_str(), static_cast<int>(stage));
             }
         }

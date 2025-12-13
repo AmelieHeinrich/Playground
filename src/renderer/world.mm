@@ -1,5 +1,10 @@
 #include "world.h"
 
+void World::Update()
+{
+    m_LightList.Update();
+}
+
 Entity& World::AddModel(const std::string& path)
 {
     Entity entity;

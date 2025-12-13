@@ -54,7 +54,7 @@ private:
     uint32_t m_Width;
     uint32_t m_Height;
 
-    World m_World;
+    World* m_World;
     Camera m_Camera;
     Renderer* m_Renderer;
 

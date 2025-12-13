@@ -23,5 +23,5 @@ public:
 
 private:
     Buffer m_Buffer;
-    id<MTLArgumentEncoder> m_ArgumentEncoder;
+    id<MTLArgumentEncoder> m_ArgumentEncoder = nil;
 };

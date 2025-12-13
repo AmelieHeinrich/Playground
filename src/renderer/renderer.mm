@@ -3,8 +3,12 @@
 #include "passes/forward_plus.h"
 #include "passes/tonemap.h"
 
+#include "resource_io.h"
+
 Renderer::Renderer()
 {
+    ResourceIO::Initialize();
+    
     m_Passes = {
         new ForwardPlusPass(),
         new TonemapPass()
@@ -16,6 +20,8 @@ Renderer::~Renderer()
     for (auto pass : m_Passes) {
         delete pass;
     }
+    
+    ResourceIO::Shutdown();
 }
 
 void Renderer::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)

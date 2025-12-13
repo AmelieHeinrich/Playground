@@ -30,3 +30,8 @@ void Texture::Resize(uint32_t width, uint32_t height)
     m_Texture = [Device::GetDevice() newTextureWithDescriptor:m_Descriptor];
     Device::GetResidencySet().AddResource(m_Texture);
 }
+
+void Texture::UploadData(const void* data, uint64_t size, uint64_t bpp)
+{
+    [m_Texture replaceRegion:MTLRegionMake2D(0, 0, Width(), Height()) mipmapLevel:0 withBytes:data bytesPerRow:Width() * bpp];
+}

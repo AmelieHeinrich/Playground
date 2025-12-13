@@ -20,5 +20,5 @@ public:
 
     void* Contents() const { return [m_Buffer contents]; }
 private:
-    id<MTLBuffer> m_Buffer;
+    id<MTLBuffer> m_Buffer = nil;
 };
