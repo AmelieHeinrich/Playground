@@ -33,6 +33,7 @@ void DepthPrepass::Resize(int width, int height)
 
 void DepthPrepass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
+#if !TARGET_OS_IPHONE
     Texture& depthTexture = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
     Texture& defaultTexture = ResourceIO::Get(DEFAULT_WHITE).Texture;
 
@@ -55,4 +56,5 @@ void DepthPrepass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera
         }
     }
     encoder.End();
+#endif
 }

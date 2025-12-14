@@ -29,8 +29,12 @@ ForwardPlusPass::ForwardPlusPass()
     desc.ColorFormats = {MTLPixelFormatRGBA16Float};
     desc.DepthEnabled = true;
     desc.DepthFormat = MTLPixelFormatDepth32Float;
+#if TARGET_OS_IPHONE
+    desc.DepthFunc = MTLCompareFunctionLess;
+#else
     desc.DepthFunc = MTLCompareFunctionEqual;
-
+#endif
+    
     m_GraphicsPipeline = GraphicsPipeline::Create(desc);
 
     // Create textures in OBJC++
@@ -59,7 +63,11 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
 
     RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
                                                  .AddTexture(colorTexture)
-                                                 .AddDepthStencilTexture(depthTexture, false)
+#if TARGET_OS_IPHONE
+                                                 .AddDepthStencilTexture(depthTexture, true)
+#else
+                                                 .AddDepthStencilTexture(depthTexture)
+#endif
                                                  .SetName(@"Forward Pass"));
     encoder.SetGraphicsPipeline(m_GraphicsPipeline);
     encoder.SetBytes(ShaderStage::VERTEX | ShaderStage::FRAGMENT, &globalConstants, sizeof(globalConstants), 0);
