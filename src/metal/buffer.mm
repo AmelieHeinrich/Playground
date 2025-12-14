@@ -15,7 +15,6 @@ Buffer::~Buffer()
 {
     if (!m_Buffer) return;
     Device::GetResidencySet().RemoveResource(m_Buffer);
-    m_Buffer = nil;
 }
 
 void Buffer::Initialize(const void* data, uint64_t size)

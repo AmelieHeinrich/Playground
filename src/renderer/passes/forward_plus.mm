@@ -34,7 +34,7 @@ ForwardPlusPass::ForwardPlusPass()
 #else
     desc.DepthFunc = MTLCompareFunctionEqual;
 #endif
-    
+
     m_GraphicsPipeline = GraphicsPipeline::Create(desc);
 
     // Create textures in OBJC++
@@ -64,9 +64,9 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
     RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
                                                  .AddTexture(colorTexture)
 #if TARGET_OS_IPHONE
-                                                 .AddDepthStencilTexture(depthTexture, true)
-#else
                                                  .AddDepthStencilTexture(depthTexture)
+#else
+                                                 .AddDepthStencilTexture(depthTexture, false)
 #endif
                                                  .SetName(@"Forward Pass"));
     encoder.SetGraphicsPipeline(m_GraphicsPipeline);

@@ -4,20 +4,23 @@
 API_AVAILABLE(macos(15.0))
 void ResidencySet::Initialize()
 {
-    MTLResidencySetDescriptor* descriptor = [[MTLResidencySetDescriptor alloc] init];
-    descriptor.initialCapacity = 1000;
-    descriptor.label = @"ResidencySet";
+    @autoreleasepool {
+        MTLResidencySetDescriptor* descriptor = [MTLResidencySetDescriptor new];
+        descriptor.initialCapacity = 1000;
+        descriptor.label = @"ResidencySet";
 
-    NSError* error = nil;
-    m_ResidencySet = [Device::GetDevice() newResidencySetWithDescriptor:descriptor error:&error];
-    if (error) {
-        NSLog(@"Error creating residency set: %@", error);
+        NSError* error = nil;
+        m_ResidencySet = [Device::GetDevice() newResidencySetWithDescriptor:descriptor error:&error];
+        if (error) {
+            NSLog(@"Error creating residency set: %@", error);
+        }
     }
 }
 
 ResidencySet::~ResidencySet()
 {
-    [m_ResidencySet release];
+    // With ARC, don't call release - just set to nil
+    m_ResidencySet = nil;
 }
 
 API_AVAILABLE(macos(15.0))

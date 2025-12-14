@@ -16,6 +16,9 @@ Application::Application()
     , m_CommandQueue(nil)
     , m_Width(0)
     , m_Height(0)
+    , m_RenderScale(1.0f)
+    , m_LastRenderWidth(0)
+    , m_LastRenderHeight(0)
     , m_Camera()
     , m_Input()
 {
@@ -97,26 +100,45 @@ bool Application::Initialize(id<MTLDevice> device)
 
 void Application::OnResize(uint32_t width, uint32_t height)
 {
-    m_Width = width;
-    m_Height = height;
+    @autoreleasepool {
+        // Apply render scale to actual render resolution
+        uint32_t renderWidth = static_cast<uint32_t>(width * m_RenderScale);
+        uint32_t renderHeight = static_cast<uint32_t>(height * m_RenderScale);
 
-    if (height > 0) {
-        float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
-        m_Camera.SetAspectRatio(aspectRatio);
+        // Skip resize if nothing has changed (both window size and render size)
+        if (m_Width == width && m_Height == height &&
+            m_LastRenderWidth == renderWidth && m_LastRenderHeight == renderHeight) {
+                return;
+            }
+
+        m_Width = width;
+        m_Height = height;
+
+        if (height > 0) {
+            float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+            m_Camera.SetAspectRatio(aspectRatio);
+        }
+
+        // Only resize render targets if the actual render dimensions changed
+        if (m_LastRenderWidth != renderWidth || m_LastRenderHeight != renderHeight) {
+            m_Renderer->Resize(renderWidth, renderHeight);
+            m_LastRenderWidth = renderWidth;
+            m_LastRenderHeight = renderHeight;
+            NSLog(@"Render targets resized to: %ux%u (%.0f%%)", renderWidth, renderHeight, m_RenderScale * 100.0f);
+        }
+
+        NSLog(@"Application resized to: %ux%u", width, height);
     }
-
-    // Resize depth buffer
-    m_Renderer->Resize((int)width, (int)height);
-
-    NSLog(@"Application resized to: %ux%u", width, height);
 }
 
 void Application::OnUpdate(float deltaTime)
 {
-    m_ResidencySet.Update();
-    m_World->Update();
-    m_Input.Update(deltaTime);
-    m_Camera.Update(m_Input, deltaTime);
+    @autoreleasepool {
+        m_ResidencySet.Update();
+        m_World->Update();
+        m_Input.Update(deltaTime);
+        m_Camera.Update(m_Input, deltaTime);
+    }
 }
 
 void Application::OnUI()
@@ -133,18 +155,44 @@ void Application::OnUI()
 #endif
 
     ImGui::Separator();
+    ImGui::Text("Render Scale");
+    
+    const float scales[] = { 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f };
+    const char* labels[] = { "50%", "75%", "100%", "125%", "150%", "200%" };
+    
+    for (int i = 0; i < 6; i++) {
+        if (i > 0) ImGui::SameLine();
+        
+        bool isSelected = (m_RenderScale == scales[i]);
+        if (isSelected) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+        }
+        
+        if (ImGui::Button(labels[i], ImVec2(60, 0))) {
+            m_RenderScale = scales[i];
+            OnResize(m_Width, m_Height);
+        }
+        
+        if (isSelected) {
+            ImGui::PopStyleColor();
+        }
+    }
+
+    ImGui::Separator();
     m_Renderer->DebugUI();
     ImGui::End();
 }
 
 void Application::OnRender(id<CAMetalDrawable> drawable)
 {
-    if (!drawable) {
-        return;
-    }
+    @autoreleasepool {
+        if (!drawable) {
+            return;
+        }
 
-    CommandBuffer cmdBuffer;
-    cmdBuffer.SetDrawable(drawable.texture);
-    m_Renderer->Render(cmdBuffer, *m_World, m_Camera);
-    cmdBuffer.Commit();
+        CommandBuffer cmdBuffer;
+        cmdBuffer.SetDrawable(drawable.texture);
+        m_Renderer->Render(cmdBuffer, *m_World, m_Camera);
+        cmdBuffer.Commit();
+    }
 }

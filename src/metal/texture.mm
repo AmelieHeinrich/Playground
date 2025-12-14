@@ -22,11 +22,21 @@ void Texture::SetDescriptor(MTLTextureDescriptor* descriptor)
 
 void Texture::Resize(uint32_t width, uint32_t height)
 {
-    if (m_Texture) Device::GetResidencySet().RemoveResource(m_Texture);
+    // Skip resize if dimensions haven't changed
+    if (m_Texture && m_Descriptor.width == width && m_Descriptor.height == height) {
+        return;
+    }
 
+    // Remove old texture from residency set and release it
+    if (m_Texture) {
+        Device::GetResidencySet().RemoveResource(m_Texture);
+    }
+
+    // Update descriptor dimensions
     m_Descriptor.width = width;
     m_Descriptor.height = height;
 
+    // Create new texture with updated dimensions
     m_Texture = [Device::GetDevice() newTextureWithDescriptor:m_Descriptor];
     Device::GetResidencySet().AddResource(m_Texture);
 }

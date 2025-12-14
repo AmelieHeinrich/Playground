@@ -17,7 +17,7 @@ void CommandBuffer::Commit()
 
 RenderEncoder CommandBuffer::RenderPass(const RenderPassInfo& info)
 {
-    MTLRenderPassDescriptor* descriptor = [MTLRenderPassDescriptor new];
+    MTLRenderPassDescriptor* descriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     for (int i = 0; i < info.Textures.size(); i++) {
         descriptor.colorAttachments[i].texture = info.Textures[i];
         descriptor.colorAttachments[i].loadAction = info.ShouldClear[i] ? MTLLoadActionClear : MTLLoadActionLoad;

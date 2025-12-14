@@ -214,9 +214,9 @@ API_AVAILABLE(ios(15.0))
         return NO;
     }
 
-    // Send initial resize event
-    CGSize size = self.metalView.drawableSize;
-    _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
+    // Send initial resize event with non-retina resolution
+    CGSize bounds = self.metalView.bounds.size;
+    _application->OnResize((uint32_t)bounds.width, (uint32_t)bounds.height);
 
     return YES;
 }
@@ -269,69 +269,73 @@ API_AVAILABLE(ios(15.0))
 // MTKViewDelegate methods
 - (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size {
     if (_application) {
-        _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
+        // Use bounds size (in points) instead of drawable size (in pixels)
+        CGSize bounds = view.bounds.size;
+        _application->OnResize((uint32_t)bounds.width, (uint32_t)bounds.height);
     }
 }
 
 - (void)drawInMTKView:(MTKView *)view {
-    if (!_application) {
-        return;
+    @autoreleasepool {
+        if (!_application) {
+            return;
+        }
+
+        CFTimeInterval currentTime = CACurrentMediaTime();
+        float deltaTime = _lastFrameTime > 0.0 ? (float)(currentTime - _lastFrameTime) : 0.016f;
+        _lastFrameTime = currentTime;
+
+        _application->OnUpdate(deltaTime);
+
+        ImGuiIO& io = ImGui::GetIO();
+        io.DisplaySize.x = view.bounds.size.width;
+        io.DisplaySize.y = view.bounds.size.height;
+        io.DeltaTime = deltaTime;
+
+        CGFloat framebufferScale = view.window.screen.scale ?: UIScreen.mainScreen.scale;
+        io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
+
+        MTLRenderPassDescriptor* renderPassDescriptor = view.currentRenderPassDescriptor;
+
+        if (renderPassDescriptor == nil) {
+            return;
+        }
+
+        // Start the Dear ImGui frame
+        ImGui_ImplMetal_NewFrame(renderPassDescriptor);
+        ImGui::NewFrame();
+
+        // Call application UI callback
+        _application->OnUI();
+
+        // Rendering
+        ImGui::Render();
+
+        // Application rendering (separate command buffer for compute, blit, AS, etc.)
+        _application->OnRender(view.currentDrawable);
+
+        // Presentation command buffer (for final UI and presentation)
+        id<MTLCommandBuffer> presentationCommandBuffer = [self.commandQueue commandBuffer];
+        [presentationCommandBuffer setLabel:@"Presentation"];
+
+        // Simple clear color
+        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.1, 0.1, 0.1, 1.0);
+        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
+        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+        id<MTLRenderCommandEncoder> renderEncoder = [presentationCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+
+        // Render ImGui
+        [renderEncoder pushDebugGroup:@"ImGui"];
+        ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), presentationCommandBuffer, renderEncoder);
+        [renderEncoder popDebugGroup];
+
+        [renderEncoder endEncoding];
+
+        // Present
+        [presentationCommandBuffer presentDrawable:view.currentDrawable];
+        [presentationCommandBuffer commit];
     }
-
-    CFTimeInterval currentTime = CACurrentMediaTime();
-    float deltaTime = _lastFrameTime > 0.0 ? (float)(currentTime - _lastFrameTime) : 0.016f;
-    _lastFrameTime = currentTime;
-
-    _application->OnUpdate(deltaTime);
-
-    ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize.x = view.bounds.size.width;
-    io.DisplaySize.y = view.bounds.size.height;
-    io.DeltaTime = deltaTime;
-
-    CGFloat framebufferScale = view.window.screen.scale ?: UIScreen.mainScreen.scale;
-    io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
-
-    MTLRenderPassDescriptor* renderPassDescriptor = view.currentRenderPassDescriptor;
-
-    if (renderPassDescriptor == nil) {
-        return;
-    }
-
-    // Start the Dear ImGui frame
-    ImGui_ImplMetal_NewFrame(renderPassDescriptor);
-    ImGui::NewFrame();
-
-    // Call application UI callback
-    _application->OnUI();
-
-    // Rendering
-    ImGui::Render();
-
-    // Application rendering (separate command buffer for compute, blit, AS, etc.)
-    _application->OnRender(view.currentDrawable);
-
-    // Presentation command buffer (for final UI and presentation)
-    id<MTLCommandBuffer> presentationCommandBuffer = [self.commandQueue commandBuffer];
-    [presentationCommandBuffer setLabel:@"Presentation"];
-
-    // Simple clear color
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.1, 0.1, 0.1, 1.0);
-    renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
-    renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-
-    id<MTLRenderCommandEncoder> renderEncoder = [presentationCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-
-    // Render ImGui
-    [renderEncoder pushDebugGroup:@"ImGui"];
-    ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), presentationCommandBuffer, renderEncoder);
-    [renderEncoder popDebugGroup];
-
-    [renderEncoder endEncoding];
-
-    // Present
-    [presentationCommandBuffer presentDrawable:view.currentDrawable];
-    [presentationCommandBuffer commit];
 }
 
 -(void)updateIOWithTouchEvent:(UIEvent *)event
@@ -457,9 +461,9 @@ API_AVAILABLE(ios(15.0))
         return;
     }
 
-    // Send initial resize event
-    CGSize size = self.metalView.drawableSize;
-    _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
+    // Send initial resize event with non-retina resolution
+    CGSize bounds = self.metalView.bounds.size;
+    _application->OnResize((uint32_t)bounds.width, (uint32_t)bounds.height);
 
     NSLog(@"Application initialized and window displayed");
 
@@ -530,74 +534,78 @@ API_AVAILABLE(ios(15.0))
 // MTKViewDelegate methods
 - (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size {
     if (_application) {
-        _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
+        // Use bounds size (in points) instead of drawable size (in pixels)
+        CGSize bounds = view.bounds.size;
+        _application->OnResize((uint32_t)bounds.width, (uint32_t)bounds.height);
     }
 }
 
 - (void)drawInMTKView:(MTKView *)view {
-    if (!_application) {
-        return;
-    }
+    @autoreleasepool {
+        if (!_application) {
+            return;
+        }
 
-    CFTimeInterval currentTime = CACurrentMediaTime();
-    float deltaTime = _lastFrameTime > 0.0 ? (float)(currentTime - _lastFrameTime) : 0.016f;
-    _lastFrameTime = currentTime;
+        CFTimeInterval currentTime = CACurrentMediaTime();
+        float deltaTime = _lastFrameTime > 0.0 ? (float)(currentTime - _lastFrameTime) : 0.016f;
+        _lastFrameTime = currentTime;
 
-    _application->OnUpdate(deltaTime);
+        _application->OnUpdate(deltaTime);
 
-    ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize.x = view.bounds.size.width;
-    io.DisplaySize.y = view.bounds.size.height;
+        ImGuiIO& io = ImGui::GetIO();
+        io.DisplaySize.x = view.bounds.size.width;
+        io.DisplaySize.y = view.bounds.size.height;
 
-    CGFloat framebufferScale = view.window.screen.backingScaleFactor ?: NSScreen.mainScreen.backingScaleFactor;
-    io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
+        CGFloat framebufferScale = view.window.screen.backingScaleFactor ?: NSScreen.mainScreen.backingScaleFactor;
+        io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
 
-    MTLRenderPassDescriptor* renderPassDescriptor = view.currentRenderPassDescriptor;
-    renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
-    renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+        MTLRenderPassDescriptor* renderPassDescriptor = view.currentRenderPassDescriptor;
+        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
+        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
 
-    if (renderPassDescriptor == nil) {
-        return;
-    }
+        if (renderPassDescriptor == nil) {
+            return;
+        }
 
-    // Start the Dear ImGui frame
-    ImGui_ImplMetal_NewFrame(renderPassDescriptor);
-    ImGui_ImplOSX_NewFrame(view);
-    ImGui::NewFrame();
+        // Start the Dear ImGui frame
+        ImGui_ImplMetal_NewFrame(renderPassDescriptor);
+        ImGui_ImplOSX_NewFrame(view);
+        ImGui::NewFrame();
 
-    // Call application UI callback
-    _application->OnUI();
+        // Call application UI callback
+        _application->OnUI();
 
-    // Rendering
-    ImGui::Render();
+        // Rendering
+        ImGui::Render();
 
-    // Application rendering (separate command buffer for compute, blit, AS, etc.)
-    _application->OnRender(view.currentDrawable);
+        // Application rendering (separate command buffer for compute, blit, AS, etc.)
+        _application->OnRender(view.currentDrawable);
 
-    // Presentation command buffer (for final UI and presentation)
-    id<MTLCommandBuffer> presentationCommandBuffer = [self.commandQueue commandBuffer];
-    [presentationCommandBuffer setLabel:@"Presentation"];
+        // Presentation command buffer (for final UI and presentation)
+        id<MTLCommandBuffer> presentationCommandBuffer = [self.commandQueue commandBuffer];
+        [presentationCommandBuffer setLabel:@"Presentation"];
 
-    // Simple clear color
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.1, 0.1, 0.1, 1.0);
+        // Simple clear color
+        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.1, 0.1, 0.1, 1.0);
 
-    id<MTLRenderCommandEncoder> renderEncoder = [presentationCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+        id<MTLRenderCommandEncoder> renderEncoder = [presentationCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
 
-    // Render ImGui
-    [renderEncoder pushDebugGroup:@"ImGui"];
-    ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), presentationCommandBuffer, renderEncoder);
-    [renderEncoder popDebugGroup];
+        // Render ImGui
+        [renderEncoder pushDebugGroup:@"ImGui"];
+        ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), presentationCommandBuffer, renderEncoder);
+        [renderEncoder popDebugGroup];
 
-    [renderEncoder endEncoding];
+        [renderEncoder endEncoding];
 
-    // Present
-    [presentationCommandBuffer presentDrawable:view.currentDrawable];
-    [presentationCommandBuffer commit];
+        // Present
+        [presentationCommandBuffer presentDrawable:view.currentDrawable];
+        [presentationCommandBuffer commit];
 
-    // Update and Render additional Platform Windows
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
+        // Update and Render additional Platform Windows
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
     }
 }
 

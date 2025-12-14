@@ -48,7 +48,7 @@ void TonemapPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
     // Copy to drawable
     RenderEncoder renderEncoder = cmdBuffer.RenderPass(RenderPassInfo().AddTexture(cmdBuffer.GetDrawable()).SetName(@"Blit to Drawable"));
     renderEncoder.SetGraphicsPipeline(m_BlitPipeline);
-    renderEncoder.SetTexture(ShaderStage::FRAGMENT, input, 0);
+    renderEncoder.SetTexture(ShaderStage::FRAGMENT, output, 0);
     renderEncoder.Draw(MTLPrimitiveTypeTriangle, 3, 0);
     renderEncoder.End();
 }

@@ -46,6 +46,8 @@ public:
     Camera& GetCamera() { return m_Camera; }
     const Camera& GetCamera() const { return m_Camera; }
 
+    float GetRenderScale() const { return m_RenderScale; }
+
 private:
     id<MTLDevice> m_Device;
     id<MTLCommandQueue> m_CommandQueue;
@@ -53,6 +55,9 @@ private:
 
     uint32_t m_Width;
     uint32_t m_Height;
+    float m_RenderScale;
+    uint32_t m_LastRenderWidth;
+    uint32_t m_LastRenderHeight;
 
     World* m_World;
     Camera m_Camera;

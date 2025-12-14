@@ -104,6 +104,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>
     $<$<COMPILE_LANGUAGE:OBJC>:-fobjc-arc>
+    $<$<COMPILE_LANGUAGE:C>:-fobjc-arc>
+    $<$<COMPILE_LANGUAGE:CXX>:-fobjc-arc>
 )
 
 # Link ImGui and libktx libraries
