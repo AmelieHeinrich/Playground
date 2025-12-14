@@ -18,7 +18,7 @@ GraphicsPipeline GraphicsPipeline::Create(const GraphicsPipelineDesc& desc)
     if (desc.SupportsIndirect) descriptor.supportIndirectCommandBuffers = YES;
 
     descriptor.vertexFunction = pipeline.m_VertexFunction;
-    descriptor.fragmentFunction = pipeline.m_FragmentFunction;
+    if (pipeline.m_FragmentFunction) descriptor.fragmentFunction = pipeline.m_FragmentFunction;
     for (int i = 0; i < desc.ColorFormats.size(); ++i) {
         descriptor.colorAttachments[i].pixelFormat = desc.ColorFormats[i];
         if (desc.EnableBlend) {

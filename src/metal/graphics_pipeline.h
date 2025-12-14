@@ -44,6 +44,6 @@ private:
 
     GraphicsPipelineDesc m_Desc;
 
-    id<MTLFunction> m_VertexFunction;
-    id<MTLFunction> m_FragmentFunction;
+    id<MTLFunction> m_VertexFunction = nil;
+    id<MTLFunction> m_FragmentFunction = nil;
 };

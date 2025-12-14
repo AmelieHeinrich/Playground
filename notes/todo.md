@@ -5,7 +5,9 @@
 - [x] Camera controls on mac and ios
 - [x] Load a compressed texture
 - [x] Load a model
-- [ ] Add lights, Cook-Torrance BRDF
+- [x] Add lights, Cook-Torrance BRDF
+
+UNORDERED
 - [ ] Raytraced hard shadows for RT pipeline setup
 - [ ] Clustered light culling
 - [ ] Pathtracing mode

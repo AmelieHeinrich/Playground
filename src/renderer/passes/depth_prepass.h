@@ -3,13 +3,13 @@
 #include "renderer/pass.h"
 #include "metal/graphics_pipeline.h"
 
-constexpr const char* FORWARD_PLUS_COLOR_OUTPUT = "ForwardPlus/Color";
+constexpr const char* DEPTH_PREPASS_DEPTH_OUTPUT = "DepthPrepas/Depth";
 
-class ForwardPlusPass : public Pass
+class DepthPrepass : public Pass
 {
 public:
-    ForwardPlusPass();
-    ~ForwardPlusPass() = default;
+    DepthPrepass();
+    ~DepthPrepass() = default;
 
     void Resize(int width, int height) override;
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;

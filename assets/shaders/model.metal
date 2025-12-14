@@ -30,7 +30,7 @@ struct VSOutput {
 
 struct Constants {
     float4x4 cameraMatrix;
-    
+
     float3 cameraPosition;
     int LightCount;
 };
@@ -132,18 +132,17 @@ float3 EvaluatePBR_PointLight(
     return (diffuse + specular) * radiance * NdotL;
 }
 
-
 float3 GetMaterialNormal(texture2d<float> normalTexture, float3 vertexNormal, float4 tangent, float2 uv)
 {
     constexpr sampler textureSampler(mag_filter::nearest, min_filter::nearest, address::repeat);
-    
+
     float3 normalSample = normalTexture.sample(textureSampler, uv).rgb * 2.0 - 1.0;
-    
+
     float3 N = normalize(vertexNormal);
     float3 T = normalize(tangent.xyz);
     float3 B = cross(N, T) * tangent.w;
     float3x3 TBN = float3x3(T, B, N);
-    
+
     float3 worldNormal = normalize(TBN * normalSample);
     return worldNormal;
 }
@@ -185,7 +184,6 @@ fragment float4 fs_main(
     float4 albedoSample = material.hasAlbedo
         ? albedoTexture.sample(textureSampler, in.uv)
         : float4(1.0);
-
     if (albedoSample.a < 0.25)
         discard_fragment();
 
@@ -220,7 +218,7 @@ fragment float4 fs_main(
 
     // Clamp for safety (and to help the compiler)
     float3 color = 0.0f;
-    
+
     int lightCount = min(constants.LightCount, 4096);
     for (int i = 0; i < lightCount; ++i) {
         PointLight l = lights[i];
@@ -240,4 +238,3 @@ fragment float4 fs_main(
 
     return float4(color, 1.0);
 }
-

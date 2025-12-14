@@ -26,7 +26,7 @@ Application::~Application()
 {
     delete m_World;
     delete m_Renderer;
-    
+
     TextureCache::Shutdown();
     m_CommandQueue = nil;
     m_Device = nil;
@@ -61,33 +61,33 @@ bool Application::Initialize(id<MTLDevice> device)
     // World
     m_World = new World();
     m_World->AddModel("models/Sponza/Sponza.mesh");
-    
+
     // Create random lights
     int lightCount = 16;
     for (int i = 0; i < lightCount; i++) {
         PointLight light;
-        
+
         // Random position within Sponza bounds
         // Sponza is roughly: X: [-12, 12], Y: [0, 15], Z: [-5, 5]
         light.Position = simd::float3{
-            -12.0f + static_cast<float>(rand()) / RAND_MAX * 24.0f,  // X: -12 to 12
-            0.5f + static_cast<float>(rand()) / RAND_MAX * 14.0f,     // Y: 0.5 to 14.5
-            -5.0f + static_cast<float>(rand()) / RAND_MAX * 10.0f     // Z: -5 to 5
+            -5.0f + static_cast<float>(rand()) / RAND_MAX * 10.0f,
+            0.5f + static_cast<float>(rand()) / RAND_MAX * 4.0f,
+            -5.0f + static_cast<float>(rand()) / RAND_MAX * 10.0f
         };
-        
+
         // Random radius between 2 and 8
         light.Radius = 2.0f + static_cast<float>(rand()) / RAND_MAX * 6.0f;
-        
+
         // Random bright color (avoid too dark colors by using 0.3 to 1.0 range)
         light.Color = simd::float3{
             0.3f + static_cast<float>(rand()) / RAND_MAX * 0.7f,
             0.3f + static_cast<float>(rand()) / RAND_MAX * 0.7f,
             0.3f + static_cast<float>(rand()) / RAND_MAX * 0.7f
         };
-        
+
         // Scale up the color for more intensity
         light.Color *= 10.0f;
-        
+
         m_World->GetLightList().AddPointLight(light);
     }
 

@@ -1,6 +1,7 @@
 #include "forward_plus.h"
 #include "metal/graphics_pipeline.h"
 
+#include "renderer/passes/depth_prepass.h"
 #include "renderer/resource_io.h"
 
 #include <Metal/Metal.h>
@@ -28,7 +29,7 @@ ForwardPlusPass::ForwardPlusPass()
     desc.ColorFormats = {MTLPixelFormatRGBA16Float};
     desc.DepthEnabled = true;
     desc.DepthFormat = MTLPixelFormatDepth32Float;
-    desc.DepthFunc = MTLCompareFunctionLess;
+    desc.DepthFunc = MTLCompareFunctionEqual;
 
     m_GraphicsPipeline = GraphicsPipeline::Create(desc);
 
@@ -37,24 +38,18 @@ ForwardPlusPass::ForwardPlusPass()
     colorDescriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
     colorDescriptor.resourceOptions = MTLResourceStorageModePrivate;
 
-    MTLTextureDescriptor* depthDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:1 height:1 mipmapped:NO];
-    depthDescriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
-    depthDescriptor.resourceOptions = MTLResourceStorageModePrivate;
-
     ResourceIO::CreateTexture(FORWARD_PLUS_COLOR_OUTPUT, colorDescriptor);
-    ResourceIO::CreateTexture(FORWARD_PLUS_DEPTH_OUTPUT, depthDescriptor);
 }
 
 void ForwardPlusPass::Resize(int width, int height)
 {
     ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture.Resize(width, height);
-    ResourceIO::Get(FORWARD_PLUS_DEPTH_OUTPUT).Texture.Resize(width, height);
 }
 
 void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
     Texture& colorTexture = ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture;
-    Texture& depthTexture = ResourceIO::Get(FORWARD_PLUS_DEPTH_OUTPUT).Texture;
+    Texture& depthTexture = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
     Texture& defaultTexture = ResourceIO::Get(DEFAULT_WHITE).Texture;
 
     FPlusGlobalConstants globalConstants;
@@ -64,26 +59,26 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
 
     RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
                                                  .AddTexture(colorTexture)
-                                                 .AddDepthStencilTexture(depthTexture)
+                                                 .AddDepthStencilTexture(depthTexture, false)
                                                  .SetName(@"Forward Pass"));
     encoder.SetGraphicsPipeline(m_GraphicsPipeline);
     encoder.SetBytes(ShaderStage::VERTEX | ShaderStage::FRAGMENT, &globalConstants, sizeof(globalConstants), 0);
     encoder.SetBuffer(ShaderStage::FRAGMENT, world.GetLightList().GetPointLightBuffer(), 2);
     for (auto& entity : world.GetEntities()) {
         encoder.SetBuffer(ShaderStage::VERTEX, entity.Mesh.VertexBuffer, 1);
-        
+
         for (auto& mesh : entity.Mesh.Meshes) {
             MeshMaterial& material = entity.Mesh.Materials[mesh.MaterialIndex];
-            
+
             MaterialConstants constants;
             constants.hasAlbedo = material.AlbedoIndex != -1;
             constants.hasNormal = material.NormalIndex != -1;
             constants.hasORM = material.PBRIndex != -1;
-            
+
             id<MTLTexture> albedo = constants.hasAlbedo ? entity.Mesh.Textures[material.AlbedoIndex].Texture : defaultTexture.GetTexture();
             id<MTLTexture> normal = constants.hasNormal ? entity.Mesh.Textures[material.NormalIndex].Texture : defaultTexture.GetTexture();
             id<MTLTexture> orm = constants.hasORM ? entity.Mesh.Textures[material.PBRIndex].Texture : defaultTexture.GetTexture();
-            
+
             encoder.SetBytes(ShaderStage::FRAGMENT, &constants, sizeof(constants), 1);
             encoder.SetTexture(ShaderStage::FRAGMENT, albedo, 0);
             encoder.SetTexture(ShaderStage::FRAGMENT, normal, 1);
