@@ -1,12 +1,24 @@
 #include "tonemap.h"
+#include "metal/command_buffer.h"
+#include "metal/graphics_pipeline.h"
 #include "renderer/resource_io.h"
 
+#include <Metal/Metal.h>
 #include <imgui.h>
 
 TonemapPass::TonemapPass()
 {
+    // Graphics pipeline
+    GraphicsPipelineDesc pipelineDesc;
+    pipelineDesc.ColorFormats = { MTLPixelFormatBGRA8Unorm };
+    pipelineDesc.Path = "shaders/blit.metal";
+
+    m_BlitPipeline = GraphicsPipeline::Create(pipelineDesc);
+
+    // Compute pipeline
     m_Pipeline.Initialize("shaders/tonemap.metal");
 
+    // Textures
     MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm width:1 height:1 mipmapped:NO];
     descriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
     descriptor.storageMode = MTLStorageModePrivate;
@@ -34,9 +46,11 @@ void TonemapPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
     encoder.End();
 
     // Copy to drawable
-    BlitEncoder blitEncoder = cmdBuffer.BlitPass(@"Copy to Drawable");
-    blitEncoder.CopyTexture(output.GetTexture(), cmdBuffer.GetDrawable());
-    blitEncoder.End();
+    RenderEncoder renderEncoder = cmdBuffer.RenderPass(RenderPassInfo().AddTexture(cmdBuffer.GetDrawable()).SetName(@"Blit to Drawable"));
+    renderEncoder.SetGraphicsPipeline(m_BlitPipeline);
+    renderEncoder.SetTexture(ShaderStage::FRAGMENT, input, 0);
+    renderEncoder.Draw(MTLPrimitiveTypeTriangle, 3, 0);
+    renderEncoder.End();
 }
 
 void TonemapPass::DebugUI()

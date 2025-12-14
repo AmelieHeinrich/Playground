@@ -18,7 +18,8 @@ void RenderEncoder::End()
 void RenderEncoder::SetGraphicsPipeline(const GraphicsPipeline& pipeline)
 {
     [m_RenderEncoder setRenderPipelineState:pipeline.GetPipelineState()];
-    [m_RenderEncoder setDepthStencilState:pipeline.GetDepthStencilState()];
+    if (pipeline.GetDesc().DepthEnabled)
+        [m_RenderEncoder setDepthStencilState:pipeline.GetDepthStencilState()];
 }
 
 void RenderEncoder::SetBytes(ShaderStage stages, const void* bytes, size_t size, int index)
@@ -47,6 +48,11 @@ void RenderEncoder::SetTexture(ShaderStage stages, id<MTLTexture> texture, int i
 {
     if (HasFlag(stages, ShaderStage::VERTEX)) [m_RenderEncoder setVertexTexture:texture atIndex:index];
     if (HasFlag(stages, ShaderStage::FRAGMENT)) [m_RenderEncoder setFragmentTexture:texture atIndex:index];
+}
+
+void RenderEncoder::Draw(MTLPrimitiveType primitiveType, uint32_t vertexCount, uint32_t vertexOffset)
+{
+    [m_RenderEncoder drawPrimitives:primitiveType vertexStart:vertexOffset vertexCount:vertexCount];
 }
 
 void RenderEncoder::DrawIndexed(MTLPrimitiveType primitiveType, const Buffer& indexBuffer, uint32_t indexCount, uint32_t indexOffset)

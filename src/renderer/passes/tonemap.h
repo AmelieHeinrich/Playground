@@ -1,6 +1,7 @@
 #pragma once
 
 #include "metal/compute_pipeline.h"
+#include "metal/graphics_pipeline.h"
 #include "renderer/pass.h"
 
 #include "forward_plus.h"
@@ -20,5 +21,7 @@ public:
 
 private:
     ComputePipeline m_Pipeline;
+    GraphicsPipeline m_BlitPipeline;
+
     float m_Gamma = 2.2f;
 };

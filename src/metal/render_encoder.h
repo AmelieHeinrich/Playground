@@ -24,6 +24,7 @@ public:
     void SetTexture(ShaderStage stages, const Texture& texture, int index);
     void SetTexture(ShaderStage stages, id<MTLTexture> texture, int index);
 
+    void Draw(MTLPrimitiveType primitiveType, uint32_t vertexCount, uint32_t vertexOffset);
     void DrawIndexed(MTLPrimitiveType primitiveType, const Buffer& indexBuffer,  uint32_t indexCount, uint32_t indexOffset);
     void DrawIndexed(MTLPrimitiveType primitiveType, id<MTLBuffer> indexBuffer, uint32_t indexCount, uint32_t indexOffset);
 

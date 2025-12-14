@@ -38,6 +38,7 @@ public:
     id<MTLFunction> GetVertexFunction() const { return m_VertexFunction; }
     id<MTLFunction> GetFragmentFunction() const { return m_FragmentFunction; }
 
+    GraphicsPipelineDesc GetDesc() const { return m_Desc; }
 private:
     id<MTLRenderPipelineState> m_PipelineState;
     id<MTLDepthStencilState> m_DepthStencilState;

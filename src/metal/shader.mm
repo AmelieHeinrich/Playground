@@ -1,6 +1,7 @@
 #include "shader.h"
 #include "fs.h"
 
+#include <Metal/Metal.h>
 #include <fstream>
 #include <sstream>
 
@@ -22,21 +23,21 @@ Shader ShaderCompiler::Compile(id<MTLDevice> device, const std::string& path, Sh
         NSLog(@"Failed to load shader file: %s (err: %s)", path.c_str(), res.error.c_str());
         return Shader();
     }
-
+    
     std::string source = res.data;
     NSString* nsSource = [NSString stringWithUTF8String:source.c_str()];
-
-    MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
-#if TARGET_OS_IPHONE
-    if (@available(iOS 16.0, *)) {
-#else
-    if (@available(macOS 13.0, *)) {
-#endif
-        options.languageVersion = MTLLanguageVersion3_0;
-    } else {
-        options.languageVersion = MTLLanguageVersion2_0;
-    }
     
+    MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
+    options.languageVersion = MTLLanguageVersion3_0;
+#if TARGET_OS_IPHONE
+    options.preprocessorMacros = @{
+        @"IOS": @"1"
+    };
+#endif
+    options.fastMathEnabled = YES;
+    options.optimizationLevel = MTLLibraryOptimizationLevelDefault;
+    options.mathMode = MTLMathModeFast;
+
     NSError* error = nil;
     id<MTLLibrary> library = [device newLibraryWithSource:nsSource
                                      options:options
