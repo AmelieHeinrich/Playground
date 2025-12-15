@@ -1,5 +1,6 @@
 #include "renderer.h"
 
+#include "passes/cluster_cull.h"
 #include "passes/depth_prepass.h"
 #include "passes/forward_plus.h"
 #include "passes/tonemap.h"
@@ -12,6 +13,7 @@ Renderer::Renderer()
     ResourceIO::Initialize();
 
     m_Passes = {
+        new ClusterCullPass(),
         new DepthPrepass(),
         new ForwardPlusPass(),
         new DebugRendererPass(),

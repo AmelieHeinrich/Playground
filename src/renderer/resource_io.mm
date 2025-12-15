@@ -28,6 +28,7 @@ Resource& ResourceIO::CreateTexture(const std::string& name, MTLTextureDescripto
     s_Resources[name] = {};
     s_Resources[name].Type = ResourceType::TEXTURE;
     s_Resources[name].Texture.SetDescriptor(descriptor);
+    s_Resources[name].Texture.SetLabel([NSString stringWithUTF8String:name.c_str()]);
     return s_Resources[name];
 }
 
@@ -36,6 +37,7 @@ Resource& ResourceIO::CreateBuffer(const std::string& name, uint64_t size)
     s_Resources[name] = {};
     s_Resources[name].Type = ResourceType::BUFFER;
     s_Resources[name].Buffer.Initialize(size);
+    s_Resources[name].Buffer.SetLabel([NSString stringWithUTF8String:name.c_str()]);
     return s_Resources[name];
 }
 

@@ -41,6 +41,16 @@ void ComputeEncoder::SetTexture(const Texture& texture, int index)
     [m_Encoder setTexture:texture.GetTexture() atIndex:index];
 }
 
+void ComputeEncoder::PushGroup(NSString* string)
+{
+    [m_Encoder pushDebugGroup:string];
+}
+
+void ComputeEncoder::PopGroup()
+{
+    [m_Encoder popDebugGroup];
+}
+
 void ComputeEncoder::Dispatch(MTLSize numGroups, MTLSize threadsPerGroup)
 {
     [m_Encoder dispatchThreadgroups:numGroups threadsPerThreadgroup:threadsPerGroup];

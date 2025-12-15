@@ -20,6 +20,9 @@ public:
 
     void SetTexture(id<MTLTexture> texture, int index);
     void SetTexture(const Texture& texture, int index);
+    
+    void PushGroup(NSString* string);
+    void PopGroup();
 
     void Dispatch(MTLSize numGroups, MTLSize threadsPerGroup);
 
