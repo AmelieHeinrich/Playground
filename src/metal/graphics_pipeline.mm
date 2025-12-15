@@ -42,12 +42,12 @@ GraphicsPipeline GraphicsPipeline::Create(const GraphicsPipelineDesc& desc)
 
             MTLDepthStencilDescriptor* depthStencilDescriptor = [MTLDepthStencilDescriptor new];
             depthStencilDescriptor.depthCompareFunction = desc.DepthFunc;
-            depthStencilDescriptor.depthWriteEnabled = YES;
+            depthStencilDescriptor.depthWriteEnabled = desc.DepthWriteEnabled ? YES : NO;
 
             pipeline.m_DepthStencilState = [Device::GetDevice() newDepthStencilStateWithDescriptor:depthStencilDescriptor];
         }
-        NSString* label = [NSString stringWithFormat:@"%s %s", 
-                          desc.VertexFunctionName.c_str(), 
+        NSString* label = [NSString stringWithFormat:@"%s %s",
+                          desc.VertexFunctionName.c_str(),
                           desc.FragmentFunctionName.c_str()];
         descriptor.label = label;
 

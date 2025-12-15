@@ -9,14 +9,14 @@
 
 PBR LIGHTS DEMO MILESTONE ON IPHONE
 - [x] Use FP16 math
+- [x] Encoder profiler in UI (SCRAPPED, USING METAL HUD INSTEAD)
+- [x] Debug renderer
 - [ ] Clustered light culling
 - [ ] Push alpha cutouts draws at the end
-- [ ] Debug renderer
-- [ ] Encoder profiler in UI
 
 UNORDERED
+- [ ] GPU Driven GBuffer setup
 - [ ] Raytraced hard shadows for RT pipeline setup
-- [ ] Clustered light culling
 - [ ] Pathtracing mode
 - [ ] DDGI
 - [ ] Glossy SSR

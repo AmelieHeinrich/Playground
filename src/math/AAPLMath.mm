@@ -635,3 +635,9 @@ vector_float3 AAPL_SIMD_OVERLOAD right_direction_vector_from_quaternion(quaterni
     // Negate for a right-handed coordinate system
     return direction;
 }
+
+vector_float3 AAPL_SIMD_OVERLOAD xform(matrix_float4x4 m, vector_float4 v) {
+    // Use simd_mul for proper matrix-vector multiplication
+    vector_float4 result = simd_mul(m, v);
+    return simd_make_float3(result.x, result.y, result.z);
+}

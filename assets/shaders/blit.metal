@@ -30,8 +30,8 @@ vertex VertexOut blit_vs(uint vertexID [[vertex_id]]) {
 
 fragment float4 blit_fs(VertexOut in [[stage_in]],
                               texture2d<float> colorTexture [[texture(0)]]) {
-    constexpr sampler textureSampler(mag_filter::nearest,
-                                     min_filter::nearest,
+    constexpr sampler textureSampler(mag_filter::linear,
+                                     min_filter::linear,
                                      address::clamp_to_edge);
 
     float4 color = colorTexture.sample(textureSampler, in.texCoord);

@@ -46,6 +46,9 @@ int32_t AAPL_SIMD_OVERLOAD randi(void);
 /// Fast floating-point random.
 float AAPL_SIMD_OVERLOAD randf(float x);
 
+/// Transforms a vector_float4 by a matrix_float4x4 and returns the result as a vector_float3 (xyz / w).
+vector_float3 AAPL_SIMD_OVERLOAD xform(matrix_float4x4 m, vector_float4 v);
+
 /// Returns a vector that is linearly interpolated between the two given vectors.
 vector_float3 AAPL_SIMD_OVERLOAD vector_lerp(vector_float3 v0, vector_float3 v1, float t);
 

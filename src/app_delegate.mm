@@ -269,9 +269,8 @@ API_AVAILABLE(ios(15.0))
 // MTKViewDelegate methods
 - (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size {
     if (_application) {
-        // Use bounds size (in points) instead of drawable size (in pixels)
-        CGSize bounds = view.bounds.size;
-        _application->OnResize((uint32_t)bounds.width, (uint32_t)bounds.height);
+        // Use drawable size (in pixels) for correct render scaling
+        _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
     }
 }
 
@@ -534,9 +533,8 @@ API_AVAILABLE(ios(15.0))
 // MTKViewDelegate methods
 - (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size {
     if (_application) {
-        // Use bounds size (in points) instead of drawable size (in pixels)
-        CGSize bounds = view.bounds.size;
-        _application->OnResize((uint32_t)bounds.width, (uint32_t)bounds.height);
+        // Use drawable size (in pixels) for correct render scaling
+        _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
     }
 }
 

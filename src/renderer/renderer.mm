@@ -3,6 +3,7 @@
 #include "passes/depth_prepass.h"
 #include "passes/forward_plus.h"
 #include "passes/tonemap.h"
+#include "passes/debug_renderer.h"
 
 #include "resource_io.h"
 
@@ -13,7 +14,8 @@ Renderer::Renderer()
     m_Passes = {
         new DepthPrepass(),
         new ForwardPlusPass(),
-        new TonemapPass()
+        new DebugRendererPass(),
+        new TonemapPass(),
     };
 }
 
@@ -24,6 +26,13 @@ Renderer::~Renderer()
     }
 
     ResourceIO::Shutdown();
+}
+
+void Renderer::Prepare()
+{
+    for (auto pass : m_Passes) {
+        pass->Prepare();
+    }
 }
 
 void Renderer::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)

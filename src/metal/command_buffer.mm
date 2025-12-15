@@ -29,7 +29,7 @@ RenderEncoder CommandBuffer::RenderPass(const RenderPassInfo& info)
         descriptor.depthAttachment.texture = info.DepthStencilTexture;
         descriptor.depthAttachment.loadAction = info.ShouldClearDepthStencil ? MTLLoadActionClear : MTLLoadActionLoad;
         descriptor.depthAttachment.clearDepth = 1.0f;
-        descriptor.depthAttachment.storeAction = MTLStoreActionStore;
+        descriptor.depthAttachment.storeAction = info.ShouldStoreDepthStencil ? MTLStoreActionStore : MTLStoreActionDontCare;
     }
 
     return RenderEncoder(m_CommandBuffer, descriptor, info.Name);

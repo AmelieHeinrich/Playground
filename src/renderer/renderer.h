@@ -10,6 +10,7 @@ public:
     Renderer();
     ~Renderer();
 
+    void Prepare();
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera);
     void Resize(int width, int height);
     void DebugUI();

@@ -19,6 +19,7 @@ struct RenderPassInfo
 
     id<MTLTexture> DepthStencilTexture;
     bool ShouldClearDepthStencil;
+    bool ShouldStoreDepthStencil = true;
 
     RenderPassInfo& SetName(NSString* name)
     {
@@ -42,17 +43,19 @@ struct RenderPassInfo
         return *this;
     }
 
-    RenderPassInfo& AddDepthStencilTexture(id<MTLTexture> texture, bool shouldClear = true, simd_float4 clearColor = simd_make_float4(0, 0, 0, 1))
+    RenderPassInfo& AddDepthStencilTexture(id<MTLTexture> texture, bool shouldClear = true, bool shouldStore = true, simd_float4 clearColor = simd_make_float4(0, 0, 0, 1))
     {
         DepthStencilTexture = texture;
         ShouldClearDepthStencil = shouldClear;
+        ShouldStoreDepthStencil = shouldStore;
         return *this;
     }
 
-    RenderPassInfo& AddDepthStencilTexture(Texture texture, bool shouldClear = true, simd_float4 clearColor = simd_make_float4(0, 0, 0, 1))
+    RenderPassInfo& AddDepthStencilTexture(Texture texture, bool shouldClear = true, bool shouldStore = true, simd_float4 clearColor = simd_make_float4(0, 0, 0, 1))
     {
         DepthStencilTexture = texture.GetTexture();
         ShouldClearDepthStencil = shouldClear;
+        ShouldStoreDepthStencil = shouldStore;
         return *this;
     }
 };
