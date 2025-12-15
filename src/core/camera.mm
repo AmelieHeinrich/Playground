@@ -2,6 +2,7 @@
 #include "input.h"
 
 #include <cmath>
+#include <simd/quaternion.h>
 
 Camera::Camera()
     : m_Position(simd_make_float3(0.0f, 0.0f, 0.0f))
@@ -82,6 +83,44 @@ matrix_float4x4 Camera::GetProjectionMatrix() const
 matrix_float4x4 Camera::GetViewProjectionMatrix() const
 {
     return simd_mul(GetProjectionMatrix(), GetViewMatrix());
+}
+
+void Camera::ExtractPlanes(Plane outPlanes[6])
+{
+    simd::float4x4 VP = GetViewProjectionMatrix();
+
+    simd::float4 r0 = VP.columns[0];
+    simd::float4 r1 = VP.columns[1];
+    simd::float4 r2 = VP.columns[2];
+    simd::float4 r3 = VP.columns[3];
+
+    Plane planes[6];
+
+    planes[0] = { simd::make_float3(r3 + r0), (r3 + r0).w }; // Left
+    planes[1] = { simd::make_float3(r3 - r0), (r3 - r0).w }; // Right
+    planes[2] = { simd::make_float3(r3 + r1), (r3 + r1).w }; // Bottom
+    planes[3] = { simd::make_float3(r3 - r1), (r3 - r1).w }; // Top
+
+    // Metal depth [0, 1]
+    planes[4] = { simd::make_float3(r2), r2.w };             // Near
+    planes[5] = { simd::make_float3(r3 - r2), (r3 - r2).w }; // Far
+
+    simd::float3 camPos = GetPosition();
+
+    for (int i = 0; i < 6; ++i) {
+        // Normalize
+        float len = simd::length(planes[i].normal);
+        planes[i].normal /= len;
+        planes[i].d /= len;
+
+        // Ensure camera inside
+        if (simd::dot(planes[i].normal, camPos) + planes[i].d < 0.0f) {
+            planes[i].normal *= -1.0f;
+            planes[i].d *= -1.0f;
+        }
+
+        outPlanes[i] = planes[i];
+    }
 }
 
 vector_float3 Camera::GetForward() const

@@ -71,16 +71,15 @@ bool Application::Initialize(id<MTLDevice> device)
     m_World->AddModel("models/Sponza/Sponza.mesh");
 
     // Create random lights
-    int lightCount = 16;
+    int lightCount = 128;
     for (int i = 0; i < lightCount; i++) {
         PointLight light;
 
         // Random position within Sponza bounds
-        // Sponza is roughly: X: [-12, 12], Y: [0, 15], Z: [-5, 5]
         light.Position = simd::float3{
-            -5.0f + static_cast<float>(rand()) / RAND_MAX * 10.0f,
-            0.5f + static_cast<float>(rand()) / RAND_MAX * 4.0f,
-            -5.0f + static_cast<float>(rand()) / RAND_MAX * 10.0f
+            -12.0f + static_cast<float>(rand()) / RAND_MAX * 24.0f,
+            0.5f + static_cast<float>(rand()) / RAND_MAX * 8.0f,
+            -12.0f + static_cast<float>(rand()) / RAND_MAX * 24.0f
         };
 
         // Random radius between 2 and 8

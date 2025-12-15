@@ -4,6 +4,9 @@
 #include "renderer/pass.h"
 
 constexpr const char* CLUSTER_BUFFER = "ClusterCull/Clusters";
+constexpr const char* VISIBLE_LIGHTS_BUFFER = "ClusterCull/VisibleLights";
+constexpr const char* VISIBLE_LIGHTS_COUNT_BUFFER = "ClusterCull/VisibleLightsCount";
+
 constexpr int CLUSTER_TILE_SIZE_PX = 16;
 constexpr int CLUSTER_Z_SLICES = 24;
 
@@ -21,5 +24,6 @@ public:
 
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
 private:
+    ComputePipeline m_FrustumLightCull;
     ComputePipeline m_ClusterBuild;
 };

@@ -6,20 +6,13 @@ using namespace metal;
 #include "common/types.h"
 #include "common/math.h"
 #include "common/pbr.h"
+#include "common/light.h"
 
 struct Vertex {
     packed_float3 position;
     packed_float3 normal;
     packed_float2 uv;
     packed_float4 tangent;
-};
-
-struct PointLight
-{
-    float3 Position;
-    float Radius;
-    float3 Color;
-    float Pad;
 };
 
 struct VSOutput {
@@ -61,9 +54,13 @@ vertex VSOutput fplus_vs(uint vertexID [[vertex_id]],
 
 fragment float4 fplus_fs(
     VSOutput in [[stage_in]],
+                         
     constant Constants& constants [[buffer(0)]],
     constant MaterialSettings& material [[buffer(1)]],
     const device PointLight* lights [[buffer(2)]],
+    const device uint* visibleLights [[buffer(3)]],
+    const device uint& visibleLightCount [[buffer(4)]],
+                         
     texture2d<float> albedoTexture [[texture(0)]],
     texture2d<float> normalTexture [[texture(1)]],
     texture2d<float> ormTexture [[texture(2)]]
@@ -115,10 +112,9 @@ fragment float4 fplus_fs(
 
     // Clamp for safety (and to help the compiler)
     ahVec3 color = 0.0f;
-
-    int lightCount = min(constants.LightCount, 4096);
-    for (int i = 0; i < lightCount; ++i) {
-        PointLight l = lights[i];
+    
+    for (uint i = 0; i < visibleLightCount; ++i) {
+        PointLight l = lights[visibleLights[i]];
 
         color += EvaluatePBR_PointLight(
             in.worldPosition.xyz,

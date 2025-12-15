@@ -1,9 +1,12 @@
 #include "cluster_cull.h"
 #include "depth_prepass.h"
 
+#include "math/AAPLMath.h"
+#include "renderer/light.h"
 #include "renderer/resource_io.h"
+#include <Metal/Metal.h>
 
-struct Constants
+struct ClusterBuildConstants
 {
     float zNear;
     float zFar;
@@ -16,9 +19,16 @@ struct Constants
     simd::float4x4 InverseProjection;
 };
 
+struct FrustumLightCullConstants
+{
+    Plane Planes[6];
+    uint PointLightCount;
+};
+
 ClusterCullPass::ClusterCullPass()
 {
     // Pipeline
+    m_FrustumLightCull.Initialize("cull_lights_frustum");
     m_ClusterBuild.Initialize("build_clusters");
 
     // Cluster buffer
@@ -29,14 +39,18 @@ ClusterCullPass::ClusterCullPass()
 
     uint clusterCount = numTilesX * numTilesY * CLUSTER_Z_SLICES;
     Resource& clusterBuffer = ResourceIO::CreateBuffer(CLUSTER_BUFFER, sizeof(Cluster) * clusterCount);
+
+    // Light buffer
+    ResourceIO::CreateBuffer(VISIBLE_LIGHTS_BUFFER, sizeof(uint) * MAX_POINT_LIGHTS);
+    ResourceIO::CreateBuffer(VISIBLE_LIGHTS_COUNT_BUFFER, sizeof(uint));
 }
 
-void ClusterCullPass::Render(CommandBuffer& cmdBuffer,
-                            World& world,
-                            Camera& camera)
+void ClusterCullPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
     Texture& depth = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
     Buffer& clusterBuffer = ResourceIO::Get(CLUSTER_BUFFER).Buffer;
+    Buffer& visibleLightsBuffer = ResourceIO::Get(VISIBLE_LIGHTS_BUFFER).Buffer;
+    Buffer& visibleLightsCountBuffer = ResourceIO::Get(VISIBLE_LIGHTS_COUNT_BUFFER).Buffer;
 
     constexpr uint tileSizePx = CLUSTER_TILE_SIZE_PX;
     constexpr uint numTilesZ  = CLUSTER_Z_SLICES;
@@ -46,8 +60,9 @@ void ClusterCullPass::Render(CommandBuffer& cmdBuffer,
 
     uint numTilesX = (width  + tileSizePx - 1) / tileSizePx;
     uint numTilesY = (height + tileSizePx - 1) / tileSizePx;
+    uint lightCount = world.GetLightList().GetPointLightCount();
 
-    Constants constants{};
+    ClusterBuildConstants constants{};
     constants.zNear  = camera.GetNearPlane();
     constants.zFar   = camera.GetFarPlane();
     constants.Width  = width;
@@ -55,12 +70,31 @@ void ClusterCullPass::Render(CommandBuffer& cmdBuffer,
     constants.TileSizePixel = tileSizePx;
     constants.InverseProjection = simd::inverse(camera.GetProjectionMatrix());
 
+    FrustumLightCullConstants frustumLightConstants{};
+    frustumLightConstants.PointLightCount = lightCount;
+    camera.ExtractPlanes(frustumLightConstants.Planes);
+
+    // Reset light buffer
+    BlitEncoder blitEncoder = cmdBuffer.BlitPass(@"Reset Light Buffer");
+    blitEncoder.FillBuffer(visibleLightsCountBuffer, 0);
+    blitEncoder.End();
+
     ComputeEncoder encoder = cmdBuffer.ComputePass(@"Light Cluster Cull");
+
+    // Cull lights against frustum
+    encoder.PushGroup(@"Cull Lights Frustum");
+    encoder.SetPipeline(m_FrustumLightCull);
+    encoder.SetBytes(&frustumLightConstants, sizeof(FrustumLightCullConstants), 0);
+    encoder.SetBuffer(world.GetLightList().GetPointLightBuffer(), 1);
+    encoder.SetBuffer(visibleLightsCountBuffer, 2);
+    encoder.SetBuffer(visibleLightsBuffer, 3);
+    encoder.Dispatch(MTLSizeMake(AlignUp(lightCount, 64), 1, 1), MTLSizeMake(64, 1, 1));
+    encoder.PopGroup();
 
     // Build clusters
     encoder.PushGroup(@"Build Clusters");
     encoder.SetPipeline(m_ClusterBuild);
-    encoder.SetBytes(&constants, sizeof(Constants), 0);
+    encoder.SetBytes(&constants, sizeof(ClusterBuildConstants), 0);
     encoder.SetBuffer(clusterBuffer, 1);
     encoder.Dispatch(
         MTLSizeMake(numTilesX, numTilesY, numTilesZ),

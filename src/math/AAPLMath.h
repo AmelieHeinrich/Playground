@@ -10,6 +10,11 @@ Header for vector, matrix, and quaternion math utility functions useful for 3D g
 #include <stdlib.h>
 #include <simd/simd.h>
 
+constexpr uint32_t AlignUp(uint32_t value, uint32_t alignment)
+{
+    return (value + alignment - 1) / alignment * alignment;
+}
+
 // Because these are common methods, allow other libraries to overload their implementation.
 #define AAPL_SIMD_OVERLOAD __attribute__((__overloadable__))
 

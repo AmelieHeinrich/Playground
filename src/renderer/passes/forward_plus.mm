@@ -1,4 +1,5 @@
 #include "forward_plus.h"
+#include "cluster_cull.h"
 #include "metal/graphics_pipeline.h"
 
 #include "renderer/passes/depth_prepass.h"
@@ -56,6 +57,8 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
     Texture& colorTexture = ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture;
     Texture& depthTexture = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
     Texture& defaultTexture = ResourceIO::Get(DEFAULT_WHITE).Texture;
+    Buffer& visibleLightBuffer = ResourceIO::Get(VISIBLE_LIGHTS_BUFFER).Buffer;
+    Buffer& visibleLightCountBuffer = ResourceIO::Get(VISIBLE_LIGHTS_COUNT_BUFFER).Buffer;
 
     FPlusGlobalConstants globalConstants;
     globalConstants.CameraMatrix = camera.GetViewProjectionMatrix();
@@ -73,6 +76,8 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
     encoder.SetGraphicsPipeline(m_GraphicsPipeline);
     encoder.SetBytes(ShaderStage::VERTEX | ShaderStage::FRAGMENT, &globalConstants, sizeof(globalConstants), 0);
     encoder.SetBuffer(ShaderStage::FRAGMENT, world.GetLightList().GetPointLightBuffer(), 2);
+    encoder.SetBuffer(ShaderStage::FRAGMENT, visibleLightBuffer, 3);
+    encoder.SetBuffer(ShaderStage::FRAGMENT, visibleLightCountBuffer, 4);
     for (auto& entity : world.GetEntities()) {
         encoder.SetBuffer(ShaderStage::VERTEX, entity.Mesh.VertexBuffer, 1);
 
