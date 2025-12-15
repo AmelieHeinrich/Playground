@@ -25,7 +25,8 @@ ForwardPlusPass::ForwardPlusPass()
 {
     // Create pipeline
     GraphicsPipelineDesc desc;
-    desc.Path = "shaders/model.metal";
+    desc.VertexFunctionName = "fplus_vs";
+    desc.FragmentFunctionName = "fplus_fs";
     desc.ColorFormats = {MTLPixelFormatRGBA16Float};
     desc.DepthEnabled = true;
     desc.DepthFormat = MTLPixelFormatDepth32Float;

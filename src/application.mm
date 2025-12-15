@@ -3,6 +3,7 @@
 #include "asset/texture_cache.h"
 #include "metal/command_buffer.h"
 #include "metal/graphics_pipeline.h"
+#include "metal/shader.h"
 #include "renderer/renderer.h"
 
 #import <Metal/Metal.h>
@@ -22,7 +23,6 @@ Application::Application()
     , m_Camera()
     , m_Input()
 {
-
 }
 
 Application::~Application()
@@ -57,6 +57,9 @@ bool Application::Initialize(id<MTLDevice> device)
     m_ResidencySet.Initialize();
     [m_CommandQueue addResidencySet:m_ResidencySet.GetResidencySet()];
     Device::SetResidencySet(&m_ResidencySet);
+    
+    // Shader library
+    ShaderLibrary::Initialize(m_Device);
 
     // Create renderer
     m_Renderer = new Renderer();
@@ -155,27 +158,23 @@ void Application::OnUI()
 #endif
 
     ImGui::Separator();
-    ImGui::Text("Render Scale");
     
     const float scales[] = { 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f };
     const char* labels[] = { "50%", "75%", "100%", "125%", "150%", "200%" };
     
+    // Find current selection index
+    int currentIndex = 2; // Default to 100%
     for (int i = 0; i < 6; i++) {
-        if (i > 0) ImGui::SameLine();
-        
-        bool isSelected = (m_RenderScale == scales[i]);
-        if (isSelected) {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+        if (m_RenderScale == scales[i]) {
+            currentIndex = i;
+            break;
         }
-        
-        if (ImGui::Button(labels[i], ImVec2(60, 0))) {
-            m_RenderScale = scales[i];
-            OnResize(m_Width, m_Height);
-        }
-        
-        if (isSelected) {
-            ImGui::PopStyleColor();
-        }
+    }
+    
+    ImGui::Text("Render Scale");
+    if (ImGui::Combo("##RenderScale", &currentIndex, labels, 6)) {
+        m_RenderScale = scales[currentIndex];
+        OnResize(m_Width, m_Height);
     }
 
     ImGui::Separator();

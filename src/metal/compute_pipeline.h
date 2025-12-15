@@ -8,10 +8,10 @@ class ComputePipeline
 {
 public:
     ComputePipeline() = default;
-    ComputePipeline(const std::string& shaderName, bool supportsIndirect = false);
+    ComputePipeline(const std::string& functionName, bool supportsIndirect = false);
     ~ComputePipeline() = default;
 
-    void Initialize(const std::string& shaderName, bool supportsIndirect = false);
+    void Initialize(const std::string& functionName, bool supportsIndirect = false);
 
     id<MTLComputePipelineState> GetPipelineState() const { return m_PipelineState; }
     id<MTLFunction> GetComputeFunction() const { return m_ComputeFunction; }

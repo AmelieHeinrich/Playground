@@ -72,8 +72,11 @@ file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.mm" "src/*.m" "src/*.c")
 # Collect all header files from src/
 file(GLOB_RECURSE HEADERS "src/*.h")
 
-# Collect all shader files from assets/shaders/
-file(GLOB_RECURSE SHADERS "assets/shaders/*")
+# Collect all shader files from assets/shaders/ (excluding common subdirectory)
+file(GLOB SHADERS "assets/shaders/*.metal")
+
+# Collect shader header files for Xcode organization
+file(GLOB SHADER_HEADERS "assets/shaders/common/*.h")
 
 # Collect all texture files from assets/textures/
 file(GLOB_RECURSE TEXTURES "assets/textures/*")
@@ -90,12 +93,25 @@ set_source_files_properties(
     MACOSX_PACKAGE_LOCATION Resources
 )
 
+set_source_files_properties(${SHADERS}
+    PROPERTIES
+    LANGUAGE METAL
+    XCODE_EXPLICIT_FILE_TYPE sourcecode.metal
+)
+
+if (IOS)
+    set_target_properties(MyApp PROPERTIES
+        XCODE_ATTRIBUTE_MTL_PREPROCESSOR_DEFINITIONS
+        "IOS=1"
+    )
+endif()
+
 # Create the executable as an application bundle (works for both macOS and iOS)
-add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${SHADERS} ${CMAKE_SOURCE_DIR}/raw_assets/AppAssets.xcassets)
+add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${SHADERS} ${SHADER_HEADERS} ${CMAKE_SOURCE_DIR}/raw_assets/AppAssets.xcassets)
 
 # Source group for Xcode
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SOURCES} ${HEADERS})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/assets FILES ${SHADERS})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/assets FILES ${SHADERS} ${SHADER_HEADERS})
 
 # Add src/ to include directories
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")

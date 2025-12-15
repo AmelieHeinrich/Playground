@@ -8,7 +8,7 @@
 - [x] Add lights, Cook-Torrance BRDF
 
 PBR LIGHTS DEMO MILESTONE ON IPHONE
-- [ ] Use FP16 math
+- [x] Use FP16 math
 - [ ] Clustered light culling
 - [ ] Push alpha cutouts draws at the end
 - [ ] Debug renderer

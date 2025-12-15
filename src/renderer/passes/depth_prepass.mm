@@ -10,7 +10,8 @@ DepthPrepass::DepthPrepass()
 {
     // Pipeline
     GraphicsPipelineDesc desc;
-    desc.Path = "shaders/z_prepass.metal";
+    desc.VertexFunctionName = "prepass_vs";
+    desc.FragmentFunctionName = "prepass_fs";
     desc.ColorFormats = {};
     desc.DepthEnabled = true;
     desc.DepthFormat = MTLPixelFormatDepth32Float;

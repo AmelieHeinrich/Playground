@@ -11,12 +11,13 @@ TonemapPass::TonemapPass()
     // Graphics pipeline
     GraphicsPipelineDesc pipelineDesc;
     pipelineDesc.ColorFormats = { MTLPixelFormatBGRA8Unorm };
-    pipelineDesc.Path = "shaders/blit.metal";
+    pipelineDesc.VertexFunctionName = "blit_vs";
+    pipelineDesc.FragmentFunctionName = "blit_fs";
 
     m_BlitPipeline = GraphicsPipeline::Create(pipelineDesc);
 
     // Compute pipeline
-    m_Pipeline.Initialize("shaders/tonemap.metal");
+    m_Pipeline.Initialize("tonemap_cs");
 
     // Textures
     MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm width:1 height:1 mipmapped:NO];

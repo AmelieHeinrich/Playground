@@ -6,7 +6,7 @@ struct VertexOut {
     float2 texCoord;
 };
 
-vertex VertexOut vs_main(uint vertexID [[vertex_id]]) {
+vertex VertexOut blit_vs(uint vertexID [[vertex_id]]) {
     // Hardcoded fullscreen triangle vertices
     // Using a single triangle that covers the entire screen
     const float2 positions[3] = {
@@ -28,7 +28,7 @@ vertex VertexOut vs_main(uint vertexID [[vertex_id]]) {
     return out;
 }
 
-fragment float4 fs_main(VertexOut in [[stage_in]],
+fragment float4 blit_fs(VertexOut in [[stage_in]],
                               texture2d<float> colorTexture [[texture(0)]]) {
     constexpr sampler textureSampler(mag_filter::nearest,
                                      min_filter::nearest,

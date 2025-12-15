@@ -19,7 +19,7 @@ struct Constants {
     float4x4 cameraMatrix;
 };
 
-vertex VSOutput vs_main(uint vertexID [[vertex_id]],
+vertex VSOutput prepass_vs(uint vertexID [[vertex_id]],
                         constant Constants* constants [[buffer(0)]],
                         const device Vertex* vertices [[buffer(1)]])
 {
@@ -31,7 +31,7 @@ vertex VSOutput vs_main(uint vertexID [[vertex_id]],
     return out;
 }
 
-fragment void fs_main(VSOutput in [[stage_in]],
+fragment void prepass_fs(VSOutput in [[stage_in]],
                       texture2d<float> albedo [[texture(0)]])
 {
     constexpr sampler textureSampler(
@@ -41,7 +41,7 @@ fragment void fs_main(VSOutput in [[stage_in]],
         address::repeat,
         lod_clamp(0.0f, MAXFLOAT)
     );
-    
+
     float4 albedoSample = albedo.sample(textureSampler, in.uv);
     if (albedoSample.a < 0.25)
         discard_fragment();

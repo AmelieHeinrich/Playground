@@ -9,7 +9,8 @@
 
 struct GraphicsPipelineDesc
 {
-    std::string Path;
+    std::string VertexFunctionName;
+    std::string FragmentFunctionName;
 
     bool EnableBlend = false;
     std::vector<MTLPixelFormat> ColorFormats = {};

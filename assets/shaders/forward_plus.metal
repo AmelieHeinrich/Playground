@@ -3,7 +3,9 @@
 using namespace simd;
 using namespace metal;
 
-#define PI 3.14159265359
+#include "common/types.h"
+#include "common/math.h"
+#include "common/pbr.h"
 
 struct Vertex {
     packed_float3 position;
@@ -42,112 +44,7 @@ struct MaterialSettings {
     bool pad;
 };
 
-float D_GGX(float NdotH, float roughness)
-{
-    float a  = roughness * roughness;
-    float a2 = a * a;
-
-    float denom = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
-    return a2 / (PI * denom * denom);
-}
-
-float G_SchlickGGX(float NdotV, float roughness)
-{
-    float r = roughness + 1.0;
-    float k = (r * r) / 8.0; // UE4-style
-
-    return NdotV / (NdotV * (1.0 - k) + k);
-}
-
-float G_Smith(float NdotV, float NdotL, float roughness)
-{
-    return G_SchlickGGX(NdotV, roughness) *
-           G_SchlickGGX(NdotL, roughness);
-}
-
-float3 F_Schlick(float cosTheta, float3 F0)
-{
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}
-
-float3 EvaluatePBR_PointLight(
-    float3 worldPos,   // surface world position
-    float3 N,          // surface normal (normalized)
-    float3 V,          // view direction (normalized)
-    float3 lightPos,   // point light position (world space)
-    float3 lightColor, // light radiance (RGB intensity)
-    float  lightRadius,
-    float3 albedo,
-    float  metallic,
-    float  roughness
-)
-{
-    // --- Light vector ---
-    float3 Lvec = lightPos - worldPos;
-    float dist  = length(Lvec);
-
-    // Outside light influence
-    if (dist >= lightRadius)
-        return float3(0.0);
-
-    float3 L = Lvec / dist;
-    float3 H = normalize(V + L);
-
-    // --- Dot products ---
-    float NdotL = max(dot(N, L), 0.0);
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotH = max(dot(N, H), 0.0);
-    float VdotH = max(dot(V, H), 0.0);
-
-    if (NdotL <= 0.0 || NdotV <= 0.0)
-        return float3(0.0);
-
-    // --- Distance attenuation ---
-    // Smooth falloff to zero at radius
-    float falloff = saturate(1.0 - (dist / lightRadius));
-    falloff = falloff * falloff; // smoother curve
-
-    // Optional inverse-square shaping
-    float attenuation = falloff / max(dist * dist, 0.01);
-
-    float3 radiance = lightColor * attenuation;
-
-    // --- Fresnel base reflectivity ---
-    float3 F0 = mix(float3(0.04), albedo, metallic);
-
-    // --- Specular BRDF ---
-    float  D = D_GGX(NdotH, roughness);
-    float  G = G_Smith(NdotV, NdotL, roughness);
-    float3 F = F_Schlick(VdotH, F0);
-
-    float3 specular =
-        (D * G * F) / max(4.0 * NdotV * NdotL, 0.001);
-
-    // --- Diffuse BRDF ---
-    float3 kS = F;
-    float3 kD = (1.0 - kS) * (1.0 - metallic);
-    float3 diffuse = kD * albedo / PI;
-
-    // --- Final lighting ---
-    return (diffuse + specular) * radiance * NdotL;
-}
-
-float3 GetMaterialNormal(texture2d<float> normalTexture, float3 vertexNormal, float4 tangent, float2 uv)
-{
-    constexpr sampler textureSampler(mag_filter::nearest, min_filter::nearest, address::repeat);
-
-    float3 normalSample = normalTexture.sample(textureSampler, uv).rgb * 2.0 - 1.0;
-
-    float3 N = normalize(vertexNormal);
-    float3 T = normalize(tangent.xyz);
-    float3 B = cross(N, T) * tangent.w;
-    float3x3 TBN = float3x3(T, B, N);
-
-    float3 worldNormal = normalize(TBN * normalSample);
-    return worldNormal;
-}
-
-vertex VSOutput vs_main(uint vertexID [[vertex_id]],
+vertex VSOutput fplus_vs(uint vertexID [[vertex_id]],
                         constant Constants* constants [[buffer(0)]],
                         const device Vertex* vertices [[buffer(1)]])
 {
@@ -162,7 +59,7 @@ vertex VSOutput vs_main(uint vertexID [[vertex_id]],
     return out;
 }
 
-fragment float4 fs_main(
+fragment float4 fplus_fs(
     VSOutput in [[stage_in]],
     constant Constants& constants [[buffer(0)]],
     constant MaterialSettings& material [[buffer(1)]],
@@ -217,7 +114,7 @@ fragment float4 fs_main(
     float3 V = normalize(constants.cameraPosition - float3(in.worldPosition.xyz));
 
     // Clamp for safety (and to help the compiler)
-    float3 color = 0.0f;
+    ahVec3 color = 0.0f;
 
     int lightCount = min(constants.LightCount, 4096);
     for (int i = 0; i < lightCount; ++i) {

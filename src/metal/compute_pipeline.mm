@@ -2,20 +2,26 @@
 #include "device.h"
 #include "shader.h"
 
-ComputePipeline::ComputePipeline(const std::string& shaderName, bool supportsIndirect)
+ComputePipeline::ComputePipeline(const std::string& functionName, bool supportsIndirect)
 {
-    Initialize(shaderName, supportsIndirect);
+    Initialize(functionName, supportsIndirect);
 }
 
-void ComputePipeline::Initialize(const std::string& shaderName, bool supportsIndirect)
+void ComputePipeline::Initialize(const std::string& functionName, bool supportsIndirect)
 {
     @autoreleasepool {
-        Shader shader = ShaderCompiler::Compile(Device::GetDevice(), shaderName, ShaderType::COMPUTE);
+        // Get function from default library
+        m_ComputeFunction = ShaderLibrary::GetFunction(functionName);
+        
+        if (!m_ComputeFunction) {
+            NSLog(@"Failed to find compute function: %s", functionName.c_str());
+            return;
+        }
 
         MTLComputePipelineDescriptor* descriptor = [MTLComputePipelineDescriptor new];
         if (supportsIndirect) descriptor.supportIndirectCommandBuffers = YES;
-        descriptor.computeFunction = shader.GetFunction(ShaderStage::COMPUTE);
-        descriptor.label = [NSString stringWithUTF8String:shaderName.c_str()];
+        descriptor.computeFunction = m_ComputeFunction;
+        descriptor.label = [NSString stringWithUTF8String:functionName.c_str()];
 
         NSError* error = nil;
         m_PipelineState = [Device::GetDevice() newComputePipelineStateWithDescriptor:descriptor options:MTLPipelineOptionNone reflection:nil error:&error];

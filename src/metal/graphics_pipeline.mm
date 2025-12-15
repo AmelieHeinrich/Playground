@@ -11,11 +11,15 @@ GraphicsPipeline GraphicsPipeline::Create(const GraphicsPipelineDesc& desc)
         GraphicsPipeline pipeline;
         pipeline.m_Desc = desc;
 
-        Shader shader = ShaderCompiler::Compile(Device::GetDevice(), desc.Path, ShaderType::GRAPHICS);
+        // Get functions from default library
+        if (!desc.VertexFunctionName.empty()) {
+            pipeline.m_VertexFunction = ShaderLibrary::GetFunction(desc.VertexFunctionName);
+        }
+        if (!desc.FragmentFunctionName.empty()) {
+            pipeline.m_FragmentFunction = ShaderLibrary::GetFunction(desc.FragmentFunctionName);
+        }
 
         MTLRenderPipelineDescriptor* descriptor = [MTLRenderPipelineDescriptor new];
-        if (shader.HasStage(ShaderStage::VERTEX)) pipeline.m_VertexFunction = shader.GetFunction(ShaderStage::VERTEX);
-        if (shader.HasStage(ShaderStage::FRAGMENT)) pipeline.m_FragmentFunction = shader.GetFunction(ShaderStage::FRAGMENT);
         if (desc.SupportsIndirect) descriptor.supportIndirectCommandBuffers = YES;
 
         descriptor.vertexFunction = pipeline.m_VertexFunction;
@@ -42,7 +46,10 @@ GraphicsPipeline GraphicsPipeline::Create(const GraphicsPipelineDesc& desc)
 
             pipeline.m_DepthStencilState = [Device::GetDevice() newDepthStencilStateWithDescriptor:depthStencilDescriptor];
         }
-        descriptor.label = [NSString stringWithUTF8String:desc.Path.c_str()];
+        NSString* label = [NSString stringWithFormat:@"%s %s", 
+                          desc.VertexFunctionName.c_str(), 
+                          desc.FragmentFunctionName.c_str()];
+        descriptor.label = label;
 
         NSError* error = nil;
         pipeline.m_PipelineState = [Device::GetDevice() newRenderPipelineStateWithDescriptor:descriptor error:&error];
