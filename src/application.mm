@@ -71,7 +71,7 @@ bool Application::Initialize(id<MTLDevice> device)
     m_World->AddModel("models/Sponza/Sponza.mesh");
 
     // Create random lights
-    int lightCount = 128;
+    int lightCount = 256;
     for (int i = 0; i < lightCount; i++) {
         PointLight light;
 
@@ -79,11 +79,10 @@ bool Application::Initialize(id<MTLDevice> device)
         light.Position = simd::float3{
             -12.0f + static_cast<float>(rand()) / RAND_MAX * 24.0f,
             0.5f + static_cast<float>(rand()) / RAND_MAX * 8.0f,
-            -12.0f + static_cast<float>(rand()) / RAND_MAX * 24.0f
+            -4.0f + static_cast<float>(rand()) / RAND_MAX * 8.0f
         };
 
-        // Random radius between 2 and 8
-        light.Radius = 2.0f + static_cast<float>(rand()) / RAND_MAX * 6.0f;
+        light.Radius = 2.0 + static_cast<float>(rand()) / RAND_MAX * 6.0f;
 
         // Random bright color (avoid too dark colors by using 0.3 to 1.0 range)
         light.Color = simd::float3{
@@ -93,7 +92,7 @@ bool Application::Initialize(id<MTLDevice> device)
         };
 
         // Scale up the color for more intensity
-        light.Color *= 10.0f;
+        light.Intensity = 1.0 + static_cast<float>(rand()) / RAND_MAX * 3.0f;
 
         m_World->GetLightList().AddPointLight(light);
     }
@@ -140,8 +139,6 @@ void Application::OnUpdate(float deltaTime)
     m_World->Update();
     m_Input.Update(deltaTime);
     m_Camera.Update(m_Input, deltaTime);
-
-    DebugRendererPass::DrawSphere(simd::make_float3(0.0f, 0.0f, 0.0f), 1.0f);
 }
 
 void Application::OnUI()

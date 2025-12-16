@@ -4,7 +4,7 @@
 #include <simd/vector_make.h>
 #include <vector>
 
-constexpr uint kMaxDebugLines = 24'000;
+constexpr uint kMaxDebugLines = 100'000;
 
 struct LineVertex
 {

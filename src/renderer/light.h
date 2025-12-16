@@ -13,7 +13,7 @@ struct PointLight
     float Radius;
 
     simd::float3 Color;
-    float Pad0;
+    float Intensity;
 };
 
 class LightList

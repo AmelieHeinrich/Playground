@@ -190,6 +190,8 @@ static void ImGui_ImplMetal_SetupRenderState(ImDrawData* draw_data, id<MTLComman
     id<MTLRenderCommandEncoder> commandEncoder, id<MTLRenderPipelineState> renderPipelineState,
     MetalBuffer* vertexBuffer, size_t vertexBufferOffset)
 {
+    commandEncoder.label = @"ImGui Renderer";
+
     IM_UNUSED(commandBuffer);
     ImGui_ImplMetal_Data* bd = ImGui_ImplMetal_GetBackendData();
     [commandEncoder setCullMode:MTLCullModeNone];

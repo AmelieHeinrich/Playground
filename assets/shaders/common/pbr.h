@@ -42,6 +42,7 @@ ahVec3 EvaluatePBR_PointLight(
     float3 lightPos,   // point light position (world space)
     float3 lightColor, // light radiance (RGB intensity)
     float  lightRadius,
+    float  lightIntensity,
     float3 albedo,
     float  metallic,
     float  roughness
@@ -59,18 +60,15 @@ ahVec3 EvaluatePBR_PointLight(
     ahVec3 H = normalize(V + L);
 
     // --- Dot products ---
-    ahFloat NdotL = max(dot(N, L), 0.0);
-    ahFloat NdotV = max(dot(N, V), 0.0);
-    ahFloat NdotH = max(dot(N, H), 0.0);
-    ahFloat VdotH = max(dot(V, H), 0.0);
-
-    if (NdotL <= 0.0 || NdotV <= 0.0)
-        return ahVec3(0.0);
+    ahFloat NdotL = max(dot(N, L), 0.001);
+    ahFloat NdotV = max(dot(N, V), 0.001);
+    ahFloat NdotH = max(dot(N, H), 0.001);
+    ahFloat VdotH = max(dot(V, H), 0.001);
 
     // --- Distance attenuation ---
     // Smooth falloff to zero at radius
     ahFloat falloff = saturate(1.0 - (dist / lightRadius));
-    falloff = falloff * falloff; // smoother curve
+    falloff = falloff * falloff;
 
     // Optional inverse-square shaping
     ahFloat attenuation = falloff / max(dist * dist, 0.01);
@@ -94,7 +92,7 @@ ahVec3 EvaluatePBR_PointLight(
     ahVec3 diffuse = kD * albedo / PI;
 
     // --- Final lighting ---
-    return (diffuse + specular) * radiance * NdotL;
+    return (diffuse + specular) * (radiance * lightIntensity) * NdotL;
 }
 
 #endif // PBR_METAL_H

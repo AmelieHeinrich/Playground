@@ -123,6 +123,7 @@ fragment float4 fplus_fs(
             l.Position,
             l.Color,
             l.Radius,
+            l.Intensity,
             albedo,
             metallic,
             roughness

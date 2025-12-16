@@ -89,36 +89,50 @@ void Camera::ExtractPlanes(Plane outPlanes[6])
 {
     simd::float4x4 VP = GetViewProjectionMatrix();
 
-    simd::float4 r0 = VP.columns[0];
-    simd::float4 r1 = VP.columns[1];
-    simd::float4 r2 = VP.columns[2];
-    simd::float4 r3 = VP.columns[3];
-
     Plane planes[6];
 
-    planes[0] = { simd::make_float3(r3 + r0), (r3 + r0).w }; // Left
-    planes[1] = { simd::make_float3(r3 - r0), (r3 - r0).w }; // Right
-    planes[2] = { simd::make_float3(r3 + r1), (r3 + r1).w }; // Bottom
-    planes[3] = { simd::make_float3(r3 - r1), (r3 - r1).w }; // Top
+    // Left Plane
+    planes[0].normal.x = VP.columns[0][3] + VP.columns[0][0];
+    planes[0].normal.y = VP.columns[1][3] + VP.columns[1][0];
+    planes[0].normal.z = VP.columns[2][3] + VP.columns[2][0];
+    planes[0].d = VP.columns[3][3] + VP.columns[3][0];
 
-    // Metal depth [0, 1]
-    planes[4] = { simd::make_float3(r2), r2.w };             // Near
-    planes[5] = { simd::make_float3(r3 - r2), (r3 - r2).w }; // Far
+    // Right Plane
+    planes[1].normal.x = VP.columns[0][3] - VP.columns[0][0];
+    planes[1].normal.y = VP.columns[1][3] - VP.columns[1][0];
+    planes[1].normal.z = VP.columns[2][3] - VP.columns[2][0];
+    planes[1].d = VP.columns[3][3] - VP.columns[3][0];
 
-    simd::float3 camPos = GetPosition();
+    // Bottom Plane
+    planes[2].normal.x = VP.columns[0][3] + VP.columns[0][1];
+    planes[2].normal.y = VP.columns[1][3] + VP.columns[1][1];
+    planes[2].normal.z = VP.columns[2][3] + VP.columns[2][1];
+    planes[2].d = VP.columns[3][3] + VP.columns[3][1];
 
+    // Top Plane
+    planes[3].normal.x = VP.columns[0][3] - VP.columns[0][1];
+    planes[3].normal.y = VP.columns[1][3] - VP.columns[1][1];
+    planes[3].normal.z = VP.columns[2][3] - VP.columns[2][1];
+    planes[3].d = VP.columns[3][3] - VP.columns[3][1];
+
+    // Near Plane
+    planes[4].normal.x = VP.columns[0][3] + VP.columns[0][2];
+    planes[4].normal.y = VP.columns[1][3] + VP.columns[1][2];
+    planes[4].normal.z = VP.columns[2][3] + VP.columns[2][2];
+    planes[4].d = VP.columns[3][3] + VP.columns[3][2];
+
+    // Far Plane
+    planes[5].normal.x = VP.columns[0][3] - VP.columns[0][2];
+    planes[5].normal.y = VP.columns[1][3] - VP.columns[1][2];
+    planes[5].normal.z = VP.columns[2][3] - VP.columns[2][2];
+    planes[5].d = VP.columns[3][3] - VP.columns[3][2];
+
+    // Normalize all planes
     for (int i = 0; i < 6; ++i) {
-        // Normalize
-        float len = simd::length(planes[i].normal);
-        planes[i].normal /= len;
-        planes[i].d /= len;
-
-        // Ensure camera inside
-        if (simd::dot(planes[i].normal, camPos) + planes[i].d < 0.0f) {
-            planes[i].normal *= -1.0f;
-            planes[i].d *= -1.0f;
-        }
-
+        float length = simd::length(planes[i].normal);
+        planes[i].normal /= length;
+        planes[i].d /= length;
+        
         outPlanes[i] = planes[i];
     }
 }
