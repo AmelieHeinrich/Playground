@@ -4,11 +4,14 @@
 #include "renderer/pass.h"
 
 constexpr const char* CLUSTER_BUFFER = "ClusterCull/Clusters";
+constexpr const char* CLUSTER_BINS_BUFFER = "ClusterCull/Bins";
+constexpr const char* CLUSTER_BIN_COUNTS_BUFFER = "ClusterCull/BinCounts";
 constexpr const char* VISIBLE_LIGHTS_BUFFER = "ClusterCull/VisibleLights";
 constexpr const char* VISIBLE_LIGHTS_COUNT_BUFFER = "ClusterCull/VisibleLightsCount";
 
 constexpr int CLUSTER_TILE_SIZE_PX = 16;
 constexpr int CLUSTER_Z_SLICES = 24;
+constexpr int CLUSTER_MAX_LIGHTS = 64;
 
 struct Cluster
 {
@@ -26,4 +29,5 @@ public:
 private:
     ComputePipeline m_FrustumLightCull;
     ComputePipeline m_ClusterBuild;
+    ComputePipeline m_ClusterCull;
 };

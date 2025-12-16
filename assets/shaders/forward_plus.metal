@@ -7,6 +7,7 @@ using namespace metal;
 #include "common/math.h"
 #include "common/pbr.h"
 #include "common/light.h"
+#include "common/cluster.h"
 
 struct Vertex {
     packed_float3 position;
@@ -25,9 +26,20 @@ struct VSOutput {
 
 struct Constants {
     float4x4 cameraMatrix;
+    float4x4 ViewMatrix;
 
     float3 cameraPosition;
     int LightCount;
+    
+    int TileSizePx;
+    int NumTilesX;
+    int NumTilesY;
+    int NumSlicesZ;
+    
+    int ScreenWidth;
+    int ScreenHeight;
+    float zNear;
+    float zFar;
 };
 
 struct MaterialSettings {
@@ -58,8 +70,8 @@ fragment float4 fplus_fs(
     constant Constants& constants [[buffer(0)]],
     constant MaterialSettings& material [[buffer(1)]],
     const device PointLight* lights [[buffer(2)]],
-    const device uint* visibleLights [[buffer(3)]],
-    const device uint& visibleLightCount [[buffer(4)]],
+    const device uint* lightBins [[buffer(3)]],
+    const device uint* lightBinCounts [[buffer(4)]],
                          
     texture2d<float> albedoTexture [[texture(0)]],
     texture2d<float> normalTexture [[texture(1)]],
@@ -110,11 +122,29 @@ fragment float4 fplus_fs(
     // --- View direction ---
     float3 V = normalize(constants.cameraPosition - float3(in.worldPosition.xyz));
 
-    // Clamp for safety (and to help the compiler)
-    ahVec3 color = 0.0f;
+    // Get cluster index
+    float2 ndc = in.position.xy / in.position.w;
+    float2 screenUV = ndc * 0.5 + 0.5;
     
-    for (uint i = 0; i < visibleLightCount; ++i) {
-        PointLight l = lights[visibleLights[i]];
+    uint pixelX = uint(screenUV.x * constants.ScreenWidth);
+    uint pixelY = uint(screenUV.y * constants.ScreenHeight);
+    
+    uint tileX = pixelX / constants.TileSizePx;
+    uint tileY = pixelY / constants.TileSizePx;
+    
+    float3 viewPos = (constants.ViewMatrix * in.worldPosition).xyz;
+    float depth = -viewPos.z;
+    float logDepth = log(depth / constants.zNear) / log(constants.zFar / constants.zNear);
+    uint zSlice = uint(clamp(logDepth, 0.0f, 0.999999f) * constants.NumSlicesZ);
+    
+    uint clusterIndex = tileX + tileY * constants.NumTilesX + zSlice * constants.NumTilesX * constants.NumTilesY;
+    uint binCount = lightBinCounts[clusterIndex];
+    uint binBase = clusterIndex * MAX_LIGHTS_PER_CLUSTER;
+    
+    ahVec3 color = 0.0f;
+    for (uint i = 0; i < binCount; ++i) {
+        uint lightIndex = lightBins[binBase + i];
+        PointLight l = lights[lightIndex];
 
         color += EvaluatePBR_PointLight(
             in.worldPosition.xyz,
@@ -130,5 +160,5 @@ fragment float4 fplus_fs(
         );
     }
 
-    return float4(color, 1.0);
+    return float4(color, 1.0f);
 }

@@ -30,6 +30,7 @@ ClusterCullPass::ClusterCullPass()
     // Pipeline
     m_FrustumLightCull.Initialize("cull_lights_frustum");
     m_ClusterBuild.Initialize("build_clusters");
+    m_ClusterCull.Initialize("cluster_cull_lights");
 
     // Cluster buffer
     uint maxWidth = 3840;
@@ -38,9 +39,11 @@ ClusterCullPass::ClusterCullPass()
     uint numTilesY = (maxHeight + CLUSTER_TILE_SIZE_PX - 1) / CLUSTER_TILE_SIZE_PX;
 
     uint clusterCount = numTilesX * numTilesY * CLUSTER_Z_SLICES;
-    Resource& clusterBuffer = ResourceIO::CreateBuffer(CLUSTER_BUFFER, sizeof(Cluster) * clusterCount);
-
+    
     // Light buffer
+    ResourceIO::CreateBuffer(CLUSTER_BUFFER, sizeof(Cluster) * clusterCount);
+    ResourceIO::CreateBuffer(CLUSTER_BINS_BUFFER, sizeof(uint) * clusterCount * CLUSTER_MAX_LIGHTS);
+    ResourceIO::CreateBuffer(CLUSTER_BIN_COUNTS_BUFFER, sizeof(uint) * clusterCount);
     ResourceIO::CreateBuffer(VISIBLE_LIGHTS_BUFFER, sizeof(uint) * MAX_POINT_LIGHTS);
     ResourceIO::CreateBuffer(VISIBLE_LIGHTS_COUNT_BUFFER, sizeof(uint));
 }
@@ -49,6 +52,8 @@ void ClusterCullPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
 {
     Texture& depth = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
     Buffer& clusterBuffer = ResourceIO::Get(CLUSTER_BUFFER).Buffer;
+    Buffer& clusterBins = ResourceIO::Get(CLUSTER_BINS_BUFFER).Buffer;
+    Buffer& clusterBinCounts = ResourceIO::Get(CLUSTER_BIN_COUNTS_BUFFER).Buffer;
     Buffer& visibleLightsBuffer = ResourceIO::Get(VISIBLE_LIGHTS_BUFFER).Buffer;
     Buffer& visibleLightsCountBuffer = ResourceIO::Get(VISIBLE_LIGHTS_COUNT_BUFFER).Buffer;
 
@@ -60,7 +65,10 @@ void ClusterCullPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
 
     uint numTilesX = (width  + tileSizePx - 1) / tileSizePx;
     uint numTilesY = (height + tileSizePx - 1) / tileSizePx;
+    uint clusterCount = numTilesX * numTilesY * CLUSTER_Z_SLICES;
     uint lightCount = world.GetLightList().GetPointLightCount();
+    
+    simd::float4x4 viewMatrix = camera.GetViewMatrix();
 
     ClusterBuildConstants constants{};
     constants.zNear  = camera.GetNearPlane();
@@ -103,7 +111,20 @@ void ClusterCullPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
     encoder.PopGroup();
 
     // Cull lights
-    // TODO
+    encoder.PushGroup(@"Cull Clusters");
+    encoder.SetPipeline(m_ClusterCull);
+    encoder.SetBytes(&viewMatrix, sizeof(viewMatrix), 0);
+    encoder.SetBuffer(clusterBuffer, 1);
+    encoder.SetBuffer(world.GetLightList().GetPointLightBuffer(), 2);
+    encoder.SetBuffer(visibleLightsBuffer, 3);
+    encoder.SetBuffer(visibleLightsCountBuffer, 4);
+    encoder.SetBuffer(clusterBins, 5);
+    encoder.SetBuffer(clusterBinCounts, 6);
+    encoder.Dispatch(
+        MTLSizeMake(clusterCount, 1, 1),
+        MTLSizeMake(64, 1, 1)
+    );
+    encoder.PopGroup();
 
     encoder.End();
 }

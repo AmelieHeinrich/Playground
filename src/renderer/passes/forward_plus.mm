@@ -18,8 +18,20 @@ struct MaterialConstants
 struct FPlusGlobalConstants
 {
     simd::float4x4 CameraMatrix;
+    simd::float4x4 ViewMatrix;
+
     simd::float3 CameraPosition;
     int PointLightCount;
+
+    int TileSizePx;
+    int NumTilesX;
+    int NumTilesY;
+    int NumSlicesZ;
+
+    int Width;
+    int Height;
+    float Near;
+    float Far;
 };
 
 ForwardPlusPass::ForwardPlusPass()
@@ -57,13 +69,26 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
     Texture& colorTexture = ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture;
     Texture& depthTexture = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
     Texture& defaultTexture = ResourceIO::Get(DEFAULT_WHITE).Texture;
-    Buffer& visibleLightBuffer = ResourceIO::Get(VISIBLE_LIGHTS_BUFFER).Buffer;
-    Buffer& visibleLightCountBuffer = ResourceIO::Get(VISIBLE_LIGHTS_COUNT_BUFFER).Buffer;
+    Buffer& lightBins = ResourceIO::Get(CLUSTER_BINS_BUFFER).Buffer;
+    Buffer& lightBinCounts = ResourceIO::Get(CLUSTER_BIN_COUNTS_BUFFER).Buffer;
+
+    int numTilesX = (colorTexture.Width() + CLUSTER_TILE_SIZE_PX - 1) / CLUSTER_TILE_SIZE_PX;
+    uint numTilesY = (colorTexture.Height() + CLUSTER_TILE_SIZE_PX - 1) / CLUSTER_TILE_SIZE_PX;
+    uint clusterCount = numTilesX * numTilesY * CLUSTER_Z_SLICES;
 
     FPlusGlobalConstants globalConstants;
     globalConstants.CameraMatrix = camera.GetViewProjectionMatrix();
+    globalConstants.ViewMatrix = camera.GetViewMatrix();
     globalConstants.CameraPosition = camera.GetPosition();
     globalConstants.PointLightCount = world.GetLightList().GetPointLightCount();
+    globalConstants.TileSizePx = CLUSTER_TILE_SIZE_PX;
+    globalConstants.NumTilesX = numTilesX;
+    globalConstants.NumTilesY = numTilesY;
+    globalConstants.NumSlicesZ = CLUSTER_Z_SLICES;
+    globalConstants.Width = colorTexture.Width();
+    globalConstants.Height = colorTexture.Height();
+    globalConstants.Near = camera.GetNearPlane();
+    globalConstants.Far = camera.GetFarPlane();
 
     RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
                                                  .AddTexture(colorTexture)
@@ -76,8 +101,8 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
     encoder.SetGraphicsPipeline(m_GraphicsPipeline);
     encoder.SetBytes(ShaderStage::VERTEX | ShaderStage::FRAGMENT, &globalConstants, sizeof(globalConstants), 0);
     encoder.SetBuffer(ShaderStage::FRAGMENT, world.GetLightList().GetPointLightBuffer(), 2);
-    encoder.SetBuffer(ShaderStage::FRAGMENT, visibleLightBuffer, 3);
-    encoder.SetBuffer(ShaderStage::FRAGMENT, visibleLightCountBuffer, 4);
+    encoder.SetBuffer(ShaderStage::FRAGMENT, lightBins, 3);
+    encoder.SetBuffer(ShaderStage::FRAGMENT, lightBinCounts, 4);
     for (auto& entity : world.GetEntities()) {
         encoder.SetBuffer(ShaderStage::VERTEX, entity.Mesh.VertexBuffer, 1);
 
@@ -97,7 +122,7 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
             encoder.SetTexture(ShaderStage::FRAGMENT, albedo, 0);
             encoder.SetTexture(ShaderStage::FRAGMENT, normal, 1);
             encoder.SetTexture(ShaderStage::FRAGMENT, orm, 2);
-            encoder.DrawIndexed(MTLPrimitiveTypeTriangle, entity.Mesh.IndexBuffer, mesh.IndexCount, mesh.IndexOffset * sizeof(uint32_t));
+            //encoder.DrawIndexed(MTLPrimitiveTypeTriangle, entity.Mesh.IndexBuffer, mesh.IndexCount, mesh.IndexOffset * sizeof(uint32_t));
         }
     }
     encoder.End();
