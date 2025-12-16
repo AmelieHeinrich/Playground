@@ -5,7 +5,7 @@ Playground where I mess around with Metal on iOS and macOS.
 ## Features
 
 - Cook-Torrance BRDF, PBR workflow
-- Light Culling (frustum, cluster WIP)
+- Forward+ clustered light culling
 - Works on iOS and macOS
 
 ## Requirements

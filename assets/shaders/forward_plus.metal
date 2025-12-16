@@ -30,17 +30,17 @@ struct Constants {
 
     float3 cameraPosition;
     int LightCount;
-    
+
     int TileSizePx;
     int NumTilesX;
     int NumTilesY;
     int NumSlicesZ;
-    
+
     int ScreenWidth;
     int ScreenHeight;
     float zNear;
     float zFar;
-    
+
     bool ShowHeatmap;
     float3 Pad2;
 };
@@ -56,7 +56,7 @@ struct MaterialSettings {
 float3 GetHeatmapColor(uint lightCount)
 {
     float t = clamp(float(lightCount) / MAX_LIGHTS_PER_CLUSTER, 0.0f, 1.0f);
-    
+
     // Blue -> Cyan -> Green -> Yellow -> Red heatmap
     if (t < 0.25f) {
         // Blue to Cyan
@@ -94,13 +94,13 @@ vertex VSOutput fplus_vs(uint vertexID [[vertex_id]],
 
 fragment float4 fplus_fs(
     VSOutput in [[stage_in]],
-                         
+
     constant Constants& constants [[buffer(0)]],
     constant MaterialSettings& material [[buffer(1)]],
     const device PointLight* lights [[buffer(2)]],
     const device uint* lightBins [[buffer(3)]],
     const device uint* lightBinCounts [[buffer(4)]],
-                         
+
     texture2d<float> albedoTexture [[texture(0)]],
     texture2d<float> normalTexture [[texture(1)]],
     texture2d<float> ormTexture [[texture(2)]]
@@ -118,10 +118,8 @@ fragment float4 fplus_fs(
     float4 albedoSample = material.hasAlbedo
         ? albedoTexture.sample(textureSampler, in.uv)
         : float4(1.0);
-#if !IOS
     if (albedoSample.a < 0.25)
         discard_fragment();
-#endif
 
     float3 albedo = albedoSample.rgb;
 
@@ -159,22 +157,22 @@ fragment float4 fplus_fs(
 
     uint tileX = min(pixelX / (uint)constants.TileSizePx, (uint)(constants.NumTilesX - 1));
     uint tileY = min(pixelY / (uint)constants.TileSizePx, (uint)(constants.NumTilesY - 1));
-    
+
     float3 viewPos = (constants.ViewMatrix * in.worldPosition).xyz;
     float depth = -viewPos.z;
     depth = clamp(depth, constants.zNear, constants.zFar);
-    
+
     float logDepth = log(depth / constants.zNear) / log(constants.zFar / constants.zNear);
     logDepth = clamp(logDepth, 0.0f, 0.999999f);
     uint zSlice = (uint)(logDepth * (float)constants.NumSlicesZ);
-    
+
     uint clusterIndex = tileX + tileY * constants.NumTilesX + zSlice * (uint)(constants.NumTilesX * constants.NumTilesY);
     uint clusterCount = (uint)(constants.NumTilesX * constants.NumTilesY * constants.NumSlicesZ);
     clusterIndex = min(clusterIndex, clusterCount - 1);
-    
+
     uint binCount = lightBinCounts[clusterIndex];
     uint binBase = clusterIndex * MAX_LIGHTS_PER_CLUSTER;
-    
+
     ahVec3 color = 0.0f;
     for (uint i = 0; i < binCount; ++i) {
         uint lightIndex = lightBins[binBase + i];
@@ -199,6 +197,6 @@ fragment float4 fplus_fs(
         float3 heatmapColor = GetHeatmapColor(binCount);
         return float4(heatmapColor, 1.0f);
     }
-    
+
     return float4(color, 1.0f);
 }
