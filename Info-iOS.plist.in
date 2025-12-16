@@ -21,6 +21,7 @@
     <key>MinimumOSVersion</key>
     <string>13.0</string>
     <key>NSHumanReadableCopyright</key>
+    <key>LSSupportsGameMode</key>
     <string>Copyright © 2024. All rights reserved.</string>
     <key>UIRequiredDeviceCapabilities</key>
     <array>

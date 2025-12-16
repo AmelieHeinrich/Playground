@@ -27,6 +27,7 @@ public:
 
     Buffer& GetPointLightBuffer() { return m_PointLightBuffer; }
     int GetPointLightCount() { return (int)m_PointLights.size();  }
+    std::vector<PointLight>& GetPointLights() { return m_PointLights; }
 private:
     Buffer m_PointLightBuffer;
 

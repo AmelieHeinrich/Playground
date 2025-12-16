@@ -40,9 +40,9 @@ struct Constants {
     int ScreenHeight;
     float zNear;
     float zFar;
+    
     bool ShowHeatmap;
-    uint HeatmapMaxLights;
-    float2 Pad2;
+    float3 Pad2;
 };
 
 struct MaterialSettings {
@@ -53,9 +53,9 @@ struct MaterialSettings {
 };
 
 // Heatmap color based on light count
-float3 GetHeatmapColor(uint lightCount, uint maxLights)
+float3 GetHeatmapColor(uint lightCount)
 {
-    float t = clamp(float(lightCount) / float(maxLights), 0.0f, 1.0f);
+    float t = clamp(float(lightCount) / MAX_LIGHTS_PER_CLUSTER, 0.0f, 1.0f);
     
     // Blue -> Cyan -> Green -> Yellow -> Red heatmap
     if (t < 0.25f) {
@@ -118,8 +118,10 @@ fragment float4 fplus_fs(
     float4 albedoSample = material.hasAlbedo
         ? albedoTexture.sample(textureSampler, in.uv)
         : float4(1.0);
+#if !IOS
     if (albedoSample.a < 0.25)
         discard_fragment();
+#endif
 
     float3 albedo = albedoSample.rgb;
 
@@ -194,7 +196,7 @@ fragment float4 fplus_fs(
 
     // Heatmap debug visualization
     if (constants.ShowHeatmap) {
-        float3 heatmapColor = GetHeatmapColor(binCount, constants.HeatmapMaxLights);
+        float3 heatmapColor = GetHeatmapColor(binCount);
         return float4(heatmapColor, 1.0f);
     }
     

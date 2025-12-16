@@ -25,5 +25,4 @@ private:
     simd::float4x4 m_StoredViewMatrix = matrix_identity_float4x4;
     Camera* m_CurrentCamera = nullptr;
     bool m_ShowHeatmap = false;
-    int m_HeatmapMaxLights = 32;
 };

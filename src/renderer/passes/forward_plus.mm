@@ -37,8 +37,7 @@ struct FPlusGlobalConstants
     float Far;
 
     bool ShowHeatmap;
-    uint32_t HeatmapMaxLights;
-    simd::float2 Pad2;
+    simd::float3 Pad2;
 };
 
 ForwardPlusPass::ForwardPlusPass()
@@ -74,7 +73,7 @@ void ForwardPlusPass::Resize(int width, int height)
 void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
     m_CurrentCamera = &camera;
-    
+
     if (!m_Clusters.empty()) {
         Texture& colorTexture = ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture;
         int numTilesX = (colorTexture.Width() + CLUSTER_TILE_SIZE_PX - 1) / CLUSTER_TILE_SIZE_PX;
@@ -117,7 +116,6 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
     globalConstants.Near = camera.GetNearPlane();
     globalConstants.Far = camera.GetFarPlane();
     globalConstants.ShowHeatmap = m_ShowHeatmap;
-    globalConstants.HeatmapMaxLights = m_HeatmapMaxLights;
 
     RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
                                                  .AddTexture(colorTexture)
@@ -175,9 +173,6 @@ void ForwardPlusPass::DebugUI()
 
         ImGui::Separator();
         ImGui::Checkbox("Show Heatmap", &m_ShowHeatmap);
-        if (m_ShowHeatmap) {
-            ImGui::SliderInt("Max Lights", &m_HeatmapMaxLights, 1, 128);
-        }
 
         ImGui::TreePop();
     }
@@ -193,7 +188,7 @@ void ForwardPlusPass::ReadbackClusters()
 
     void* readbackPtr = clusterBuffer.Contents();
     memcpy(data, readbackPtr, size);
-    
+
     // Initialize stored view matrix when clusters are first loaded
     if (m_CurrentCamera) {
         m_StoredViewMatrix = m_CurrentCamera->GetViewMatrix();

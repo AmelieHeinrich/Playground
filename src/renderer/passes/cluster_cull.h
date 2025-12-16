@@ -9,9 +9,15 @@ constexpr const char* CLUSTER_BIN_COUNTS_BUFFER = "ClusterCull/BinCounts";
 constexpr const char* VISIBLE_LIGHTS_BUFFER = "ClusterCull/VisibleLights";
 constexpr const char* VISIBLE_LIGHTS_COUNT_BUFFER = "ClusterCull/VisibleLightsCount";
 
+#if TARGET_PLATFORM_IOS
 constexpr int CLUSTER_TILE_SIZE_PX = 32;
 constexpr int CLUSTER_Z_SLICES = 18;
 constexpr int CLUSTER_MAX_LIGHTS = 256;
+#else
+constexpr int CLUSTER_TILE_SIZE_PX = 32;
+constexpr int CLUSTER_Z_SLICES = 24;
+constexpr int CLUSTER_MAX_LIGHTS = 256;
+#endif
 
 struct Cluster
 {

@@ -71,7 +71,7 @@ bool Application::Initialize(id<MTLDevice> device)
     m_World->AddModel("models/Sponza/Sponza.mesh");
 
     // Create random lights
-    int lightCount = 256;
+    int lightCount = 2048;
     for (int i = 0; i < lightCount; i++) {
         PointLight light;
 
@@ -82,7 +82,7 @@ bool Application::Initialize(id<MTLDevice> device)
             -4.0f + static_cast<float>(rand()) / RAND_MAX * 8.0f
         };
 
-        light.Radius = 2.0 + static_cast<float>(rand()) / RAND_MAX * 6.0f;
+        light.Radius = 0.3f + static_cast<float>(rand()) / RAND_MAX * 1.0f;
 
         // Random bright color (avoid too dark colors by using 0.3 to 1.0 range)
         light.Color = simd::float3{
@@ -92,9 +92,10 @@ bool Application::Initialize(id<MTLDevice> device)
         };
 
         // Scale up the color for more intensity
-        light.Intensity = 1.0 + static_cast<float>(rand()) / RAND_MAX * 3.0f;
+        light.Intensity = 1.0 + static_cast<float>(rand()) / RAND_MAX * 5.0f;
 
         m_World->GetLightList().AddPointLight(light);
+        m_InitialLightPositions.push_back(light.Position);
     }
 
     NSLog(@"Application initialized successfully with Metal device: %@", [m_Device name]);
@@ -136,6 +137,24 @@ void Application::OnUpdate(float deltaTime)
 {
     m_Renderer->Prepare();
     m_ResidencySet.Update();
+
+    // Animate lights
+    m_TimeAccumulator += deltaTime;
+    auto& lights = m_World->GetLightList().GetPointLights();
+    for (size_t i = 0; i < lights.size(); i++) {
+        // Use initial position as base and apply circular motion with vertical bobbing
+        float timeOffset = i * 0.1f; // Offset each light's animation
+        float angle = m_TimeAccumulator * 0.5f + timeOffset;
+
+        simd::float3 offset = simd::float3{
+            sinf(angle) * 0.5f,                           // X movement
+            sinf(m_TimeAccumulator * 2.0f + timeOffset) * 0.3f,  // Y bobbing
+            cosf(angle) * 0.5f                            // Z movement
+        };
+
+        lights[i].Position = m_InitialLightPositions[i] + offset;
+    }
+
     m_World->Update();
     m_Input.Update(deltaTime);
     m_Camera.Update(m_Input, deltaTime);

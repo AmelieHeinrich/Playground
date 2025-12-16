@@ -99,15 +99,23 @@ set_source_files_properties(${SHADERS}
     XCODE_EXPLICIT_FILE_TYPE sourcecode.metal
 )
 
-if (IOS)
-    set_target_properties(MyApp PROPERTIES
-        XCODE_ATTRIBUTE_MTL_PREPROCESSOR_DEFINITIONS
-        "IOS=1"
+# Add Metal shader compilation flags for debug mode
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set_source_files_properties(${SHADERS}
+        PROPERTIES
+        COMPILE_FLAGS "-frecord-sources -gline-tables-only"
     )
 endif()
 
 # Create the executable as an application bundle (works for both macOS and iOS)
 add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${SHADERS} ${SHADER_HEADERS} ${CMAKE_SOURCE_DIR}/raw_assets/AppAssets.xcassets)
+
+if (IOS)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        XCODE_ATTRIBUTE_MTL_PREPROCESSOR_DEFINITIONS
+        "IOS=1"
+    )
+endif()
 
 # Source group for Xcode
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SOURCES} ${HEADERS})

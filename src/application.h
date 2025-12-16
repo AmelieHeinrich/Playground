@@ -68,4 +68,7 @@ private:
 #else
     MacOSInput m_Input;
 #endif
+
+    float m_TimeAccumulator = 0.0f;
+    std::vector<simd::float3> m_InitialLightPositions;
 };
