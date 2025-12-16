@@ -32,15 +32,15 @@ RenderEncoder CommandBuffer::RenderPass(const RenderPassInfo& info)
         descriptor.depthAttachment.storeAction = info.ShouldStoreDepthStencil ? MTLStoreActionStore : MTLStoreActionDontCare;
     }
 
-    return RenderEncoder(m_CommandBuffer, descriptor, info.Name);
+    return RenderEncoder(m_CommandBuffer, descriptor, info.Name, &m_Fence);
 }
 
 ComputeEncoder CommandBuffer::ComputePass(NSString* name)
 {
-    return ComputeEncoder(m_CommandBuffer, name);
+    return ComputeEncoder(m_CommandBuffer, name, &m_Fence);
 }
 
 BlitEncoder CommandBuffer::BlitPass(NSString* name)
 {
-    return BlitEncoder(m_CommandBuffer, name);
+    return BlitEncoder(m_CommandBuffer, name, &m_Fence);
 }

@@ -79,6 +79,12 @@ Model::~Model()
 void Model::Cleanup()
 {
     // Release textures
+    for (auto& tex : Textures) {
+        if (tex.Texture) {
+            delete tex.Texture;
+            tex.Texture = nullptr;
+        }
+    }
     Textures.clear();
     Meshes.clear();
     Materials.clear();
@@ -137,11 +143,12 @@ bool Model::Load(const std::string& path)
                 MeshTexture tex;
                 id<MTLTexture> mtlTexture = TextureCache::GetTexture(fullPath);
                 if (mtlTexture) {
-                    tex.Texture = Texture(mtlTexture);
+                    tex.Texture = new Texture(mtlTexture);
                     Textures.push_back(tex);
                 } else {
                     NSLog(@"Failed to load albedo texture: %s", fullPath.c_str());
                     // Still add a null entry to maintain indices
+                    tex.Texture = nullptr;
                     Textures.push_back(tex);
                 }
             }
@@ -161,11 +168,12 @@ bool Model::Load(const std::string& path)
                 MeshTexture tex;
                 id<MTLTexture> mtlTexture = KTX2Loader::LoadKTX2(fullPath);
                 if (mtlTexture) {
-                    tex.Texture = Texture(mtlTexture);
+                    tex.Texture = new Texture(mtlTexture);
                     Textures.push_back(tex);
                 } else {
                     NSLog(@"Failed to load normal texture: %s", fullPath.c_str());
                     // Still add a null entry to maintain indices
+                    tex.Texture = nullptr;
                     Textures.push_back(tex);
                 }
             }
@@ -185,11 +193,12 @@ bool Model::Load(const std::string& path)
                 MeshTexture tex;
                 id<MTLTexture> mtlTexture = KTX2Loader::LoadKTX2(fullPath);
                 if (mtlTexture) {
-                    tex.Texture = Texture(mtlTexture);
+                    tex.Texture = new Texture(mtlTexture);
                     Textures.push_back(tex);
                 } else {
                     NSLog(@"Failed to load ORM texture: %s", fullPath.c_str());
                     // Still add a null entry to maintain indices
+                    tex.Texture = nullptr;
                     Textures.push_back(tex);
                 }
             }

@@ -3,36 +3,31 @@
 using namespace simd;
 using namespace metal;
 
-struct Vertex {
-    packed_float3 position;
-    packed_float3 normal;
-    packed_float2 uv;
-    packed_float4 tangent;
-};
+#include "common/scene_ab.h"
 
 struct VSOutput {
     float4 position [[position]];
     float2 uv;
-};
-
-struct Constants {
-    float4x4 cameraMatrix;
+    
+    uint objectId [[flat]];
 };
 
 vertex VSOutput prepass_vs(uint vertexID [[vertex_id]],
-                        constant Constants* constants [[buffer(0)]],
-                        const device Vertex* vertices [[buffer(1)]])
+                           uint objectId [[instance_id]],
+                           const device SceneArgumentBuffer& scene [[buffer(0)]])
 {
-    Vertex v = vertices[vertexID];
+    SceneInstance instance = scene.Instances[objectId];
+    MeshVertex v = instance.Vertices[vertexID];
 
     VSOutput out;
-    out.position = constants->cameraMatrix * float4(float3(v.position), 1.0);
+    out.position = scene.Camera.ViewProjection * float4(float3(v.position), 1.0);
     out.uv = v.uv;
+    out.objectId = objectId;
     return out;
 }
 
 fragment void prepass_fs(VSOutput in [[stage_in]],
-                      texture2d<float> albedo [[texture(0)]])
+                         const device SceneArgumentBuffer& scene [[buffer(0)]])
 {
     constexpr sampler textureSampler(
         mag_filter::linear,
@@ -41,8 +36,11 @@ fragment void prepass_fs(VSOutput in [[stage_in]],
         address::repeat,
         lod_clamp(0.0f, MAXFLOAT)
     );
+    
+    SceneInstance instance = scene.Instances[in.objectId];
+    SceneMaterial material = scene.Materials[instance.MaterialIndex];
 
-    float4 albedoSample = albedo.sample(textureSampler, in.uv);
+    float4 albedoSample = material.HasAlbedo ? material.Albedo.sample(textureSampler, in.uv) : 1.0;
     if (albedoSample.a < 0.25)
         discard_fragment();
 }

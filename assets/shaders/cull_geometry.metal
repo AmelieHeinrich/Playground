@@ -20,6 +20,6 @@ kernel void cull_geometry(const device SceneArgumentBuffer& arguments [[buffer(0
     render_command command(icb.CommandBuffer, instanceIndex);
     bool visible = true;
     if (visible) {
-        command.draw_indexed_primitives(primitive_type::triangle, instance.IndexCount, instance.Indices, 1, instance.IndexOffset, 0);
+        command.draw_indexed_primitives<uint>(primitive_type::triangle, instance.IndexCount, instance.Indices + instance.IndexOffset, 1, 0, instanceIndex);
     }
 }

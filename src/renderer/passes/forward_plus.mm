@@ -1,8 +1,10 @@
 #include "forward_plus.h"
 #include "imgui.h"
+#include "metal/command_buffer.h"
 #include "metal/compute_encoder.h"
 #include "metal/graphics_pipeline.h"
 
+#include "metal/indirect_command_buffer.h"
 #include "renderer/passes/cluster_cull.h"
 #include "renderer/passes/debug_renderer.h"
 #include "renderer/passes/depth_prepass.h"
@@ -42,10 +44,6 @@ ForwardPlusPass::ForwardPlusPass()
     desc.SupportsIndirect = YES;
 
     m_GraphicsPipeline = GraphicsPipeline::Create(desc);
-    m_CullInstancePipeline.Initialize("cull_geometry");
-
-    // Initialize ICB
-    m_IndirectCommandBuffer.Initialize(false, MTLIndirectCommandTypeDrawIndexed, MAX_SCENE_INSTANCES);
 
     // Create textures in OBJC++
     MTLTextureDescriptor* colorDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float width:1 height:1 mipmapped:NO];
@@ -57,16 +55,17 @@ ForwardPlusPass::ForwardPlusPass()
 
 void ForwardPlusPass::Resize(int width, int height)
 {
-    ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture.Resize(width, height);
+    ResourceIO::GetTexture(FORWARD_PLUS_COLOR_OUTPUT).Resize(width, height);
 }
 
 void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
-    Texture& colorTexture = ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture;
-    Texture& depthTexture = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
-    Texture& defaultTexture = ResourceIO::Get(DEFAULT_WHITE).Texture;
-    Buffer& lightBins = ResourceIO::Get(CLUSTER_BINS_BUFFER).Buffer;
-    Buffer& lightBinCounts = ResourceIO::Get(CLUSTER_BIN_COUNTS_BUFFER).Buffer;
+    Texture& colorTexture = ResourceIO::GetTexture(FORWARD_PLUS_COLOR_OUTPUT);
+    Texture& depthTexture = ResourceIO::GetTexture(DEPTH_PREPASS_DEPTH_OUTPUT);
+    Texture& defaultTexture = ResourceIO::GetTexture(DEFAULT_WHITE);
+    Buffer& lightBins = ResourceIO::GetBuffer(CLUSTER_BINS_BUFFER);
+    Buffer& lightBinCounts = ResourceIO::GetBuffer(CLUSTER_BIN_COUNTS_BUFFER);
+    IndirectCommandBuffer& indirectCommandBuffer = ResourceIO::GetIndirectCommandBuffer(DEPTH_PREPASS_ICB);
 
     int numTilesX = (colorTexture.Width() + CLUSTER_TILE_SIZE_PX - 1) / CLUSTER_TILE_SIZE_PX;
     uint numTilesY = (colorTexture.Height() + CLUSTER_TILE_SIZE_PX - 1) / CLUSTER_TILE_SIZE_PX;
@@ -81,40 +80,22 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
     globalConstants.Height = colorTexture.Height();
     globalConstants.ShowHeatmap = m_ShowHeatmap;
 
-    // Reset the indirect command buffer
-    BlitEncoder blitEncoder = cmdBuffer.BlitPass(@"Reset Indirect Command Buffer");
-    blitEncoder.ResetIndirectCommandBuffer(m_IndirectCommandBuffer, MAX_SCENE_INSTANCES);
-    blitEncoder.End();
-
-    // Cull instances
-    uint instanceCount = world.GetInstanceCount();
-    ComputeEncoder computeEncoder = cmdBuffer.ComputePass(@"Cull Instances");
-    computeEncoder.SetPipeline(m_CullInstancePipeline);
-    computeEncoder.SetBuffer(world.GetSceneAB(), 0);
-    computeEncoder.SetBuffer(m_IndirectCommandBuffer.GetBuffer(), 1);
-    computeEncoder.Dispatch(MTLSizeMake(instanceCount, 1, 1), MTLSizeMake(1, 1, 1));
-    computeEncoder.End();
-
-    // Optimize indirect command buffer
-    blitEncoder = cmdBuffer.BlitPass(@"Optimize Indirect Command Buffer");
-    blitEncoder.OptimizeIndirectCommandBuffer(m_IndirectCommandBuffer, instanceCount);
-    blitEncoder.End();
-
-    RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
-                                                 .AddTexture(colorTexture)
+    bool shouldClear = false;
 #if TARGET_OS_IPHONE
-                                                 .AddDepthStencilTexture(depthTexture)
-#else
-                                                 .AddDepthStencilTexture(depthTexture, false)
+    shouldClear = true;
 #endif
-                                                 .SetName(@"Forward+ Pass"));
+
+    RenderPassInfo info = RenderPassInfo().AddTexture(colorTexture)
+                                          .AddDepthStencilTexture(depthTexture, shouldClear)
+                                          .SetName(@"Forward+ Pass");
+    RenderEncoder encoder = cmdBuffer.RenderPass(info);
     encoder.SetGraphicsPipeline(m_GraphicsPipeline);
     encoder.SetBuffer(ShaderStage::VERTEX, world.GetSceneAB(), 0);
     encoder.SetBytes(ShaderStage::FRAGMENT, &globalConstants, sizeof(globalConstants), 0);
     encoder.SetBuffer(ShaderStage::FRAGMENT, world.GetSceneAB(), 1);
     encoder.SetBuffer(ShaderStage::FRAGMENT, lightBins, 2);
     encoder.SetBuffer(ShaderStage::FRAGMENT, lightBinCounts, 3);
-    encoder.ExecuteIndirect(m_IndirectCommandBuffer, MAX_SCENE_INSTANCES);
+    encoder.ExecuteIndirect(indirectCommandBuffer, MAX_SCENE_INSTANCES);
     encoder.End();
 }
 

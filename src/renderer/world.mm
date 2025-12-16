@@ -1,4 +1,5 @@
 #include "world.h"
+#include <CoreData/CoreData.h>
 #include <simd/quaternion.h>
 
 World::World()
@@ -14,6 +15,13 @@ World::World()
 
     m_CameraBuffer.Initialize(sizeof(SceneCamera));
     m_CameraBuffer.SetLabel(@"Scene Camera Buffer");
+}
+
+World::~World()
+{
+    for (auto& entity : m_Entities) {
+        delete entity;
+    }
 }
 
 void World::Update(Camera& camera)
@@ -48,8 +56,8 @@ void World::Update(Camera& camera)
     // Helper lambda to get or create a material index
     auto GetOrCreateMaterial = [&](uint64_t albedoID, uint64_t normalID, uint64_t metallicRoughnessID, bool hasAlbedo, bool hasNormal, bool hasMetallicRoughness) -> uint32_t {
         // Create a hash key from the texture IDs and boolean flags
-        uint64_t boolFlags = (hasAlbedo ? 1ULL : 0ULL) | 
-                            (hasNormal ? 2ULL : 0ULL) | 
+        uint64_t boolFlags = (hasAlbedo ? 1ULL : 0ULL) |
+                            (hasNormal ? 2ULL : 0ULL) |
                             (hasMetallicRoughness ? 4ULL : 0ULL);
         uint64_t key = albedoID ^ (normalID << 1) ^ (metallicRoughnessID << 2) ^ (boolFlags << 3);
 
@@ -76,8 +84,8 @@ void World::Update(Camera& camera)
     };
 
     // Loop over entities and create instances
-    for (const Entity& entity : m_Entities) {
-        const Model& model = entity.Mesh;
+    for (const Entity* entity : m_Entities) {
+        const Model& model = entity->Mesh;
 
         // Create instances for each mesh in the model
         for (const Mesh& mesh : model.Meshes) {
@@ -96,14 +104,14 @@ void World::Update(Camera& camera)
                 uint64_t metallicRoughnessID = 0;
 
                 // Get texture resource IDs
-                if (meshMat.AlbedoIndex >= 0 && meshMat.AlbedoIndex < model.Textures.size()) {
-                    albedoID = model.Textures[meshMat.AlbedoIndex].Texture.GetResourceID();
+                if (meshMat.AlbedoIndex >= 0 && meshMat.AlbedoIndex < model.Textures.size() && model.Textures[meshMat.AlbedoIndex].Texture) {
+                    albedoID = model.Textures[meshMat.AlbedoIndex].Texture->GetResourceID();
                 }
-                if (meshMat.NormalIndex >= 0 && meshMat.NormalIndex < model.Textures.size()) {
-                    normalID = model.Textures[meshMat.NormalIndex].Texture.GetResourceID();
+                if (meshMat.NormalIndex >= 0 && meshMat.NormalIndex < model.Textures.size() && model.Textures[meshMat.NormalIndex].Texture) {
+                    normalID = model.Textures[meshMat.NormalIndex].Texture->GetResourceID();
                 }
-                if (meshMat.PBRIndex >= 0 && meshMat.PBRIndex < model.Textures.size()) {
-                    metallicRoughnessID = model.Textures[meshMat.PBRIndex].Texture.GetResourceID();
+                if (meshMat.PBRIndex >= 0 && meshMat.PBRIndex < model.Textures.size() && model.Textures[meshMat.PBRIndex].Texture) {
+                    metallicRoughnessID = model.Textures[meshMat.PBRIndex].Texture->GetResourceID();
                 }
 
                 bool hasAlbedo = meshMat.AlbedoIndex != -1;
@@ -132,9 +140,9 @@ void World::Update(Camera& camera)
 
 Entity& World::AddModel(const std::string& path)
 {
-    Entity entity;
-    entity.Mesh.Load(path);
+    Entity* entity = new Entity;
+    entity->Mesh.Load(path);
 
     m_Entities.push_back(entity);
-    return m_Entities.back();
+    return *m_Entities.back();
 }

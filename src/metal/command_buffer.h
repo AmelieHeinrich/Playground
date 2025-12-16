@@ -4,6 +4,7 @@
 #include "metal/compute_encoder.h"
 #include "metal/render_encoder.h"
 #include "metal/texture.h"
+#include "metal/fence.h"
 #import <Metal/Metal.h>
 #include <simd/vector_make.h>
 #import <simd/simd.h>
@@ -78,4 +79,5 @@ public:
 private:
     id<MTLCommandBuffer> m_CommandBuffer;
     id<MTLTexture> m_Drawable;
+    Fence m_Fence;
 };

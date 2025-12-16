@@ -61,7 +61,8 @@ vertex VSOutput fplus_vs(uint vertexID [[vertex_id]],
                          uint objectId [[instance_id]],
                          const device SceneArgumentBuffer& scene [[buffer(0)]])
 {
-    MeshVertex v = scene.Instances[objectId].Vertices[vertexID];
+    SceneInstance instance = scene.Instances[objectId];
+    MeshVertex v = instance.Vertices[vertexID];
 
     VSOutput out;
     out.position = scene.Camera.ViewProjection * float4(float3(v.position), 1.0);
@@ -88,7 +89,7 @@ fragment float4 fplus_fs(
         address::repeat,
         lod_clamp(0.0f, MAXFLOAT)
     );
-    
+
     SceneInstance instance = scene.Instances[in.objectId];
     SceneMaterial material = scene.Materials[instance.MaterialIndex];
 

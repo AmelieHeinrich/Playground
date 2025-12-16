@@ -1,7 +1,15 @@
 #include "indirect_command_buffer.h"
 #include "metal/device.h"
+#include "metal/residency_set.h"
 
 #include <Metal/Metal.h>
+
+IndirectCommandBuffer::~IndirectCommandBuffer()
+{
+    if (m_CommandBuffer) {
+        Device::GetResidencySet().RemoveResource(m_CommandBuffer);
+    }
+}
 
 void IndirectCommandBuffer::Initialize(bool inherit, MTLIndirectCommandType commandType, uint maxCommandCount)
 {
@@ -12,10 +20,13 @@ void IndirectCommandBuffer::Initialize(bool inherit, MTLIndirectCommandType comm
 
     m_CommandBuffer = [Device::GetDevice() newIndirectCommandBufferWithDescriptor:descriptor maxCommandCount:maxCommandCount options:MTLResourceStorageModeShared];
     m_CommandBuffer.label = @"Indirect Command Buffer";
+
     uint64_t resourceID = m_CommandBuffer.gpuResourceID._impl;
 
     m_Buffer.Initialize(sizeof(uint64_t));
     m_Buffer.Write(&resourceID, sizeof(uint64_t));
+
+    Device::GetResidencySet().AddResource(m_CommandBuffer);
 }
 
 void IndirectCommandBuffer::SetLabel(NSString* label)

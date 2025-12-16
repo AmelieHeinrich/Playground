@@ -18,19 +18,19 @@ class World
 {
 public:
     World();
-    ~World() = default;
+    ~World();
 
     void Update(Camera& camera);
 
     Entity& AddModel(const std::string& modelPath);
-    std::vector<Entity>& GetEntities() { return m_Entities; };
+    std::vector<Entity*>& GetEntities() { return m_Entities; };
 
     LightList& GetLightList() { return m_LightList; }
     Buffer& GetSceneAB() { return m_SceneAB; }
 
     uint GetInstanceCount() const { return m_SceneInstances.size(); }
 private:
-    std::vector<Entity> m_Entities;
+    std::vector<Entity*> m_Entities;
     LightList m_LightList;
 
     SceneArgumentBuffer m_SceneArgumentBuffer;

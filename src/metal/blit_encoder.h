@@ -5,10 +5,11 @@
 #include "texture.h"
 #include "buffer.h"
 #include "indirect_command_buffer.h"
+#include "fence.h"
 
 class BlitEncoder {
 public:
-    BlitEncoder(id<MTLCommandBuffer> commandBuffer, NSString* label);
+    BlitEncoder(id<MTLCommandBuffer> commandBuffer, NSString* label, Fence* fence = nullptr);
     ~BlitEncoder() = default;
 
     void CopyTexture(id<MTLTexture> source, id<MTLTexture> destination);
@@ -23,4 +24,5 @@ public:
     void End();
 private:
     id<MTLBlitCommandEncoder> m_BlitEncoder;
+    Fence* m_Fence;
 };

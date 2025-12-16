@@ -35,7 +35,7 @@ struct MeshMaterial
 
 struct MeshTexture
 {
-    Texture Texture;
+    Texture* Texture;
 };
 
 struct Model

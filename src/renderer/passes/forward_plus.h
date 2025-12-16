@@ -19,7 +19,6 @@ public:
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
     void DebugUI() override;
 private:
-    IndirectCommandBuffer m_IndirectCommandBuffer;
     ComputePipeline m_CullInstancePipeline;
     GraphicsPipeline m_GraphicsPipeline;
 

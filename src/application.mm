@@ -1,4 +1,5 @@
 #include "application.h"
+#include "metal/fence.h"
 #include "asset/astc_loader.h"
 #include "asset/texture_cache.h"
 #include "metal/command_buffer.h"
@@ -71,7 +72,7 @@ bool Application::Initialize(id<MTLDevice> device)
     m_World->AddModel("models/Sponza/Sponza.mesh");
 
     // Create random lights
-    int lightCount = 2048;
+    int lightCount = 1024;
     for (int i = 0; i < lightCount; i++) {
         PointLight light;
 

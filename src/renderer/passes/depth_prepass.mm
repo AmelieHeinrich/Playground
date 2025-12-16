@@ -2,8 +2,12 @@
 #include "metal/command_buffer.h"
 #include "metal/graphics_pipeline.h"
 
+#include "metal/indirect_command_buffer.h"
+#include "metal/shader.h"
 #include "renderer/resource_io.h"
+#include "renderer/scene_ab.h"
 
+#include <Metal/MTLIndirectCommandBuffer.h>
 #include <Metal/Metal.h>
 
 DepthPrepass::DepthPrepass()
@@ -16,8 +20,10 @@ DepthPrepass::DepthPrepass()
     desc.DepthEnabled = true;
     desc.DepthFormat = MTLPixelFormatDepth32Float;
     desc.DepthFunc = MTLCompareFunctionLess;
+    desc.SupportsIndirect = YES;
 
     m_GraphicsPipeline = GraphicsPipeline::Create(desc);
+    m_CullPipeline.Initialize("cull_geometry");
 
     // Textures
     MTLTextureDescriptor* depthDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:1 height:1 mipmapped:NO];
@@ -25,18 +31,44 @@ DepthPrepass::DepthPrepass()
     depthDescriptor.resourceOptions = MTLResourceStorageModePrivate;
 
     ResourceIO::CreateTexture(DEPTH_PREPASS_DEPTH_OUTPUT, depthDescriptor);
+
+    // Create ICB
+    ResourceIO::CreateIndirectCommandBuffer(DEPTH_PREPASS_ICB, true, MTLIndirectCommandTypeDrawIndexed, MAX_SCENE_INSTANCES);
 }
 
 void DepthPrepass::Resize(int width, int height)
 {
-    ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture.Resize(width, height);
+    ResourceIO::GetTexture(DEPTH_PREPASS_DEPTH_OUTPUT).Resize(width, height);
 }
 
 void DepthPrepass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
+    // Cull
+    IndirectCommandBuffer& indirectCommandBuffer = ResourceIO::GetIndirectCommandBuffer(DEPTH_PREPASS_ICB);
+
+    // Reset the indirect command buffer
+    BlitEncoder blitEncoder = cmdBuffer.BlitPass(@"Reset Indirect Command Buffer");
+    blitEncoder.ResetIndirectCommandBuffer(indirectCommandBuffer, MAX_SCENE_INSTANCES);
+    blitEncoder.End();
+
+    // Cull instances
+    uint instanceCount = world.GetInstanceCount();
+    ComputeEncoder computeEncoder = cmdBuffer.ComputePass(@"Cull Instances");
+    computeEncoder.SetPipeline(m_CullPipeline);
+    computeEncoder.SetBuffer(world.GetSceneAB(), 0);
+    computeEncoder.SetBuffer(indirectCommandBuffer.GetBuffer(), 1);
+    computeEncoder.Dispatch(MTLSizeMake(instanceCount, 1, 1), MTLSizeMake(1, 1, 1));
+    computeEncoder.End();
+
+    // Optimize indirect command buffer
+    blitEncoder = cmdBuffer.BlitPass(@"Optimize Indirect Command Buffer");
+    blitEncoder.OptimizeIndirectCommandBuffer(indirectCommandBuffer, MAX_SCENE_INSTANCES);
+    blitEncoder.End();
+
+    // Prepass if on macOS
 #if !TARGET_OS_IPHONE
-    Texture& depthTexture = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
-    Texture& defaultTexture = ResourceIO::Get(DEFAULT_WHITE).Texture;
+    Texture& depthTexture = ResourceIO::GetTexture(DEPTH_PREPASS_DEPTH_OUTPUT);
+    Texture& defaultTexture = ResourceIO::GetTexture(DEFAULT_WHITE);
 
     simd::float4x4 matrix = camera.GetViewProjectionMatrix();
 
@@ -44,18 +76,8 @@ void DepthPrepass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera
                                                  .AddDepthStencilTexture(depthTexture)
                                                  .SetName(@"Z-Prepass"));
     encoder.SetGraphicsPipeline(m_GraphicsPipeline);
-    encoder.SetBytes(ShaderStage::VERTEX, &matrix, sizeof(matrix), 0);
-    for (auto& entity : world.GetEntities()) {
-        encoder.SetBuffer(ShaderStage::VERTEX, entity.Mesh.VertexBuffer, 1);
-
-        for (auto& mesh : entity.Mesh.Meshes) {
-            MeshMaterial& material = entity.Mesh.Materials[mesh.MaterialIndex];
-            id<MTLTexture> albedo = (material.AlbedoIndex != -1) ? entity.Mesh.Textures[material.AlbedoIndex].Texture.GetTexture() : defaultTexture.GetTexture();
-
-            encoder.SetTexture(ShaderStage::FRAGMENT, albedo, 0);
-            encoder.DrawIndexed(MTLPrimitiveTypeTriangle, entity.Mesh.IndexBuffer, mesh.IndexCount, mesh.IndexOffset * sizeof(uint32_t));
-        }
-    }
+    encoder.SetBuffer(ShaderStage::VERTEX | ShaderStage::FRAGMENT, world.GetSceneAB(), 0);
+    encoder.ExecuteIndirect(indirectCommandBuffer, MAX_SCENE_INSTANCES);
     encoder.End();
 #endif
 }

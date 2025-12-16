@@ -3,11 +3,13 @@
 #include "compute_pipeline.h"
 #include "buffer.h"
 #include "texture.h"
+#include "indirect_command_buffer.h"
+#include "fence.h"
 
 class ComputeEncoder
 {
 public:
-    ComputeEncoder(id<MTLCommandBuffer> cmdBuffer, NSString* label);
+    ComputeEncoder(id<MTLCommandBuffer> cmdBuffer, NSString* label, Fence* fence = nullptr);
     ~ComputeEncoder() = default;
 
     void End();
@@ -20,7 +22,11 @@ public:
 
     void SetTexture(id<MTLTexture> texture, int index);
     void SetTexture(const Texture& texture, int index);
-    
+
+    void ResourceBarrier(const Buffer& buffer);
+    void ResourceBarrier(const Texture& texture);
+    void ResourceBarrier(const IndirectCommandBuffer& buffer);
+
     void PushGroup(NSString* string);
     void PopGroup();
 
@@ -29,4 +35,5 @@ public:
     id<MTLComputeCommandEncoder> GetEncoder() { return m_Encoder; }
 private:
     id<MTLComputeCommandEncoder> m_Encoder;
+    Fence* m_Fence;
 };

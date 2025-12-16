@@ -29,14 +29,13 @@ TonemapPass::TonemapPass()
 
 void TonemapPass::Resize(int width, int height)
 {
-    Resource& texture = ResourceIO::Get(TONEMAP_OUTPUT);
-    texture.Texture.Resize(width, height);
+    ResourceIO::GetTexture(TONEMAP_OUTPUT).Resize(width, height);
 }
 
 void TonemapPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
-    Texture& output = ResourceIO::Get(TONEMAP_OUTPUT).Texture;
-    Texture& input = ResourceIO::Get(TONEMAP_INPUT_COLOR).Texture;
+    Texture& output = ResourceIO::GetTexture(TONEMAP_OUTPUT);
+    Texture& input = ResourceIO::GetTexture(TONEMAP_INPUT_COLOR);
 
     ComputeEncoder encoder = cmdBuffer.ComputePass(@"Tonemap");
     encoder.SetPipeline(m_Pipeline);

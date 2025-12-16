@@ -4,14 +4,17 @@
 #include "metal/graphics_pipeline.h"
 #include <Metal/Metal.h>
 
-RenderEncoder::RenderEncoder(id<MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* renderPassDescriptor, NSString* name)
+RenderEncoder::RenderEncoder(id<MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* renderPassDescriptor, NSString* name, Fence* fence)
+    : m_Fence(fence)
 {
     m_RenderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
     m_RenderEncoder.label = name;
+    [m_RenderEncoder waitForFence:m_Fence->GetFence() beforeStages:MTLRenderStageVertex];
 }
 
 void RenderEncoder::End()
 {
+    [m_RenderEncoder waitForFence:m_Fence->GetFence() beforeStages:MTLRenderStageFragment];
     [m_RenderEncoder endEncoding];
 }
 
@@ -48,6 +51,37 @@ void RenderEncoder::SetTexture(ShaderStage stages, id<MTLTexture> texture, int i
 {
     if (HasFlag(stages, ShaderStage::VERTEX)) [m_RenderEncoder setVertexTexture:texture atIndex:index];
     if (HasFlag(stages, ShaderStage::FRAGMENT)) [m_RenderEncoder setFragmentTexture:texture atIndex:index];
+}
+
+void RenderEncoder::ResourceBarrier(const Buffer& buffer)
+{
+    id<MTLBuffer> mtlBuffer = buffer.GetBuffer();
+    [m_RenderEncoder memoryBarrierWithResources:&mtlBuffer
+                     count:1
+                     afterStages:MTLRenderStageVertex | MTLRenderStageMesh
+                     beforeStages:MTLRenderStageVertex | MTLRenderStageFragment | MTLRenderStageMesh];
+}
+
+void RenderEncoder::ResourceBarrier(const Texture& texture)
+{
+    id<MTLTexture> mtlTexture = texture.GetTexture();
+    [m_RenderEncoder memoryBarrierWithResources:&mtlTexture
+                     count:1
+                     afterStages:MTLRenderStageVertex | MTLRenderStageMesh
+                     beforeStages:MTLRenderStageVertex | MTLRenderStageFragment | MTLRenderStageMesh];
+}
+
+void RenderEncoder::ResourceBarrier(const IndirectCommandBuffer& commandBuffer)
+{
+    id<MTLResource> resources[2] = {
+        commandBuffer.GetBuffer().GetBuffer(),
+        commandBuffer.GetCommandBuffer()
+    };
+
+    [m_RenderEncoder memoryBarrierWithResources:resources
+                     count:2
+                     afterStages:MTLRenderStageVertex | MTLRenderStageMesh
+                     beforeStages:MTLRenderStageVertex | MTLRenderStageFragment | MTLRenderStageMesh];
 }
 
 void RenderEncoder::Draw(MTLPrimitiveType primitiveType, uint32_t vertexCount, uint32_t vertexOffset)

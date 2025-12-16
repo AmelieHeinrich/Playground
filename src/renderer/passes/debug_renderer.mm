@@ -38,8 +38,8 @@ void DebugRendererPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& c
     memcpy(contents, s_LineVertices.data(), s_LineVertices.size() * sizeof(LineVertex));
 
     // Render
-    Texture& color = ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture;
-    Texture& depth = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
+    Texture& color = ResourceIO::GetTexture(FORWARD_PLUS_COLOR_OUTPUT);
+    Texture& depth = ResourceIO::GetTexture(DEPTH_PREPASS_DEPTH_OUTPUT);
 
     RenderPassInfo info = RenderPassInfo().AddTexture(color, false).SetName(@"Debug Renderer Pass");
     if (m_UseDepth) {

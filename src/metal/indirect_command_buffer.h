@@ -6,7 +6,7 @@ class IndirectCommandBuffer
 {
 public:
     IndirectCommandBuffer() = default;
-    ~IndirectCommandBuffer() = default;
+    ~IndirectCommandBuffer();
 
     void Initialize(bool inherit, MTLIndirectCommandType commandType, uint maxCommandCount);
     void SetLabel(NSString* label);

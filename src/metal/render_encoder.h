@@ -7,11 +7,12 @@
 #include "buffer.h"
 #include "texture.h"
 #include "indirect_command_buffer.h"
+#include "fence.h"
 
 class RenderEncoder
 {
 public:
-    RenderEncoder(id<MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* renderPassDescriptor, NSString* name = @"RenderEncoder");
+    RenderEncoder(id<MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* renderPassDescriptor, NSString* name = @"RenderEncoder", Fence* fence = nullptr);
     ~RenderEncoder() = default;
 
     void End();
@@ -25,6 +26,10 @@ public:
     void SetTexture(ShaderStage stages, const Texture& texture, int index);
     void SetTexture(ShaderStage stages, id<MTLTexture> texture, int index);
 
+    void ResourceBarrier(const Buffer& buffer);
+    void ResourceBarrier(const Texture& texture);
+    void ResourceBarrier(const IndirectCommandBuffer& commandBuffer);
+
     void Draw(MTLPrimitiveType primitiveType, uint32_t vertexCount, uint32_t vertexOffset);
     void DrawIndexed(MTLPrimitiveType primitiveType, const Buffer& indexBuffer,  uint32_t indexCount, uint32_t indexOffset);
     void DrawIndexed(MTLPrimitiveType primitiveType, id<MTLBuffer> indexBuffer, uint32_t indexCount, uint32_t indexOffset);
@@ -33,4 +38,5 @@ public:
     id<MTLRenderCommandEncoder> GetCommandEncoder() const { return m_RenderEncoder; }
 private:
     id<MTLRenderCommandEncoder> m_RenderEncoder;
+    Fence* m_Fence;
 };

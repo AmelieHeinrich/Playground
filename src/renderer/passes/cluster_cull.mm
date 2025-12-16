@@ -50,12 +50,12 @@ ClusterCullPass::ClusterCullPass()
 
 void ClusterCullPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
-    Texture& depth = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
-    Buffer& clusterBuffer = ResourceIO::Get(CLUSTER_BUFFER).Buffer;
-    Buffer& clusterBins = ResourceIO::Get(CLUSTER_BINS_BUFFER).Buffer;
-    Buffer& clusterBinCounts = ResourceIO::Get(CLUSTER_BIN_COUNTS_BUFFER).Buffer;
-    Buffer& visibleLightsBuffer = ResourceIO::Get(VISIBLE_LIGHTS_BUFFER).Buffer;
-    Buffer& visibleLightsCountBuffer = ResourceIO::Get(VISIBLE_LIGHTS_COUNT_BUFFER).Buffer;
+    Texture& depth = ResourceIO::GetTexture(DEPTH_PREPASS_DEPTH_OUTPUT);
+    Buffer& clusterBuffer = ResourceIO::GetBuffer(CLUSTER_BUFFER);
+    Buffer& clusterBins = ResourceIO::GetBuffer(CLUSTER_BINS_BUFFER);
+    Buffer& clusterBinCounts = ResourceIO::GetBuffer(CLUSTER_BIN_COUNTS_BUFFER);
+    Buffer& visibleLightsBuffer = ResourceIO::GetBuffer(VISIBLE_LIGHTS_BUFFER);
+    Buffer& visibleLightsCountBuffer = ResourceIO::GetBuffer(VISIBLE_LIGHTS_COUNT_BUFFER);
 
     constexpr uint tileSizePx = CLUSTER_TILE_SIZE_PX;
     constexpr uint numTilesZ  = CLUSTER_Z_SLICES;

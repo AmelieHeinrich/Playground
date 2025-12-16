@@ -6,6 +6,7 @@ Playground where I mess around with Metal on iOS and macOS.
 
 - Cook-Torrance BRDF, PBR workflow
 - Forward+ clustered light culling
+- GPU driven rendering using Metal Indirect Command Buffers
 - Works on iOS and macOS
 
 ## Requirements
