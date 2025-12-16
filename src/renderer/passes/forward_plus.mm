@@ -1,31 +1,19 @@
 #include "forward_plus.h"
 #include "imgui.h"
+#include "metal/compute_encoder.h"
 #include "metal/graphics_pipeline.h"
 
 #include "renderer/passes/cluster_cull.h"
 #include "renderer/passes/debug_renderer.h"
 #include "renderer/passes/depth_prepass.h"
 #include "renderer/resource_io.h"
+#include "renderer/scene_ab.h"
 
 #include <Metal/Metal.h>
 #include <simd/matrix.h>
 
-struct MaterialConstants
-{
-    bool hasAlbedo;
-    bool hasNormal;
-    bool hasORM;
-    bool pad;
-};
-
 struct FPlusGlobalConstants
 {
-    simd::float4x4 CameraMatrix;
-    simd::float4x4 ViewMatrix;
-
-    simd::float3 CameraPosition;
-    int PointLightCount;
-
     int TileSizePx;
     int NumTilesX;
     int NumTilesY;
@@ -33,11 +21,8 @@ struct FPlusGlobalConstants
 
     int Width;
     int Height;
-    float Near;
-    float Far;
-
     bool ShowHeatmap;
-    simd::float3 Pad2;
+    bool Pad;
 };
 
 ForwardPlusPass::ForwardPlusPass()
@@ -54,8 +39,13 @@ ForwardPlusPass::ForwardPlusPass()
 #else
     desc.DepthFunc = MTLCompareFunctionEqual;
 #endif
+    desc.SupportsIndirect = YES;
 
     m_GraphicsPipeline = GraphicsPipeline::Create(desc);
+    m_CullInstancePipeline.Initialize("cull_geometry");
+
+    // Initialize ICB
+    m_IndirectCommandBuffer.Initialize(false, MTLIndirectCommandTypeDrawIndexed, MAX_SCENE_INSTANCES);
 
     // Create textures in OBJC++
     MTLTextureDescriptor* colorDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float width:1 height:1 mipmapped:NO];
@@ -72,26 +62,6 @@ void ForwardPlusPass::Resize(int width, int height)
 
 void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
-    m_CurrentCamera = &camera;
-
-    if (!m_Clusters.empty()) {
-        Texture& colorTexture = ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture;
-        int numTilesX = (colorTexture.Width() + CLUSTER_TILE_SIZE_PX - 1) / CLUSTER_TILE_SIZE_PX;
-        int numTilesY = (colorTexture.Height() + CLUSTER_TILE_SIZE_PX - 1) / CLUSTER_TILE_SIZE_PX;
-
-        // Clusters are in view space, so we need inverse view matrix to transform to world space
-        simd::float4x4 inverseView = simd_inverse(m_StoredViewMatrix);
-
-        // Only draw clusters from the selected Z slice
-        int sliceStart = m_SelectedZSlice * numTilesX * numTilesY;
-        int sliceEnd = sliceStart + numTilesX * numTilesY;
-
-        for (int i = sliceStart; i < sliceEnd && i < m_Clusters.size(); i++) {
-            Cluster cluster = m_Clusters[i];
-            DebugRendererPass::DrawCube(inverseView, cluster.Min.xyz, cluster.Max.xyz);
-        }
-    }
-
     Texture& colorTexture = ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture;
     Texture& depthTexture = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
     Texture& defaultTexture = ResourceIO::Get(DEFAULT_WHITE).Texture;
@@ -103,19 +73,32 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
     uint clusterCount = numTilesX * numTilesY * CLUSTER_Z_SLICES;
 
     FPlusGlobalConstants globalConstants;
-    globalConstants.CameraMatrix = camera.GetViewProjectionMatrix();
-    globalConstants.ViewMatrix = camera.GetViewMatrix();
-    globalConstants.CameraPosition = camera.GetPosition();
-    globalConstants.PointLightCount = world.GetLightList().GetPointLightCount();
     globalConstants.TileSizePx = CLUSTER_TILE_SIZE_PX;
     globalConstants.NumTilesX = numTilesX;
     globalConstants.NumTilesY = numTilesY;
     globalConstants.NumSlicesZ = CLUSTER_Z_SLICES;
     globalConstants.Width = colorTexture.Width();
     globalConstants.Height = colorTexture.Height();
-    globalConstants.Near = camera.GetNearPlane();
-    globalConstants.Far = camera.GetFarPlane();
     globalConstants.ShowHeatmap = m_ShowHeatmap;
+
+    // Reset the indirect command buffer
+    BlitEncoder blitEncoder = cmdBuffer.BlitPass(@"Reset Indirect Command Buffer");
+    blitEncoder.ResetIndirectCommandBuffer(m_IndirectCommandBuffer, MAX_SCENE_INSTANCES);
+    blitEncoder.End();
+
+    // Cull instances
+    uint instanceCount = world.GetInstanceCount();
+    ComputeEncoder computeEncoder = cmdBuffer.ComputePass(@"Cull Instances");
+    computeEncoder.SetPipeline(m_CullInstancePipeline);
+    computeEncoder.SetBuffer(world.GetSceneAB(), 0);
+    computeEncoder.SetBuffer(m_IndirectCommandBuffer.GetBuffer(), 1);
+    computeEncoder.Dispatch(MTLSizeMake(instanceCount, 1, 1), MTLSizeMake(1, 1, 1));
+    computeEncoder.End();
+
+    // Optimize indirect command buffer
+    blitEncoder = cmdBuffer.BlitPass(@"Optimize Indirect Command Buffer");
+    blitEncoder.OptimizeIndirectCommandBuffer(m_IndirectCommandBuffer, instanceCount);
+    blitEncoder.End();
 
     RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
                                                  .AddTexture(colorTexture)
@@ -124,73 +107,21 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
 #else
                                                  .AddDepthStencilTexture(depthTexture, false)
 #endif
-                                                 .SetName(@"Forward Pass"));
+                                                 .SetName(@"Forward+ Pass"));
     encoder.SetGraphicsPipeline(m_GraphicsPipeline);
-    encoder.SetBytes(ShaderStage::VERTEX | ShaderStage::FRAGMENT, &globalConstants, sizeof(globalConstants), 0);
-    encoder.SetBuffer(ShaderStage::FRAGMENT, world.GetLightList().GetPointLightBuffer(), 2);
-    encoder.SetBuffer(ShaderStage::FRAGMENT, lightBins, 3);
-    encoder.SetBuffer(ShaderStage::FRAGMENT, lightBinCounts, 4);
-    for (auto& entity : world.GetEntities()) {
-        encoder.SetBuffer(ShaderStage::VERTEX, entity.Mesh.VertexBuffer, 1);
-
-        for (auto& mesh : entity.Mesh.Meshes) {
-            MeshMaterial& material = entity.Mesh.Materials[mesh.MaterialIndex];
-
-            MaterialConstants constants;
-            constants.hasAlbedo = material.AlbedoIndex != -1;
-            constants.hasNormal = material.NormalIndex != -1;
-            constants.hasORM = material.PBRIndex != -1;
-
-            id<MTLTexture> albedo = constants.hasAlbedo ? entity.Mesh.Textures[material.AlbedoIndex].Texture : defaultTexture.GetTexture();
-            id<MTLTexture> normal = constants.hasNormal ? entity.Mesh.Textures[material.NormalIndex].Texture : defaultTexture.GetTexture();
-            id<MTLTexture> orm = constants.hasORM ? entity.Mesh.Textures[material.PBRIndex].Texture : defaultTexture.GetTexture();
-
-            encoder.SetBytes(ShaderStage::FRAGMENT, &constants, sizeof(constants), 1);
-            encoder.SetTexture(ShaderStage::FRAGMENT, albedo, 0);
-            encoder.SetTexture(ShaderStage::FRAGMENT, normal, 1);
-            encoder.SetTexture(ShaderStage::FRAGMENT, orm, 2);
-            encoder.DrawIndexed(MTLPrimitiveTypeTriangle, entity.Mesh.IndexBuffer, mesh.IndexCount, mesh.IndexOffset * sizeof(uint32_t));
-        }
-    }
+    encoder.SetBuffer(ShaderStage::VERTEX, world.GetSceneAB(), 0);
+    encoder.SetBytes(ShaderStage::FRAGMENT, &globalConstants, sizeof(globalConstants), 0);
+    encoder.SetBuffer(ShaderStage::FRAGMENT, world.GetSceneAB(), 1);
+    encoder.SetBuffer(ShaderStage::FRAGMENT, lightBins, 2);
+    encoder.SetBuffer(ShaderStage::FRAGMENT, lightBinCounts, 3);
+    encoder.ExecuteIndirect(m_IndirectCommandBuffer, MAX_SCENE_INSTANCES);
     encoder.End();
 }
 
 void ForwardPlusPass::DebugUI()
 {
     if (ImGui::TreeNodeEx("Forward+", ImGuiTreeNodeFlags_Framed)) {
-        if (ImGui::Button("Readback Clusters & Debug")) {
-            ReadbackClusters();
-        }
-
-        if (!m_Clusters.empty()) {
-            if (ImGui::Button("Refresh View Matrix")) {
-                if (m_CurrentCamera) {
-                    m_StoredViewMatrix = m_CurrentCamera->GetViewMatrix();
-                }
-            }
-            ImGui::SliderInt("Z Slice", &m_SelectedZSlice, 0, CLUSTER_Z_SLICES - 1);
-        }
-
-        ImGui::Separator();
         ImGui::Checkbox("Show Heatmap", &m_ShowHeatmap);
-
         ImGui::TreePop();
-    }
-}
-
-void ForwardPlusPass::ReadbackClusters()
-{
-    Buffer& clusterBuffer = ResourceIO::Get(CLUSTER_BUFFER).Buffer;
-    m_Clusters.resize(clusterBuffer.GetBuffer().length / sizeof(Cluster));
-
-    void* data = m_Clusters.data();
-    size_t size = m_Clusters.size() * sizeof(Cluster);
-
-    void* readbackPtr = clusterBuffer.Contents();
-    memcpy(data, readbackPtr, size);
-
-    // Initialize stored view matrix when clusters are first loaded
-    if (m_CurrentCamera) {
-        m_StoredViewMatrix = m_CurrentCamera->GetViewMatrix();
     }
 }

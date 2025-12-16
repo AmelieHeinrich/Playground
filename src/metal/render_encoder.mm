@@ -64,3 +64,8 @@ void RenderEncoder::DrawIndexed(MTLPrimitiveType primitiveType, id<MTLBuffer> in
 {
     [m_RenderEncoder drawIndexedPrimitives:primitiveType indexCount:indexCount indexType:MTLIndexTypeUInt32 indexBuffer:indexBuffer indexBufferOffset:indexOffset];
 }
+
+void RenderEncoder::ExecuteIndirect(const IndirectCommandBuffer& commandBuffer, uint maxCommandCount)
+{
+    [m_RenderEncoder executeCommandsInBuffer:commandBuffer.GetCommandBuffer() withRange:NSMakeRange(0, maxCommandCount)];
+}

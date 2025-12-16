@@ -3,6 +3,7 @@
 LightList::LightList()
 {
     m_PointLightBuffer.Initialize(sizeof(PointLight) * MAX_POINT_LIGHTS);
+    m_PointLightBuffer.SetLabel(@"Point Light Buffer");
 }
 
 void LightList::Update()

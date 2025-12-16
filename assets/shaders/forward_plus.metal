@@ -8,13 +8,7 @@ using namespace metal;
 #include "common/pbr.h"
 #include "common/light.h"
 #include "common/cluster.h"
-
-struct Vertex {
-    packed_float3 position;
-    packed_float3 normal;
-    packed_float2 uv;
-    packed_float4 tangent;
-};
+#include "common/scene_ab.h"
 
 struct VSOutput {
     float4 position [[position]];
@@ -22,15 +16,11 @@ struct VSOutput {
     float3 normal;
     float2 uv;
     float4 tangent;
+    
+    uint objectId [[flat]];
 };
 
 struct Constants {
-    float4x4 cameraMatrix;
-    float4x4 ViewMatrix;
-
-    float3 cameraPosition;
-    int LightCount;
-
     int TileSizePx;
     int NumTilesX;
     int NumTilesY;
@@ -38,18 +28,8 @@ struct Constants {
 
     int ScreenWidth;
     int ScreenHeight;
-    float zNear;
-    float zFar;
-
     bool ShowHeatmap;
-    float3 Pad2;
-};
-
-struct MaterialSettings {
-    bool hasAlbedo;
-    bool hasNormal;
-    bool hasORM;
-    bool pad;
+    bool Pad;
 };
 
 // Heatmap color based on light count
@@ -78,32 +58,27 @@ float3 GetHeatmapColor(uint lightCount)
 }
 
 vertex VSOutput fplus_vs(uint vertexID [[vertex_id]],
-                        constant Constants* constants [[buffer(0)]],
-                        const device Vertex* vertices [[buffer(1)]])
+                         uint objectId [[instance_id]],
+                         const device SceneArgumentBuffer& scene [[buffer(0)]])
 {
-    Vertex v = vertices[vertexID];
+    MeshVertex v = scene.Instances[objectId].Vertices[vertexID];
 
     VSOutput out;
-    out.position = constants->cameraMatrix * float4(float3(v.position), 1.0);
+    out.position = scene.Camera.ViewProjection * float4(float3(v.position), 1.0);
     out.worldPosition = float4(float3(v.position), 1.0);
     out.uv = v.uv;
     out.normal = v.normal;
     out.tangent = v.tangent;
+    out.objectId = objectId;
     return out;
 }
 
 fragment float4 fplus_fs(
     VSOutput in [[stage_in]],
-
     constant Constants& constants [[buffer(0)]],
-    constant MaterialSettings& material [[buffer(1)]],
-    const device PointLight* lights [[buffer(2)]],
-    const device uint* lightBins [[buffer(3)]],
-    const device uint* lightBinCounts [[buffer(4)]],
-
-    texture2d<float> albedoTexture [[texture(0)]],
-    texture2d<float> normalTexture [[texture(1)]],
-    texture2d<float> ormTexture [[texture(2)]]
+    const device SceneArgumentBuffer& scene [[buffer(1)]],
+    const device uint* lightBins [[buffer(2)]],
+    const device uint* lightBinCounts [[buffer(3)]]
 )
 {
     constexpr sampler textureSampler(
@@ -113,11 +88,12 @@ fragment float4 fplus_fs(
         address::repeat,
         lod_clamp(0.0f, MAXFLOAT)
     );
+    
+    SceneInstance instance = scene.Instances[in.objectId];
+    SceneMaterial material = scene.Materials[instance.MaterialIndex];
 
     // --- Albedo ---
-    float4 albedoSample = material.hasAlbedo
-        ? albedoTexture.sample(textureSampler, in.uv)
-        : float4(1.0);
+    float4 albedoSample = material.HasAlbedo ? material.Albedo.sample(textureSampler, in.uv) : 1.0f;
     if (albedoSample.a < 0.25)
         discard_fragment();
 
@@ -125,9 +101,8 @@ fragment float4 fplus_fs(
 
     // --- Normal ---
     float3 N = normalize(in.normal);
-
-    if (material.hasNormal) {
-        float3 normalSample = normalTexture.sample(textureSampler, in.uv).rgb;
+    if (material.HasNormal) {
+        float3 normalSample = material.Normal.sample(textureSampler, in.uv).rgb;
         normalSample = normalSample * 2.0 - 1.0;
 
         float3 T = normalize(in.tangent.xyz);
@@ -141,14 +116,14 @@ fragment float4 fplus_fs(
     float roughness = 0.5;
     float metallic  = 0.0;
 
-    if (material.hasORM) {
-        float3 orm = ormTexture.sample(textureSampler, in.uv).rgb;
+    if (material.HasPBR) {
+        float3 orm = material.PBR.sample(textureSampler, in.uv).rgb;
         roughness = clamp(orm.g, 0.04, 1.0);
         metallic  = clamp(orm.b, 0.0, 1.0);
     }
 
     // --- View direction ---
-    float3 V = normalize(constants.cameraPosition - float3(in.worldPosition.xyz));
+    float3 V = normalize(scene.Camera.Position - float3(in.worldPosition.xyz));
 
     // Get cluster index
     // [[position]] already gives us pixel coordinates directly
@@ -158,11 +133,11 @@ fragment float4 fplus_fs(
     uint tileX = min(pixelX / (uint)constants.TileSizePx, (uint)(constants.NumTilesX - 1));
     uint tileY = min(pixelY / (uint)constants.TileSizePx, (uint)(constants.NumTilesY - 1));
 
-    float3 viewPos = (constants.ViewMatrix * in.worldPosition).xyz;
+    float3 viewPos = (scene.Camera.View * in.worldPosition).xyz;
     float depth = -viewPos.z;
-    depth = clamp(depth, constants.zNear, constants.zFar);
+    depth = clamp(depth, scene.Camera.Near, scene.Camera.Far);
 
-    float logDepth = log(depth / constants.zNear) / log(constants.zFar / constants.zNear);
+    float logDepth = log(depth / scene.Camera.Near) / log(scene.Camera.Far / scene.Camera.Near);
     logDepth = clamp(logDepth, 0.0f, 0.999999f);
     uint zSlice = (uint)(logDepth * (float)constants.NumSlicesZ);
 
@@ -176,7 +151,7 @@ fragment float4 fplus_fs(
     ahVec3 color = 0.0f;
     for (uint i = 0; i < binCount; ++i) {
         uint lightIndex = lightBins[binBase + i];
-        PointLight l = lights[lightIndex];
+        PointLight l = scene.PointLights[lightIndex];
 
         color += EvaluatePBR_PointLight(
             in.worldPosition.xyz,

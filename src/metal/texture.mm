@@ -7,12 +7,34 @@ Texture::Texture(MTLTextureDescriptor* descriptor)
     Resize((uint32_t)descriptor.width, (uint32_t)descriptor.height);
 }
 
+Texture::Texture(id<MTLTexture> texture)
+    : m_Texture(texture)
+{
+    if (m_Texture) {
+        // Create descriptor from existing texture properties
+        m_Descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:texture.pixelFormat
+                                                                          width:texture.width
+                                                                         height:texture.height
+                                                                      mipmapped:texture.mipmapLevelCount > 1];
+        m_Descriptor.textureType = texture.textureType;
+        m_Descriptor.arrayLength = texture.arrayLength;
+        m_Descriptor.usage = texture.usage;
+        
+        Device::GetResidencySet().AddResource(m_Texture);
+    }
+}
+
 Texture::~Texture()
 {
     if (m_Texture) {
         Device::GetResidencySet().RemoveResource(m_Texture);
     }
     m_Descriptor = nil;
+}
+
+uint64_t Texture::GetResourceID() const
+{
+    return static_cast<uint64_t>(m_Texture.gpuResourceID._impl);
 }
 
 void Texture::SetDescriptor(MTLTextureDescriptor* descriptor)

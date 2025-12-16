@@ -50,7 +50,7 @@ void DepthPrepass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera
 
         for (auto& mesh : entity.Mesh.Meshes) {
             MeshMaterial& material = entity.Mesh.Materials[mesh.MaterialIndex];
-            id<MTLTexture> albedo = (material.AlbedoIndex != -1) ? entity.Mesh.Textures[material.AlbedoIndex].Texture : defaultTexture.GetTexture();
+            id<MTLTexture> albedo = (material.AlbedoIndex != -1) ? entity.Mesh.Textures[material.AlbedoIndex].Texture.GetTexture() : defaultTexture.GetTexture();
 
             encoder.SetTexture(ShaderStage::FRAGMENT, albedo, 0);
             encoder.DrawIndexed(MTLPrimitiveTypeTriangle, entity.Mesh.IndexBuffer, mesh.IndexCount, mesh.IndexOffset * sizeof(uint32_t));

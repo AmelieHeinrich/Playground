@@ -6,6 +6,7 @@
 #include "shader.h"
 #include "buffer.h"
 #include "texture.h"
+#include "indirect_command_buffer.h"
 
 class RenderEncoder
 {
@@ -27,6 +28,7 @@ public:
     void Draw(MTLPrimitiveType primitiveType, uint32_t vertexCount, uint32_t vertexOffset);
     void DrawIndexed(MTLPrimitiveType primitiveType, const Buffer& indexBuffer,  uint32_t indexCount, uint32_t indexOffset);
     void DrawIndexed(MTLPrimitiveType primitiveType, id<MTLBuffer> indexBuffer, uint32_t indexCount, uint32_t indexOffset);
+    void ExecuteIndirect(const IndirectCommandBuffer& commandBuffer, uint maxCommandCount);
 
     id<MTLRenderCommandEncoder> GetCommandEncoder() const { return m_RenderEncoder; }
 private:

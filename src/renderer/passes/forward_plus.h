@@ -1,5 +1,7 @@
 #pragma once
 
+#include "metal/compute_pipeline.h"
+#include "metal/indirect_command_buffer.h"
 #include "renderer/pass.h"
 #include "metal/graphics_pipeline.h"
 
@@ -17,12 +19,9 @@ public:
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
     void DebugUI() override;
 private:
-    void ReadbackClusters();
-
+    IndirectCommandBuffer m_IndirectCommandBuffer;
+    ComputePipeline m_CullInstancePipeline;
     GraphicsPipeline m_GraphicsPipeline;
-    std::vector<Cluster> m_Clusters;
-    int m_SelectedZSlice = 0;
-    simd::float4x4 m_StoredViewMatrix = matrix_identity_float4x4;
-    Camera* m_CurrentCamera = nullptr;
+
     bool m_ShowHeatmap = false;
 };

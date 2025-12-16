@@ -1,6 +1,5 @@
 #pragma once
 
-#include "metal/arg_buffer.h"
 #include "metal/buffer.h"
 #include "metal/texture.h"
 
@@ -15,8 +14,7 @@ constexpr const char* DEFAULT_BLACK = "Default/Black";
 enum class ResourceType
 {
     TEXTURE,
-    BUFFER,
-    ARGUMENT_BUFFER
+    BUFFER
 };
 
 struct Resource
@@ -26,7 +24,6 @@ struct Resource
 
     Texture Texture;
     Buffer Buffer;
-    ArgBuffer ArgBuffer;
 };
 
 class ResourceIO
@@ -37,7 +34,6 @@ public:
     
     static Resource& CreateTexture(const std::string& name, MTLTextureDescriptor* descriptor);
     static Resource& CreateBuffer(const std::string& name, uint64_t size);
-    static Resource& CreateArgumentBuffer(const std::string& name, id<MTLFunction> function, int index);
 
     // TODO: Auto barrier insertion
     static Resource& Get(const std::string& name);

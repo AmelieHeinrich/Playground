@@ -28,3 +28,9 @@ void Buffer::Initialize(uint64_t size)
     m_Buffer = [Device::GetDevice() newBufferWithLength:size options:MTLResourceStorageModeShared];
     Device::GetResidencySet().AddResource(m_Buffer);
 }
+
+void Buffer::Write(const void* data, uint64_t size)
+{
+    void* ptr = [m_Buffer contents];
+    memcpy(ptr, data, size);
+}

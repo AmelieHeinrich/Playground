@@ -4,6 +4,7 @@
 
 #include "texture.h"
 #include "buffer.h"
+#include "indirect_command_buffer.h"
 
 class BlitEncoder {
 public:
@@ -15,6 +16,9 @@ public:
 
     void FillBuffer(id<MTLBuffer> buffer, uint value);
     void FillBuffer(const Buffer& buffer, uint value);
+
+    void OptimizeIndirectCommandBuffer(const IndirectCommandBuffer& indirectCommandBuffer, uint count);
+    void ResetIndirectCommandBuffer(const IndirectCommandBuffer& indirectCommandBuffer, uint count);
 
     void End();
 private:

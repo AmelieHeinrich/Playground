@@ -135,8 +135,8 @@ void Application::OnResize(uint32_t width, uint32_t height)
 
 void Application::OnUpdate(float deltaTime)
 {
-    m_Renderer->Prepare();
     m_ResidencySet.Update();
+    m_Renderer->Prepare();
 
     // Animate lights
     m_TimeAccumulator += deltaTime;
@@ -155,7 +155,7 @@ void Application::OnUpdate(float deltaTime)
         lights[i].Position = m_InitialLightPositions[i] + offset;
     }
 
-    m_World->Update();
+    m_World->Update(m_Camera);
     m_Input.Update(deltaTime);
     m_Camera.Update(m_Input, deltaTime);
 }

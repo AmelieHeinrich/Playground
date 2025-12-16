@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "metal/buffer.h"
+#include "metal/texture.h"
 
 struct Vertex
 {
@@ -34,14 +35,14 @@ struct MeshMaterial
 
 struct MeshTexture
 {
-    id<MTLTexture> Texture;
+    Texture Texture;
 };
 
 struct Model
 {
     Buffer VertexBuffer;
     Buffer IndexBuffer;
-    
+
     std::vector<Mesh> Meshes;
     std::vector<MeshMaterial> Materials;
     std::vector<MeshTexture> Textures;

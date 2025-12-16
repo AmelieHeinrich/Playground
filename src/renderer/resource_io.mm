@@ -41,14 +41,6 @@ Resource& ResourceIO::CreateBuffer(const std::string& name, uint64_t size)
     return s_Resources[name];
 }
 
-Resource& ResourceIO::CreateArgumentBuffer(const std::string& name, id<MTLFunction> function, int index)
-{
-    s_Resources[name] = {};
-    s_Resources[name].Type = ResourceType::ARGUMENT_BUFFER;
-    s_Resources[name].ArgBuffer.Initialize(function, index);
-    return s_Resources[name];
-}
-
 Resource& ResourceIO::Get(const std::string& name)
 {
     return s_Resources[name];

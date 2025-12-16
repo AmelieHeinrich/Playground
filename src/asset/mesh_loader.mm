@@ -135,8 +135,9 @@ bool Model::Load(const std::string& path)
                 std::string fullPath = MakeRelativeTexturePath(path, ktx2Path);
 
                 MeshTexture tex;
-                tex.Texture = TextureCache::GetTexture(fullPath);
-                if (tex.Texture) {
+                id<MTLTexture> mtlTexture = TextureCache::GetTexture(fullPath);
+                if (mtlTexture) {
+                    tex.Texture = Texture(mtlTexture);
                     Textures.push_back(tex);
                 } else {
                     NSLog(@"Failed to load albedo texture: %s", fullPath.c_str());
@@ -158,8 +159,9 @@ bool Model::Load(const std::string& path)
                 std::string fullPath = MakeRelativeTexturePath(path, ktx2Path);
 
                 MeshTexture tex;
-                tex.Texture = KTX2Loader::LoadKTX2(fullPath);
-                if (tex.Texture) {
+                id<MTLTexture> mtlTexture = KTX2Loader::LoadKTX2(fullPath);
+                if (mtlTexture) {
+                    tex.Texture = Texture(mtlTexture);
                     Textures.push_back(tex);
                 } else {
                     NSLog(@"Failed to load normal texture: %s", fullPath.c_str());
@@ -181,8 +183,9 @@ bool Model::Load(const std::string& path)
                 std::string fullPath = MakeRelativeTexturePath(path, ktx2Path);
 
                 MeshTexture tex;
-                tex.Texture = KTX2Loader::LoadKTX2(fullPath);
-                if (tex.Texture) {
+                id<MTLTexture> mtlTexture = KTX2Loader::LoadKTX2(fullPath);
+                if (mtlTexture) {
+                    tex.Texture = Texture(mtlTexture);
                     Textures.push_back(tex);
                 } else {
                     NSLog(@"Failed to load ORM texture: %s", fullPath.c_str());

@@ -31,3 +31,13 @@ void BlitEncoder::End()
 {
     [m_BlitEncoder endEncoding];
 }
+
+void BlitEncoder::OptimizeIndirectCommandBuffer(const IndirectCommandBuffer& indirectCommandBuffer, uint count)
+{
+    [m_BlitEncoder optimizeIndirectCommandBuffer:indirectCommandBuffer.GetCommandBuffer() withRange:NSMakeRange(0, count)];
+}
+
+void BlitEncoder::ResetIndirectCommandBuffer(const IndirectCommandBuffer& indirectCommandBuffer, uint count)
+{
+    [m_BlitEncoder resetCommandsInBuffer:indirectCommandBuffer.GetCommandBuffer() withRange:NSMakeRange(0, count)];
+}
