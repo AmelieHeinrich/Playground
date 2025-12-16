@@ -4,7 +4,7 @@
 #include <simd/simd.h>
 using namespace simd;
 
-#define MAX_LIGHTS_PER_CLUSTER 64
+#define MAX_LIGHTS_PER_CLUSTER 256
 
 struct Cluster
 {

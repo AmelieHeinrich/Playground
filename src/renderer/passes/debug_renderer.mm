@@ -68,6 +68,9 @@ void DebugRendererPass::DebugUI()
 
 void DebugRendererPass::DrawLine(const simd::float4& start, const simd::float4& end, const simd::float3& color)
 {
+    if (s_LineVertices.size() + 2 >= kMaxDebugLines)
+        return;
+    
     s_LineVertices.push_back({ start, simd_make_float4(color, 1.0f) });
     s_LineVertices.push_back({ end, simd_make_float4(color, 1.0f) });
 }

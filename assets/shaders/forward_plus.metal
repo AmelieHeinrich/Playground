@@ -40,6 +40,9 @@ struct Constants {
     int ScreenHeight;
     float zNear;
     float zFar;
+    bool ShowHeatmap;
+    uint HeatmapMaxLights;
+    float2 Pad2;
 };
 
 struct MaterialSettings {
@@ -48,6 +51,31 @@ struct MaterialSettings {
     bool hasORM;
     bool pad;
 };
+
+// Heatmap color based on light count
+float3 GetHeatmapColor(uint lightCount, uint maxLights)
+{
+    float t = clamp(float(lightCount) / float(maxLights), 0.0f, 1.0f);
+    
+    // Blue -> Cyan -> Green -> Yellow -> Red heatmap
+    if (t < 0.25f) {
+        // Blue to Cyan
+        float s = t / 0.25f;
+        return float3(0.0f, s, 1.0f);
+    } else if (t < 0.5f) {
+        // Cyan to Green
+        float s = (t - 0.25f) / 0.25f;
+        return float3(0.0f, 1.0f, 1.0f - s);
+    } else if (t < 0.75f) {
+        // Green to Yellow
+        float s = (t - 0.5f) / 0.25f;
+        return float3(s, 1.0f, 0.0f);
+    } else {
+        // Yellow to Red
+        float s = (t - 0.75f) / 0.25f;
+        return float3(1.0f, 1.0f - s, 0.0f);
+    }
+}
 
 vertex VSOutput fplus_vs(uint vertexID [[vertex_id]],
                         constant Constants* constants [[buffer(0)]],
@@ -123,21 +151,25 @@ fragment float4 fplus_fs(
     float3 V = normalize(constants.cameraPosition - float3(in.worldPosition.xyz));
 
     // Get cluster index
-    float2 ndc = in.position.xy / in.position.w;
-    float2 screenUV = ndc * 0.5 + 0.5;
-    
-    uint pixelX = uint(screenUV.x * constants.ScreenWidth);
-    uint pixelY = uint(screenUV.y * constants.ScreenHeight);
-    
-    uint tileX = pixelX / constants.TileSizePx;
-    uint tileY = pixelY / constants.TileSizePx;
+    // [[position]] already gives us pixel coordinates directly
+    uint pixelX = uint(in.position.x);
+    uint pixelY = uint(in.position.y);
+
+    uint tileX = min(pixelX / (uint)constants.TileSizePx, (uint)(constants.NumTilesX - 1));
+    uint tileY = min(pixelY / (uint)constants.TileSizePx, (uint)(constants.NumTilesY - 1));
     
     float3 viewPos = (constants.ViewMatrix * in.worldPosition).xyz;
     float depth = -viewPos.z;
-    float logDepth = log(depth / constants.zNear) / log(constants.zFar / constants.zNear);
-    uint zSlice = uint(clamp(logDepth, 0.0f, 0.999999f) * constants.NumSlicesZ);
+    depth = clamp(depth, constants.zNear, constants.zFar);
     
-    uint clusterIndex = tileX + tileY * constants.NumTilesX + zSlice * constants.NumTilesX * constants.NumTilesY;
+    float logDepth = log(depth / constants.zNear) / log(constants.zFar / constants.zNear);
+    logDepth = clamp(logDepth, 0.0f, 0.999999f);
+    uint zSlice = (uint)(logDepth * (float)constants.NumSlicesZ);
+    
+    uint clusterIndex = tileX + tileY * constants.NumTilesX + zSlice * (uint)(constants.NumTilesX * constants.NumTilesY);
+    uint clusterCount = (uint)(constants.NumTilesX * constants.NumTilesY * constants.NumSlicesZ);
+    clusterIndex = min(clusterIndex, clusterCount - 1);
+    
     uint binCount = lightBinCounts[clusterIndex];
     uint binBase = clusterIndex * MAX_LIGHTS_PER_CLUSTER;
     
@@ -160,5 +192,11 @@ fragment float4 fplus_fs(
         );
     }
 
+    // Heatmap debug visualization
+    if (constants.ShowHeatmap) {
+        float3 heatmapColor = GetHeatmapColor(binCount, constants.HeatmapMaxLights);
+        return float4(heatmapColor, 1.0f);
+    }
+    
     return float4(color, 1.0f);
 }

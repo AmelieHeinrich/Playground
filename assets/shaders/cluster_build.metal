@@ -27,7 +27,7 @@ float4 clip_to_view(float4 clip, Constants constants)
 float4 screen_to_view(float4 screen, Constants constants)
 {
     float2 texCoord = screen.xy / float2(constants.Width, constants.Height);
-    float4 clip = float4(float2(texCoord.x, texCoord.y) * 2.0 - 1.0, screen.z, screen.w);
+    float4 clip = float4(texCoord.x * 2.0 - 1.0, 1.0 - texCoord.y * 2.0, screen.z, screen.w);
     return clip_to_view(clip, constants);
 }
 

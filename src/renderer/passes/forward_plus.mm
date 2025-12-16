@@ -1,11 +1,14 @@
 #include "forward_plus.h"
-#include "cluster_cull.h"
+#include "imgui.h"
 #include "metal/graphics_pipeline.h"
 
+#include "renderer/passes/cluster_cull.h"
+#include "renderer/passes/debug_renderer.h"
 #include "renderer/passes/depth_prepass.h"
 #include "renderer/resource_io.h"
 
 #include <Metal/Metal.h>
+#include <simd/matrix.h>
 
 struct MaterialConstants
 {
@@ -32,6 +35,10 @@ struct FPlusGlobalConstants
     int Height;
     float Near;
     float Far;
+
+    bool ShowHeatmap;
+    uint32_t HeatmapMaxLights;
+    simd::float2 Pad2;
 };
 
 ForwardPlusPass::ForwardPlusPass()
@@ -66,6 +73,26 @@ void ForwardPlusPass::Resize(int width, int height)
 
 void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
+    m_CurrentCamera = &camera;
+    
+    if (!m_Clusters.empty()) {
+        Texture& colorTexture = ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture;
+        int numTilesX = (colorTexture.Width() + CLUSTER_TILE_SIZE_PX - 1) / CLUSTER_TILE_SIZE_PX;
+        int numTilesY = (colorTexture.Height() + CLUSTER_TILE_SIZE_PX - 1) / CLUSTER_TILE_SIZE_PX;
+
+        // Clusters are in view space, so we need inverse view matrix to transform to world space
+        simd::float4x4 inverseView = simd_inverse(m_StoredViewMatrix);
+
+        // Only draw clusters from the selected Z slice
+        int sliceStart = m_SelectedZSlice * numTilesX * numTilesY;
+        int sliceEnd = sliceStart + numTilesX * numTilesY;
+
+        for (int i = sliceStart; i < sliceEnd && i < m_Clusters.size(); i++) {
+            Cluster cluster = m_Clusters[i];
+            DebugRendererPass::DrawCube(inverseView, cluster.Min.xyz, cluster.Max.xyz);
+        }
+    }
+
     Texture& colorTexture = ResourceIO::Get(FORWARD_PLUS_COLOR_OUTPUT).Texture;
     Texture& depthTexture = ResourceIO::Get(DEPTH_PREPASS_DEPTH_OUTPUT).Texture;
     Texture& defaultTexture = ResourceIO::Get(DEFAULT_WHITE).Texture;
@@ -89,6 +116,8 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
     globalConstants.Height = colorTexture.Height();
     globalConstants.Near = camera.GetNearPlane();
     globalConstants.Far = camera.GetFarPlane();
+    globalConstants.ShowHeatmap = m_ShowHeatmap;
+    globalConstants.HeatmapMaxLights = m_HeatmapMaxLights;
 
     RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
                                                  .AddTexture(colorTexture)
@@ -122,8 +151,51 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
             encoder.SetTexture(ShaderStage::FRAGMENT, albedo, 0);
             encoder.SetTexture(ShaderStage::FRAGMENT, normal, 1);
             encoder.SetTexture(ShaderStage::FRAGMENT, orm, 2);
-            //encoder.DrawIndexed(MTLPrimitiveTypeTriangle, entity.Mesh.IndexBuffer, mesh.IndexCount, mesh.IndexOffset * sizeof(uint32_t));
+            encoder.DrawIndexed(MTLPrimitiveTypeTriangle, entity.Mesh.IndexBuffer, mesh.IndexCount, mesh.IndexOffset * sizeof(uint32_t));
         }
     }
     encoder.End();
+}
+
+void ForwardPlusPass::DebugUI()
+{
+    if (ImGui::TreeNodeEx("Forward+", ImGuiTreeNodeFlags_Framed)) {
+        if (ImGui::Button("Readback Clusters & Debug")) {
+            ReadbackClusters();
+        }
+
+        if (!m_Clusters.empty()) {
+            if (ImGui::Button("Refresh View Matrix")) {
+                if (m_CurrentCamera) {
+                    m_StoredViewMatrix = m_CurrentCamera->GetViewMatrix();
+                }
+            }
+            ImGui::SliderInt("Z Slice", &m_SelectedZSlice, 0, CLUSTER_Z_SLICES - 1);
+        }
+
+        ImGui::Separator();
+        ImGui::Checkbox("Show Heatmap", &m_ShowHeatmap);
+        if (m_ShowHeatmap) {
+            ImGui::SliderInt("Max Lights", &m_HeatmapMaxLights, 1, 128);
+        }
+
+        ImGui::TreePop();
+    }
+}
+
+void ForwardPlusPass::ReadbackClusters()
+{
+    Buffer& clusterBuffer = ResourceIO::Get(CLUSTER_BUFFER).Buffer;
+    m_Clusters.resize(clusterBuffer.GetBuffer().length / sizeof(Cluster));
+
+    void* data = m_Clusters.data();
+    size_t size = m_Clusters.size() * sizeof(Cluster);
+
+    void* readbackPtr = clusterBuffer.Contents();
+    memcpy(data, readbackPtr, size);
+    
+    // Initialize stored view matrix when clusters are first loaded
+    if (m_CurrentCamera) {
+        m_StoredViewMatrix = m_CurrentCamera->GetViewMatrix();
+    }
 }
