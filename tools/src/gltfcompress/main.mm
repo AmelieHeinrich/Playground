@@ -234,6 +234,7 @@ struct L_MaterialData {
     char AlbedoPath[256];
     char NormalPath[256];
     char ORMPath[256];
+    u32 Opaque; // 1 = opaque, 0 = alpha cutout/blend
 };
 
 struct L_StaticMeshHeader {
@@ -474,6 +475,12 @@ bool CompressGLTF(const std::string& inputPath, const std::string& outputPath)
         memset(m.AlbedoPath, 0, sizeof(m.AlbedoPath));
         memset(m.NormalPath, 0, sizeof(m.NormalPath));
         memset(m.ORMPath, 0, sizeof(m.ORMPath));
+        
+        // Check alpha mode (default is OPAQUE)
+        m.Opaque = 1; // Default to opaque
+        if (mat.alphaMode == "MASK" || mat.alphaMode == "BLEND") {
+            m.Opaque = 0; // Not opaque (uses alpha cutout or blending)
+        }
 
         // Get albedo texture path
         if (mat.pbrMetallicRoughness.baseColorTexture.index >= 0) {

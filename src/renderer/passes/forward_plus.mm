@@ -1,5 +1,6 @@
 #include "forward_plus.h"
 #include "imgui.h"
+#include "metal/acceleration_encoder.h"
 #include "metal/command_buffer.h"
 #include "metal/compute_encoder.h"
 #include "metal/graphics_pipeline.h"
@@ -66,6 +67,11 @@ void ForwardPlusPass::Resize(int width, int height)
 
 void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
+    // Build TLAS
+    AccelerationEncoder accelerationEncoder = cmdBuffer.AccelerationPass(@"Build TLAS");
+    accelerationEncoder.BuildTLAS(world.GetTLAS());
+    accelerationEncoder.End();
+
     // Cull instances and build indirect command buffer
     IndirectCommandBuffer& indirectCommandBuffer = ResourceIO::GetIndirectCommandBuffer(FORWARD_PLUS_ICB);
 
@@ -80,18 +86,20 @@ void ForwardPlusPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
         camera.ExtractPlanes(frustumPlanes);
 
         uint instanceCount = world.GetInstanceCount();
-        ComputeEncoder computeEncoder = cmdBuffer.ComputePass(@"Cull Instances");
-        computeEncoder.SetPipeline(m_CullPipeline);
-        computeEncoder.SetBuffer(world.GetSceneAB(), 0);
-        computeEncoder.SetBuffer(indirectCommandBuffer.GetBuffer(), 1);
-        computeEncoder.SetBytes(frustumPlanes, sizeof(frustumPlanes), 2);
-        computeEncoder.Dispatch(MTLSizeMake(instanceCount, 1, 1), MTLSizeMake(1, 1, 1));
-        computeEncoder.End();
+        if (instanceCount > 0) {
+            ComputeEncoder computeEncoder = cmdBuffer.ComputePass(@"Cull Instances");
+            computeEncoder.SetPipeline(m_CullPipeline);
+            computeEncoder.SetBuffer(world.GetSceneAB(), 0);
+            computeEncoder.SetBuffer(indirectCommandBuffer.GetBuffer(), 1);
+            computeEncoder.SetBytes(frustumPlanes, sizeof(frustumPlanes), 2);
+            computeEncoder.Dispatch(MTLSizeMake(instanceCount, 1, 1), MTLSizeMake(1, 1, 1));
+            computeEncoder.End();
 
-        // Optimize indirect command buffer
-        blitEncoder = cmdBuffer.BlitPass(@"Optimize Indirect Command Buffer");
-        blitEncoder.OptimizeIndirectCommandBuffer(indirectCommandBuffer, MAX_SCENE_INSTANCES);
-        blitEncoder.End();
+            // Optimize indirect command buffer
+            blitEncoder = cmdBuffer.BlitPass(@"Optimize Indirect Command Buffer");
+            blitEncoder.OptimizeIndirectCommandBuffer(indirectCommandBuffer, MAX_SCENE_INSTANCES);
+            blitEncoder.End();
+        }
     }
 
     // Render pass

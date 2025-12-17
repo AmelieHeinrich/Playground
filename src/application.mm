@@ -99,6 +99,8 @@ bool Application::Initialize(id<MTLDevice> device)
         m_InitialLightPositions.push_back(light.Position);
     }
 
+    m_World->Prepare();
+
     NSLog(@"Application initialized successfully with Metal device: %@", [m_Device name]);
     return true;
 }

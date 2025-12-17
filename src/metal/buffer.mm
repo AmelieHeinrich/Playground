@@ -34,3 +34,11 @@ void Buffer::Write(const void* data, uint64_t size)
     void* ptr = [m_Buffer contents];
     memcpy(ptr, data, size);
 }
+
+void Buffer::Cleanup()
+{
+    if (m_Buffer) {
+        Device::GetResidencySet().RemoveResource(m_Buffer);
+        m_Buffer = nil;
+    }
+}

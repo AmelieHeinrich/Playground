@@ -97,13 +97,14 @@ set_source_files_properties(${SHADERS}
     PROPERTIES
     LANGUAGE METAL
     XCODE_EXPLICIT_FILE_TYPE sourcecode.metal
+    COMPILE_FLAGS "-std=metal3.0"
 )
 
 # Add Metal shader compilation flags for debug mode
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set_source_files_properties(${SHADERS}
         PROPERTIES
-        COMPILE_FLAGS "-frecord-sources -gline-tables-only"
+        COMPILE_FLAGS "-std=metal3.0 -frecord-sources -gline-tables-only"
     )
 endif()
 
@@ -116,6 +117,11 @@ if (IOS)
         "IOS=1"
     )
 endif()
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    XCODE_ATTRIBUTE_MTL_LANGUAGE_REVISION
+    "Metal30"
+)
 
 # Source group for Xcode
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SOURCES} ${HEADERS})

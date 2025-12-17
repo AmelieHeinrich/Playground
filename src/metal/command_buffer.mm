@@ -44,3 +44,8 @@ BlitEncoder CommandBuffer::BlitPass(NSString* name)
 {
     return BlitEncoder(m_CommandBuffer, name, &m_Fence);
 }
+
+AccelerationEncoder CommandBuffer::AccelerationPass(NSString* name)
+{
+    return AccelerationEncoder(m_CommandBuffer, name, &m_Fence);
+}

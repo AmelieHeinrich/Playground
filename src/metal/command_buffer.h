@@ -1,13 +1,13 @@
 #pragma once
 
-#include "metal/blit_encoder.h"
-#include "metal/compute_encoder.h"
-#include "metal/render_encoder.h"
-#include "metal/texture.h"
-#include "metal/fence.h"
-#import <Metal/Metal.h>
+#include "blit_encoder.h"
+#include "compute_encoder.h"
+#include "render_encoder.h"
+#include "texture.h"
+#include "fence.h"
+#include "acceleration_encoder.h"
+
 #include <simd/vector_make.h>
-#import <simd/simd.h>
 
 #include <vector>
 
@@ -70,6 +70,7 @@ public:
     RenderEncoder RenderPass(const RenderPassInfo& info);
     ComputeEncoder ComputePass(NSString* name = @"Compute Pass");
     BlitEncoder BlitPass(NSString* name = @"Blit Pass");
+    AccelerationEncoder AccelerationPass(NSString* name = @"Acceleration Pass");
 
     void Commit();
     id<MTLCommandBuffer> GetCommandBuffer() { return m_CommandBuffer; }

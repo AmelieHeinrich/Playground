@@ -3,6 +3,11 @@
 
 #include "light.h"
 
+#include <metal_stdlib>
+#include <simd/simd.h>
+using namespace metal;
+using namespace raytracing;
+
 struct MeshVertex
 {
     packed_float3 position;
@@ -53,6 +58,8 @@ struct SceneArgumentBuffer
     const device SceneMaterial* Materials;
     const device PointLight* PointLights;
     const device SceneCamera& Camera;
+    instance_acceleration_structure AS;
+    
     uint PointLightCount;
 };
 

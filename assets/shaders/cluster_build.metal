@@ -47,6 +47,8 @@ kernel void build_clusters(constant Constants& settings,
                            uint3 groupId [[threadgroup_position_in_grid]],
                            uint3 numGroups [[threadgroups_per_grid]])
 {
+    
+    
     const float3 eyePos = float3(0.0f);
     
     // Per tile variable

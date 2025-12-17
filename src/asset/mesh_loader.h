@@ -33,6 +33,7 @@ struct MeshMaterial
     int AlbedoIndex = -1;
     int NormalIndex = -1;
     int PBRIndex = -1;
+    bool Opaque = true;
 };
 
 struct MeshTexture

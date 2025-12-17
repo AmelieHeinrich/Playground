@@ -23,6 +23,7 @@ struct L_MaterialData {
     char AlbedoPath[256];
     char NormalPath[256];
     char ORMPath[256];
+    uint32_t Opaque; // 1 = opaque, 0 = alpha cutout/blend
 };
 
 struct L_StaticMeshHeader {
@@ -215,6 +216,7 @@ bool Model::Load(const std::string& path)
         mat.AlbedoIndex = -1;
         mat.NormalIndex = -1;
         mat.PBRIndex = -1;
+        mat.Opaque = (materialData[i].Opaque != 0);
 
         if (materialData[i].AlbedoPath[0] != '\0') {
             std::string albedoPath(materialData[i].AlbedoPath);

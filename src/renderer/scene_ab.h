@@ -52,6 +52,7 @@ struct SceneArgumentBuffer
     uint64_t MaterialBufferID;
     uint64_t PointLightBufferID;
     uint64_t CameraBufferID;
+    uint64_t SceneTLASID;
 
     uint32_t PointLightCount;
 };

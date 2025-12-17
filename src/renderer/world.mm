@@ -1,4 +1,6 @@
 #include "world.h"
+#include "metal/acceleration_encoder.h"
+#include "metal/command_buffer.h"
 #include "passes/debug_renderer.h"
 #include <CoreData/CoreData.h>
 #include <simd/quaternion.h>
@@ -16,12 +18,32 @@ World::World()
 
     m_CameraBuffer.Initialize(sizeof(SceneCamera));
     m_CameraBuffer.SetLabel(@"Scene Camera Buffer");
+
+    m_TLAS.Initialize();
+    m_TLAS.SetLabel(@"Top Level Acceleration Structure");
 }
 
 World::~World()
 {
     for (auto& entity : m_Entities) {
+        delete entity->BLAS;
         delete entity;
+    }
+}
+
+void World::Prepare()
+{
+    CommandBuffer cmdBuffer;
+
+    AccelerationEncoder encoder = cmdBuffer.AccelerationPass(@"Build BLASes");
+    for (auto& entity : m_Entities) {
+        encoder.BuildBLAS(entity->BLAS);
+    }
+    encoder.End();
+    cmdBuffer.Commit();
+
+    for (auto& entity : m_Entities) {
+        entity->BLAS->FreeScratchBuffer();
     }
 }
 
@@ -35,6 +57,7 @@ void World::Update(Camera& camera)
     m_SceneArgumentBuffer.InstanceBufferID = m_InstanceBuffer.GetResourceID();
     m_SceneArgumentBuffer.CameraBufferID = m_CameraBuffer.GetResourceID();
     m_SceneArgumentBuffer.MaterialBufferID = m_MaterialBuffer.GetResourceID();
+    m_SceneArgumentBuffer.SceneTLASID = m_TLAS.GetResourceID();
 
     // Update camera buffer
     m_SceneCamera.View = camera.GetViewMatrix();
@@ -85,8 +108,10 @@ void World::Update(Camera& camera)
     };
 
     // Loop over entities and create instances
+    m_TLAS.ResetInstanceBuffer();
     for (const Entity* entity : m_Entities) {
         const Model& model = entity->Mesh;
+        m_TLAS.AddInstance(entity->BLAS);
 
         // Create instances for each mesh in the model
         for (const Mesh& mesh : model.Meshes) {
@@ -129,6 +154,7 @@ void World::Update(Camera& camera)
             m_SceneInstances.push_back(instance);
         }
     }
+    m_TLAS.Update();
 
     // Write to the buffers
     if (!m_SceneInstances.empty()) {
@@ -145,6 +171,8 @@ Entity& World::AddModel(const std::string& path)
 {
     Entity* entity = new Entity;
     entity->Mesh.Load(path);
+    entity->BLAS = new BLAS(entity->Mesh);
+    entity->BLAS->SetLabel([NSString stringWithUTF8String:path.c_str()]);
 
     m_Entities.push_back(entity);
     return *m_Entities.back();

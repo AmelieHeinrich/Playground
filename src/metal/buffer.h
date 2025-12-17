@@ -22,6 +22,7 @@ public:
 
     void* Contents() const { return [m_Buffer contents]; }
     void Write(const void* data, uint64_t size);
+    void Cleanup();
 private:
     id<MTLBuffer> m_Buffer = nil;
 };

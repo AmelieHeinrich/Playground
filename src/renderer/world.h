@@ -7,11 +7,14 @@
 #include <vector>
 
 #include "core/camera.h"
+#include "metal/blas.h"
+#include "metal/tlas.h"
 #include "scene_ab.h"
 
 struct Entity
 {
     Model Mesh;
+    BLAS* BLAS;
 };
 
 class World
@@ -20,6 +23,7 @@ public:
     World();
     ~World();
 
+    void Prepare();
     void Update(Camera& camera);
 
     Entity& AddModel(const std::string& modelPath);
@@ -29,6 +33,7 @@ public:
     Buffer& GetSceneAB() { return m_SceneAB; }
 
     uint GetInstanceCount() const { return m_SceneInstances.size(); }
+    TLAS* GetTLAS() { return &m_TLAS; }
 private:
     std::vector<Entity*> m_Entities;
     LightList m_LightList;
@@ -42,4 +47,5 @@ private:
     Buffer m_InstanceBuffer;
     Buffer m_MaterialBuffer;
     Buffer m_CameraBuffer;
+    TLAS m_TLAS;
 };

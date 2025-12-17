@@ -91,19 +91,21 @@ void ClusterCullPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
 
     // Cull lights against frustum
     // Each thread processes 64 lights, threadgroup size is 64
-    encoder.PushGroup(@"Cull Lights Frustum");
-    encoder.SetPipeline(m_FrustumLightCull);
-    encoder.SetBytes(&frustumLightConstants, sizeof(FrustumLightCullConstants), 0);
-    encoder.SetBuffer(world.GetLightList().GetPointLightBuffer(), 1);
-    encoder.SetBuffer(visibleLightsCountBuffer, 2);
-    encoder.SetBuffer(visibleLightsBuffer, 3);
-    
     // Calculate dispatch: 1 thread per 64 lights, 64 threads per threadgroup
     uint threadsNeeded = (lightCount + 63) / 64;  // LIGHTS_PER_THREAD = 64
     uint numThreadgroups = (threadsNeeded + 63) / 64;  // THREADGROUP_SIZE = 64
-    encoder.Dispatch(MTLSizeMake(numThreadgroups, 1, 1), MTLSizeMake(64, 1, 1));
-    encoder.PopGroup();
-
+    
+    if (threadsNeeded > 0) {
+        encoder.PushGroup(@"Cull Lights Frustum");
+        encoder.SetPipeline(m_FrustumLightCull);
+        encoder.SetBytes(&frustumLightConstants, sizeof(FrustumLightCullConstants), 0);
+        encoder.SetBuffer(world.GetLightList().GetPointLightBuffer(), 1);
+        encoder.SetBuffer(visibleLightsCountBuffer, 2);
+        encoder.SetBuffer(visibleLightsBuffer, 3);
+        encoder.Dispatch(MTLSizeMake(numThreadgroups, 1, 1), MTLSizeMake(64, 1, 1));
+        encoder.PopGroup();
+    }
+    
     // Build clusters
     encoder.PushGroup(@"Build Clusters");
     encoder.SetPipeline(m_ClusterBuild);
