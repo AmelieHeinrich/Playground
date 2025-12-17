@@ -29,6 +29,9 @@ struct SceneInstance
     uint MaterialIndex;
     uint IndexCount;
     uint IndexOffset;
+    
+    float3 Min;
+    float3 Max;
 };
 
 struct SceneCamera

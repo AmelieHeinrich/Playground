@@ -7,20 +7,22 @@
 #include <fs.h>
 #include <iostream>
 
+struct vec3 {
+    float x, y, z;
+};
+
 struct L_SubmeshData {
     uint32_t IndexOffset;
     uint32_t IndexCount;
     uint32_t MaterialIndex;
+    vec3 Min;
+    vec3 Max;
 };
 
 struct L_MaterialData {
     char AlbedoPath[256];
     char NormalPath[256];
     char ORMPath[256];
-};
-
-struct vec3 {
-    float x, y, z;
 };
 
 struct L_StaticMeshHeader {
@@ -256,6 +258,8 @@ bool Model::Load(const std::string& path)
         mesh.IndexOffset = submeshData[i].IndexOffset;
         mesh.IndexCount = submeshData[i].IndexCount;
         mesh.MaterialIndex = submeshData[i].MaterialIndex;
+        mesh.Min = simd::make_float3(submeshData[i].Min.x, submeshData[i].Min.y, submeshData[i].Min.z);
+        mesh.Max = simd::make_float3(submeshData[i].Max.x, submeshData[i].Max.y, submeshData[i].Max.z);
         Meshes.push_back(mesh);
     }
 

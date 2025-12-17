@@ -24,6 +24,8 @@ struct Mesh
     uint32_t IndexOffset;
     uint32_t IndexCount;
     int MaterialIndex = -1;
+    simd::float3 Min;
+    simd::float3 Max;
 };
 
 struct MeshMaterial

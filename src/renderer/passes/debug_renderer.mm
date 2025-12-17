@@ -1,5 +1,4 @@
 #include "debug_renderer.h"
-#include "depth_prepass.h"
 #include "forward_plus.h"
 
 #include "renderer/resource_io.h"
@@ -39,7 +38,7 @@ void DebugRendererPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& c
 
     // Render
     Texture& color = ResourceIO::GetTexture(FORWARD_PLUS_COLOR_OUTPUT);
-    Texture& depth = ResourceIO::GetTexture(DEPTH_PREPASS_DEPTH_OUTPUT);
+    Texture& depth = ResourceIO::GetTexture(FORWARD_PLUS_DEPTH_OUTPUT);
 
     RenderPassInfo info = RenderPassInfo().AddTexture(color, false).SetName(@"Debug Renderer Pass");
     if (m_UseDepth) {

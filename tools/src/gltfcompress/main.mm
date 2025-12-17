@@ -226,6 +226,8 @@ struct L_SubmeshData {
     u32 IndexOffset;
     u32 IndexCount;
     u32 MaterialIndex;
+    vec3 Min;
+    vec3 Max;
 };
 
 struct L_MaterialData {
@@ -391,6 +393,10 @@ bool CompressGLTF(const std::string& inputPath, const std::string& outputPath)
                 u32 vertexBaseIndex = allVertices.size();
                 size_t vertexCount = positions.size();
 
+                // Initialize submesh AABB
+                vec3 submeshMin(FLT_MAX);
+                vec3 submeshMax(-FLT_MAX);
+
                 // Build vertices with transforms
                 for (size_t i = 0; i < vertexCount; ++i) {
                     L_StaticVertex v;
@@ -400,6 +406,10 @@ bool CompressGLTF(const std::string& inputPath, const std::string& outputPath)
                     // Update bounds
                     boundsMin = minVec3(boundsMin, v.Position);
                     boundsMax = maxVec3(boundsMax, v.Position);
+
+                    // Update submesh bounds
+                    submeshMin = minVec3(submeshMin, v.Position);
+                    submeshMax = maxVec3(submeshMax, v.Position);
 
                     v.Normal = normals.empty() ? vec3(0, 1, 0) : (normalMatrix * normals[i]).normalize();
                     v.UV = uvs.empty() ? vec2(0) : uvs[i];
@@ -447,6 +457,8 @@ bool CompressGLTF(const std::string& inputPath, const std::string& outputPath)
                 submesh.IndexOffset = indexBaseOffset;
                 submesh.IndexCount = allIndices.size() - indexBaseOffset;
                 submesh.MaterialIndex = prim.material >= 0 ? prim.material : 0;
+                submesh.Min = submeshMin;
+                submesh.Max = submeshMax;
                 submeshes.push_back(submesh);
             }
         }

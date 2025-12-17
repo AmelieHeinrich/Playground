@@ -24,10 +24,13 @@ struct SceneInstance
 {
     uint64_t VertexBufferID;
     uint64_t IndexBufferID;
-    
+
     uint32_t MaterialID;
     uint32_t IndexCount;
     uint32_t IndexOffset;
+
+    simd::float3 Min;
+    simd::float3 Max;
 };
 
 struct SceneCamera

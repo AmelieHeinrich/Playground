@@ -1,4 +1,5 @@
 #include "world.h"
+#include "passes/debug_renderer.h"
 #include <CoreData/CoreData.h>
 #include <simd/quaternion.h>
 
@@ -122,6 +123,8 @@ void World::Update(Camera& camera)
             } else {
                 instance.MaterialID = GetOrCreateMaterial(0, 0, 0, false, false, false);
             }
+            instance.Min = mesh.Min;
+            instance.Max = mesh.Max;
 
             m_SceneInstances.push_back(instance);
         }

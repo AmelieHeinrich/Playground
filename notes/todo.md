@@ -6,17 +6,16 @@
 - [x] Load a compressed texture
 - [x] Load a model
 - [x] Add lights, Cook-Torrance BRDF
-
-PBR LIGHTS DEMO MILESTONE ON IPHONE
 - [x] Use FP16 math
 - [x] Encoder profiler in UI (SCRAPPED, USING METAL HUD INSTEAD)
 - [x] Debug renderer
-- [ ] Clustered light culling
-- [ ] Push alpha cutouts draws at the end
+- [x] Clustered light culling
+- [x] GPU Driven Forward+
+- [x] GPU driven culling
 
 UNORDERED
-- [ ] GPU Driven GBuffer setup
 - [ ] Raytraced hard shadows for RT pipeline setup
+- [ ] Cascaded shadow maps
 - [ ] Pathtracing mode
 - [ ] DDGI
 - [ ] Glossy SSR
