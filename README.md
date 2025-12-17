@@ -2,6 +2,8 @@
 
 Playground where I mess around with Metal on iOS and macOS.
 
+![](.github/wed17dec25.png)
+
 ## Features
 
 - Cook-Torrance BRDF, PBR workflow
