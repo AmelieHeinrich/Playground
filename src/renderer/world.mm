@@ -10,6 +10,9 @@ World::World()
     m_SceneAB.Initialize(sizeof(SceneArgumentBuffer));
     m_SceneAB.SetLabel(@"Scene Argument Buffer");
 
+    m_ModelBuffer.Initialize(sizeof(SceneModel) * MAX_SCENE_MODELS);
+    m_ModelBuffer.SetLabel(@"Scene Model Buffer");
+
     m_InstanceBuffer.Initialize(sizeof(SceneInstance) * MAX_SCENE_INSTANCES);
     m_InstanceBuffer.SetLabel(@"Scene Instance Buffer");
 
@@ -54,6 +57,7 @@ void World::Update(Camera& camera)
     // Update scene argument buffer
     m_SceneArgumentBuffer.PointLightCount = m_LightList.GetPointLightCount();
     m_SceneArgumentBuffer.PointLightBufferID = m_LightList.GetPointLightBuffer().GetResourceID();
+    m_SceneArgumentBuffer.ModelBufferID = m_ModelBuffer.GetResourceID();
     m_SceneArgumentBuffer.InstanceBufferID = m_InstanceBuffer.GetResourceID();
     m_SceneArgumentBuffer.CameraBufferID = m_CameraBuffer.GetResourceID();
     m_SceneArgumentBuffer.MaterialBufferID = m_MaterialBuffer.GetResourceID();
@@ -70,8 +74,9 @@ void World::Update(Camera& camera)
     m_SceneCamera.Near = camera.GetNearPlane();
     m_SceneCamera.Far = camera.GetFarPlane();
 
-    // Update scene materials and instances
+    // Update scene materials, models, and instances
     m_SceneMaterials.clear();
+    m_SceneModels.clear();
     m_SceneInstances.clear();
 
     // Material cache: maps (AlbedoID, NormalID, MetallicRoughnessID) to material index
@@ -107,17 +112,24 @@ void World::Update(Camera& camera)
         return materialIndex;
     };
 
-    // Loop over entities and create instances
+    // Loop over entities and create models with their instances
     m_TLAS.ResetInstanceBuffer();
     for (const Entity* entity : m_Entities) {
         const Model& model = entity->Mesh;
         m_TLAS.AddInstance(entity->BLAS);
 
-        // Create instances for each mesh in the model
+        // Create a SceneModel for this entity
+        uint32_t modelIndex = static_cast<uint32_t>(m_SceneModels.size());
+        SceneModel sceneModel;
+        sceneModel.VertexBufferID = model.VertexBuffer.GetResourceID();
+        sceneModel.IndexBufferID = model.IndexBuffer.GetResourceID();
+        sceneModel.InstanceOffset = static_cast<uint32_t>(m_SceneInstances.size());
+        sceneModel.InstanceCount = static_cast<uint32_t>(model.Meshes.size());
+
+        // Create instances for each mesh (submesh) in the model
         for (const Mesh& mesh : model.Meshes) {
             SceneInstance instance;
-            instance.VertexBufferID = model.VertexBuffer.GetResourceID();
-            instance.IndexBufferID = model.IndexBuffer.GetResourceID();
+            instance.ModelIndex = modelIndex;
             instance.IndexCount = mesh.IndexCount;
             instance.IndexOffset = mesh.IndexOffset;
 
@@ -153,10 +165,18 @@ void World::Update(Camera& camera)
 
             m_SceneInstances.push_back(instance);
         }
+
+        m_SceneModels.push_back(sceneModel);
     }
     m_TLAS.Update();
 
+    // Update sun
+    m_SceneArgumentBuffer.DirectionalLight = m_DirectionalLight;
+
     // Write to the buffers
+    if (!m_SceneModels.empty()) {
+        m_ModelBuffer.Write(m_SceneModels.data(), sizeof(SceneModel) * m_SceneModels.size());
+    }
     if (!m_SceneInstances.empty()) {
         m_InstanceBuffer.Write(m_SceneInstances.data(), sizeof(SceneInstance) * m_SceneInstances.size());
     }

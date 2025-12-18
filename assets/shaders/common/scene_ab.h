@@ -29,14 +29,21 @@ struct SceneMaterial
 
 struct SceneInstance
 {
-    const device MeshVertex* Vertices;
-    const device uint* Indices;
     uint MaterialIndex;
+    uint ModelIndex;
     uint IndexCount;
     uint IndexOffset;
     
     float3 Min;
     float3 Max;
+};
+
+struct SceneModel
+{
+    const device MeshVertex* Vertices;
+    const device uint* Indices;
+    uint InstanceOffset;
+    uint InstanceCount;
 };
 
 struct SceneCamera
@@ -54,6 +61,7 @@ struct SceneCamera
 
 struct SceneArgumentBuffer
 {
+    const device SceneModel* Models;
     const device SceneInstance* Instances;
     const device SceneMaterial* Materials;
     const device PointLight* PointLights;
@@ -61,6 +69,7 @@ struct SceneArgumentBuffer
     instance_acceleration_structure AS;
     
     uint PointLightCount;
+    DirectionalLight Sun;
 };
 
 #endif

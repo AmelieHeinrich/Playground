@@ -72,7 +72,7 @@ bool Application::Initialize(id<MTLDevice> device)
     m_World->AddModel("models/Sponza/Sponza.mesh");
 
     // Create random lights
-    int lightCount = 1024;
+    int lightCount = 0;
     for (int i = 0; i < lightCount; i++) {
         PointLight light;
 
@@ -98,6 +98,12 @@ bool Application::Initialize(id<MTLDevice> device)
         m_World->GetLightList().AddPointLight(light);
         m_InitialLightPositions.push_back(light.Position);
     }
+    m_World->GetDirectionalLight() = {
+        true,
+        simd::make_float3(0.1f, -1.0f, 0.0f),
+        1.0f,
+        simd::make_float3(1.0f, 1.0f, 1.0f)
+    };
 
     m_World->Prepare();
 

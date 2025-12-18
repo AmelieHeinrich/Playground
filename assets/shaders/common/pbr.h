@@ -95,4 +95,47 @@ ahVec3 EvaluatePBR_PointLight(
     return (diffuse + specular) * (radiance * lightIntensity) * NdotL;
 }
 
+ahVec3 EvaluatePBR_DirectionalLight(
+    float3 N,          // surface normal (normalized)
+    float3 V,          // view direction (normalized)
+    float3 lightDir,   // light direction (normalized, pointing FROM surface TO light)
+    float3 lightColor, // light color (RGB)
+    float  lightIntensity,
+    float3 albedo,
+    float  metallic,
+    float  roughness
+)
+{
+    ahVec3 L = lightDir;
+    ahVec3 H = normalize(V + L);
+
+    // --- Dot products ---
+    ahFloat NdotL = max(dot(N, L), 0.001);
+    ahFloat NdotV = max(dot(N, V), 0.001);
+    ahFloat NdotH = max(dot(N, H), 0.001);
+    ahFloat VdotH = max(dot(V, H), 0.001);
+
+    // No attenuation for directional lights
+    ahVec3 radiance = lightColor;
+
+    // --- Fresnel base reflectivity ---
+    ahVec3 F0 = mix(ahVec3(0.04), albedo, metallic);
+
+    // --- Specular BRDF ---
+    ahFloat  D = D_GGX(NdotH, roughness);
+    ahFloat  G = G_Smith(NdotV, NdotL, roughness);
+    ahVec3 F = F_Schlick(VdotH, F0);
+
+    ahVec3 specular =
+        (D * G * F) / max(4.0 * NdotV * NdotL, 0.001);
+
+    // --- Diffuse BRDF ---
+    ahVec3 kS = F;
+    ahVec3 kD = (1.0 - kS) * (1.0 - metallic);
+    ahVec3 diffuse = kD * albedo / PI;
+
+    // --- Final lighting ---
+    return (diffuse + specular) * (radiance * lightIntensity) * NdotL;
+}
+
 #endif // PBR_METAL_H

@@ -43,10 +43,11 @@ kernel void cull_geometry(const device SceneArgumentBuffer& arguments [[buffer(0
 {
     uint instanceIndex = threadID;
     SceneInstance instance = arguments.Instances[instanceIndex];
+    SceneModel model = arguments.Models[instance.ModelIndex];
 
     render_command command(icb.CommandBuffer, instanceIndex);
     bool visible = frustum_cull(planes, instance.Min, instance.Max);
     if (visible) {
-        command.draw_indexed_primitives<uint>(primitive_type::triangle, instance.IndexCount, instance.Indices + instance.IndexOffset, 1, 0, instanceIndex);
+        command.draw_indexed_primitives<uint>(primitive_type::triangle, instance.IndexCount, model.Indices + instance.IndexOffset, 1, 0, instanceIndex);
     }
 }

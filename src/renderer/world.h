@@ -9,6 +9,7 @@
 #include "core/camera.h"
 #include "metal/blas.h"
 #include "metal/tlas.h"
+#include "renderer/light.h"
 #include "scene_ab.h"
 
 struct Entity
@@ -34,18 +35,23 @@ public:
 
     uint GetInstanceCount() const { return m_SceneInstances.size(); }
     TLAS* GetTLAS() { return &m_TLAS; }
+
+    DirectionalLight& GetDirectionalLight() { return m_DirectionalLight; }
 private:
     std::vector<Entity*> m_Entities;
     LightList m_LightList;
 
     SceneArgumentBuffer m_SceneArgumentBuffer;
     std::vector<SceneMaterial> m_SceneMaterials;
+    std::vector<SceneModel> m_SceneModels;
     std::vector<SceneInstance> m_SceneInstances;
     SceneCamera m_SceneCamera;
 
     Buffer m_SceneAB;
+    Buffer m_ModelBuffer;
     Buffer m_InstanceBuffer;
     Buffer m_MaterialBuffer;
     Buffer m_CameraBuffer;
     TLAS m_TLAS;
+    DirectionalLight m_DirectionalLight;
 };

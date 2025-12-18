@@ -16,6 +16,15 @@ struct PointLight
     float Intensity;
 };
 
+struct DirectionalLight
+{
+    bool Enabled = false;
+    simd::float3 Direction = simd::make_float3(0.0f, -1.0f, 0.0f);
+
+    float Intensity = 1.0f;
+    simd::float3 Color = simd::make_float3(1.0f, 1.0f, 1.0f);
+};
+
 class LightList
 {
 public:

@@ -16,7 +16,7 @@ struct VSOutput {
     float3 normal;
     float2 uv;
     float4 tangent;
-    
+
     uint objectId [[flat]];
 };
 
@@ -58,11 +58,12 @@ float3 GetHeatmapColor(uint lightCount)
 }
 
 vertex VSOutput fplus_vs(uint vertexID [[vertex_id]],
-                         uint objectId [[instance_id]],
+                         uint instanceId [[instance_id]],
                          const device SceneArgumentBuffer& scene [[buffer(0)]])
 {
-    SceneInstance instance = scene.Instances[objectId];
-    MeshVertex v = instance.Vertices[vertexID];
+    SceneInstance instance = scene.Instances[instanceId];
+    SceneModel model = scene.Models[instance.ModelIndex];
+    MeshVertex v = model.Vertices[vertexID];
 
     VSOutput out;
     out.position = scene.Camera.ViewProjection * float4(float3(v.position), 1.0);
@@ -70,7 +71,7 @@ vertex VSOutput fplus_vs(uint vertexID [[vertex_id]],
     out.uv = v.uv;
     out.normal = v.normal;
     out.tangent = v.tangent;
-    out.objectId = objectId;
+    out.objectId = instanceId;
     return out;
 }
 
@@ -150,6 +151,38 @@ fragment float4 fplus_fs(
     uint binBase = clusterIndex * MAX_LIGHTS_PER_CLUSTER;
 
     ahVec3 color = 0.0f;
+    
+    // Directional light
+    if (scene.Sun.Enabled) {
+        float3 sunContribution = EvaluatePBR_DirectionalLight(N, V, -scene.Sun.Direction, scene.Sun.Color, scene.Sun.Intensity, albedo, metallic, roughness);
+        
+#if 0
+        intersection_params params;
+        params.accept_any_intersection(true);
+        
+        ray ray;
+        ray.direction = -scene.Sun.Direction;
+        ray.origin = in.worldPosition.xyz + N * 0.001;
+        ray.min_distance = 0.001;
+        ray.max_distance = 1000;
+        
+        intersection_query<triangle_data, instancing> i;
+        i.reset(ray, scene.AS, 0xFF, params);
+        
+        bool occluded = false;
+        while (i.next()) {
+            i.commit_triangle_intersection();
+            occluded = true;
+            break;
+        }
+        
+        if (occluded) sunContribution = 0;
+#endif
+        
+        color += sunContribution;
+    }
+    
+    // Point lights
     for (uint i = 0; i < binCount; ++i) {
         uint lightIndex = lightBins[binBase + i];
         PointLight l = scene.PointLights[lightIndex];

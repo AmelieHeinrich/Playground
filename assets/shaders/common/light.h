@@ -12,4 +12,13 @@ struct PointLight
     float Intensity;
 };
 
+struct DirectionalLight
+{
+    bool Enabled;
+    float3 Direction;
+    
+    float Intensity;
+    float3 Color;
+};
+
 #endif
