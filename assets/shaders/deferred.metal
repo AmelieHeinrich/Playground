@@ -2,6 +2,7 @@
 #include "common/cluster.h"
 #include "common/types.h"
 #include "common/pbr.h"
+#include "common/math.h"
 
 struct Constants {
     int TileSizePx;
@@ -14,21 +15,6 @@ struct Constants {
     bool ShowHeatmap;
     bool Pad;
 };
-
-float3 depth_to_world_position(uint2 pixel, float depth, constant Constants& c,
-                               const device SceneArgumentBuffer& scene)
-{
-    float2 uv = (float2(pixel) + 0.5f) / float2(c.ScreenWidth, c.ScreenHeight);
-    
-    float2 ndc;
-    ndc.x = uv.x * 2.0f - 1.0f;
-    ndc.y = (1.0f - uv.y) * 2.0f - 1.0f;
-    
-    float4 clipPos = float4(ndc, depth, 1.0);
-    float4 worldPos = scene.Camera.InverseViewProjection * clipPos;
-    worldPos /= worldPos.w;
-    return worldPos.xyz;
-}
 
 float3 GetHeatmapColor(uint lightCount)
 {
@@ -59,7 +45,8 @@ kernel void deferred_cs(uint2 gtid [[thread_position_in_grid]],
                         texture2d<float> albedoTexture [[texture(1)]],
                         texture2d<float> normalTexture [[texture(2)]],
                         texture2d<float> metallicRoughnessTexture [[texture(3)]],
-                        texture2d<float, access::write> dst [[texture(4)]],
+                        texture2d<float> visibilityMask [[texture(4)]],
+                        texture2d<float, access::write> dst [[texture(5)]],
                         const device SceneArgumentBuffer& scene [[buffer(0)]],
                         constant Constants& constants [[buffer(1)]],
                         const device uint* lightBins [[buffer(2)]],
@@ -80,7 +67,7 @@ kernel void deferred_cs(uint2 gtid [[thread_position_in_grid]],
     float metallic = metallicRoughness.x;
     float roughness = metallicRoughness.y;
 
-    float3 worldPos = depth_to_world_position(gtid, depth, constants, scene);
+    float3 worldPos = depth_to_world_position(gtid, depth, constants.ScreenWidth, constants.ScreenHeight, scene);
     float3 V = normalize(scene.Camera.Position - worldPos);
 
     uint tileX = min(gtid.x / (uint)constants.TileSizePx, (uint)(constants.NumTilesX - 1));
@@ -100,7 +87,9 @@ kernel void deferred_cs(uint2 gtid [[thread_position_in_grid]],
 
     // Directional light
     if (scene.Sun.Enabled) {
-        color += EvaluatePBR_DirectionalLight(
+        float visibility = visibilityMask.read(gtid).r;
+        
+        color += visibility * EvaluatePBR_DirectionalLight(
             N, V, -scene.Sun.Direction, 
             scene.Sun.Color, scene.Sun.Intensity, 
             albedo, metallic, roughness

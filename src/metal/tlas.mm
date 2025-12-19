@@ -66,7 +66,7 @@ void TLAS::Update()
     memcpy(ptr, m_InstanceDescriptors.data(), sizeof(MTLAccelerationStructureInstanceDescriptor) * m_InstanceDescriptors.size());
 }
 
-uint64 TLAS::GetResourceID()
+uint64_t TLAS::GetResourceID()
 {
     return m_TLAS.gpuResourceID._impl;
 }

@@ -7,7 +7,8 @@ Playground where I mess around with Metal on iOS and macOS.
 ## Features
 
 - Cook-Torrance BRDF, PBR workflow
-- Forward+ clustered light culling
+- Deferred shading
+- Clustered light culling
 - GPU driven rendering and culling
 - Works on iOS and macOS
 

@@ -25,6 +25,7 @@ Application::Application()
     , m_LastRenderHeight(0)
     , m_Camera()
     , m_Input()
+    , m_LightsToAdd(10)
 {
 }
 
@@ -71,9 +72,23 @@ bool Application::Initialize(id<MTLDevice> device)
     m_World = new World();
     m_World->AddModel("models/Sponza/Sponza.mesh");
 
-    // Create random lights
-    int lightCount = 0;
-    for (int i = 0; i < lightCount; i++) {
+    // Directional light
+    m_World->GetDirectionalLight() = {
+        true,
+        simd::make_float3(0.2f, -1.0f, 0.0f),
+        1.0f,
+        simd::make_float3(1.0f, 1.0f, 1.0f)
+    };
+
+    m_World->Prepare();
+
+    NSLog(@"Application initialized successfully with Metal device: %@", [m_Device name]);
+    return true;
+}
+
+void Application::AddRandomLights(int count)
+{
+    for (int i = 0; i < count; i++) {
         PointLight light;
 
         // Random position within Sponza bounds
@@ -98,17 +113,6 @@ bool Application::Initialize(id<MTLDevice> device)
         m_World->GetLightList().AddPointLight(light);
         m_InitialLightPositions.push_back(light.Position);
     }
-    m_World->GetDirectionalLight() = {
-        false,
-        simd::make_float3(0.1f, -1.0f, 0.0f),
-        1.0f,
-        simd::make_float3(1.0f, 1.0f, 1.0f)
-    };
-
-    m_World->Prepare();
-
-    NSLog(@"Application initialized successfully with Metal device: %@", [m_Device name]);
-    return true;
 }
 
 void Application::OnResize(uint32_t width, uint32_t height)
@@ -181,6 +185,42 @@ void Application::OnUI()
     ImGui::Text("WASD - Move, Space/Shift - Up/Down");
     ImGui::Text("Right Mouse Button - Look Around");
 #endif
+
+    if (ImGui::TreeNodeEx("World Settings", ImGuiTreeNodeFlags_Framed)) {
+        ImGui::Separator();
+        
+        // Point lights
+        auto& lights = m_World->GetLightList().GetPointLights();
+        ImGui::Text("Point Lights: %zu", lights.size());
+        
+        ImGui::SliderInt("Lights to Add", &m_LightsToAdd, 1, 100);
+        
+        if (ImGui::Button("Add Random Lights")) {
+            AddRandomLights(m_LightsToAdd);
+        }
+        
+        ImGui::SameLine();
+        
+        if (ImGui::Button("Clear All Lights")) {
+            lights.clear();
+            m_InitialLightPositions.clear();
+        }
+        
+        ImGui::Separator();
+        
+        // Directional light
+        DirectionalLight& sun = m_World->GetDirectionalLight();
+        ImGui::Checkbox("Directional Light", &sun.Enabled);
+        
+        if (sun.Enabled) {
+            ImGui::DragFloat3("Direction", (float*)&sun.Direction, 0.01f);
+            sun.Direction = simd::normalize(sun.Direction);
+            ImGui::ColorEdit3("Color",(float*)&sun.Color);
+            ImGui::SliderFloat("Intensity", &sun.Intensity, 0.0f, 10.0f);
+        }
+        
+        ImGui::TreePop();
+    }
 
     if (ImGui::TreeNodeEx("Renderer Settings", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Separator();

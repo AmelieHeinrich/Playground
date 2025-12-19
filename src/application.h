@@ -49,6 +49,8 @@ public:
     float GetRenderScale() const { return m_RenderScale; }
 
 private:
+    void AddRandomLights(int count);
+
     id<MTLDevice> m_Device;
     id<MTLCommandQueue> m_CommandQueue;
     ResidencySet m_ResidencySet;
@@ -71,4 +73,7 @@ private:
 
     float m_TimeAccumulator = 0.0f;
     std::vector<simd::float3> m_InitialLightPositions;
+    
+    // UI state
+    int m_LightsToAdd = 10;
 };

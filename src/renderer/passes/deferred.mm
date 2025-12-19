@@ -1,6 +1,7 @@
 #include "deferred.h"
 #include "cluster_cull.h"
 #include "gbuffer.h"
+#include "shadows.h"
 
 #include "renderer/resource_io.h"
 
@@ -43,6 +44,7 @@ void DeferredPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera
     Texture& normal = ResourceIO::GetTexture(GBUFFER_NORMAL_OUTPUT);
     Texture& pbr = ResourceIO::GetTexture(GBUFFER_PBR_OUTPUT);
     Texture& color = ResourceIO::GetTexture(DEFERRED_COLOR);
+    Texture& visibility = ResourceIO::GetTexture(SHADOW_VISIBILITY_OUTPUT);
     Buffer& lightBins = ResourceIO::GetBuffer(CLUSTER_BINS_BUFFER);
     Buffer& lightBinCounts = ResourceIO::GetBuffer(CLUSTER_BIN_COUNTS_BUFFER);
 
@@ -66,13 +68,14 @@ void DeferredPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera
     encoder.SetTexture(albedo, 1);
     encoder.SetTexture(normal, 2);
     encoder.SetTexture(pbr, 3);
-    encoder.SetTexture(color, 4);
+    encoder.SetTexture(visibility, 4);
+    encoder.SetTexture(color, 5);
     encoder.SetBuffer(world.GetSceneAB(), 0);
     encoder.SetBytes(&constants, sizeof(constants), 1);
     encoder.SetBuffer(lightBins, 2);
     encoder.SetBuffer(lightBinCounts, 3);
     encoder.Dispatch(
-        MTLSizeMake((color.Width() + 8) / 7, (color.Height() + 8) / 7, 1),
+        MTLSizeMake((color.Width() + 7) / 8, (color.Height() + 7) / 8, 1),
         MTLSizeMake(8, 8, 1)
     );
     encoder.End();

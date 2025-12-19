@@ -15,7 +15,7 @@ public:
     void Update();
     void SetLabel(NSString* label) { m_TLAS.label = label; }
 
-    uint64 GetResourceID();
+    uint64_t GetResourceID();
     id<MTLAccelerationStructure> GetTLAS() { return m_TLAS; }
     MTLInstanceAccelerationStructureDescriptor* GetDescriptor() { return m_Descriptor; }
     NSMutableArray* GetBLASMap() { return m_BLASMap; }
