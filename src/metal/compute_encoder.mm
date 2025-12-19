@@ -5,12 +5,10 @@ ComputeEncoder::ComputeEncoder(id<MTLCommandBuffer> buffer, NSString* label, Fen
 {
     m_Encoder = [buffer computeCommandEncoder];
     [m_Encoder setLabel:label];
-    [m_Encoder waitForFence:m_Fence->GetFence()];
 }
 
 void ComputeEncoder::End()
 {
-    [m_Encoder updateFence:m_Fence->GetFence()];
     [m_Encoder endEncoding];
 }
 

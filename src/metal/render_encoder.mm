@@ -9,12 +9,10 @@ RenderEncoder::RenderEncoder(id<MTLCommandBuffer> commandBuffer, MTLRenderPassDe
 {
     m_RenderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
     m_RenderEncoder.label = name;
-    [m_RenderEncoder waitForFence:m_Fence->GetFence() beforeStages:MTLRenderStageVertex];
 }
 
 void RenderEncoder::End()
 {
-    [m_RenderEncoder waitForFence:m_Fence->GetFence() beforeStages:MTLRenderStageFragment];
     [m_RenderEncoder endEncoding];
 }
 

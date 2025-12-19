@@ -6,7 +6,6 @@ BlitEncoder::BlitEncoder(id<MTLCommandBuffer> commandBuffer, NSString* label, Fe
 {
     m_BlitEncoder = [commandBuffer blitCommandEncoder];
     [m_BlitEncoder setLabel:label];
-    [m_BlitEncoder waitForFence:m_Fence->GetFence()];
 }
 
 void BlitEncoder::CopyTexture(id<MTLTexture> source, id<MTLTexture> destination)
@@ -31,7 +30,6 @@ void BlitEncoder::FillBuffer(const Buffer& buffer, uint value)
 
 void BlitEncoder::End()
 {
-    [m_BlitEncoder updateFence:m_Fence->GetFence()];
     [m_BlitEncoder endEncoding];
 }
 

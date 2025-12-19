@@ -5,12 +5,10 @@ AccelerationEncoder::AccelerationEncoder(id<MTLCommandBuffer> cmdBuffer, NSStrin
 {
     m_Encoder = [cmdBuffer accelerationStructureCommandEncoder];
     [m_Encoder setLabel:label];
-    [m_Encoder waitForFence:fence->GetFence()];
 }
 
 void AccelerationEncoder::End()
 {
-    [m_Encoder updateFence:m_Fence->GetFence()];
     [m_Encoder endEncoding];
 }
 
