@@ -36,7 +36,7 @@ struct RenderPassInfo
         return *this;
     }
 
-    RenderPassInfo& AddTexture(Texture texture, bool shouldClear = true, simd_float4 clearColor = simd_make_float4(0.0f, 0.0f, 0.0f, 1.0f))
+    RenderPassInfo& AddTexture(const Texture& texture, bool shouldClear = true, simd_float4 clearColor = simd_make_float4(0.0f, 0.0f, 0.0f, 1.0f))
     {
         Textures.push_back(texture.GetTexture());
         ClearColors.push_back(clearColor);
@@ -52,7 +52,7 @@ struct RenderPassInfo
         return *this;
     }
 
-    RenderPassInfo& AddDepthStencilTexture(Texture texture, bool shouldClear = true, bool shouldStore = true, simd_float4 clearColor = simd_make_float4(0, 0, 0, 1))
+    RenderPassInfo& AddDepthStencilTexture(const Texture& texture, bool shouldClear = true, bool shouldStore = true, simd_float4 clearColor = simd_make_float4(0, 0, 0, 1))
     {
         DepthStencilTexture = texture.GetTexture();
         ShouldClearDepthStencil = shouldClear;

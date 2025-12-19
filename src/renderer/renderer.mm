@@ -1,10 +1,10 @@
 #include "renderer.h"
 
 #include "passes/cluster_cull.h"
-
-#include "passes/forward_plus.h"
 #include "passes/tonemap.h"
 #include "passes/debug_renderer.h"
+#include "passes/gbuffer.h"
+#include "passes/deferred.h"
 
 #include "resource_io.h"
 
@@ -14,7 +14,8 @@ Renderer::Renderer()
 
     m_Passes = {
         new ClusterCullPass(),
-        new ForwardPlusPass(),
+        new GBufferPass(),
+        new DeferredPass(),
         new DebugRendererPass(),
         new TonemapPass(),
     };

@@ -20,7 +20,7 @@ float3 depth_to_world_position(float2 uv, float depth, const device SceneArgumen
     float2 ndc = uv * 2.0 - 1.0;
     float4 clipPos = float4(ndc, depth, 1.0);
     clipPos.y *= 1.0;
-    
+
     float4 worldPos = scene.Camera.InverseViewProjection * clipPos;
     worldPos /= worldPos.w;
     return worldPos.xyz;
@@ -68,7 +68,7 @@ kernel void deferred_cs(uint2 gtid [[thread_position_in_grid]],
         address::repeat,
         lod_clamp(0.0f, MAXFLOAT)
     );
-    
+
     float2 uv = float2(gtid.x, gtid.y) / float2(constants.ScreenWidth, constants.ScreenHeight);
     float depth = depthTexture.sample(textureSampler, uv, 0).r;
     float3 albedo = albedoTexture.sample(textureSampler, uv, 0).rgb;
@@ -76,19 +76,17 @@ kernel void deferred_cs(uint2 gtid [[thread_position_in_grid]],
     float2 metallicRoughness = metallicRoughnessTexture.sample(textureSampler, uv, 0).rg;
     float metallic = metallicRoughness.x;
     float roughness = metallicRoughness.y;
-    
+
     float3 worldPos = depth_to_world_position(uv, depth, scene);
     float3 V = normalize(scene.Camera.Position - worldPos);
-    
+
     uint tileX = min(gtid.x / (uint)constants.TileSizePx, (uint)(constants.NumTilesX - 1));
     uint tileY = min(gtid.y / (uint)constants.TileSizePx, (uint)(constants.NumTilesY - 1));
 
     float3 viewPos = (scene.Camera.View * float4(worldPos, 1.0f)).xyz;
     float viewDepth = -viewPos.z;
-    depth = clamp(depth, scene.Camera.Near, scene.Camera.Far);
 
-    float logDepth = log(depth / scene.Camera.Near) / log(scene.Camera.Far / scene.Camera.Near);
-    logDepth = clamp(logDepth, 0.0f, 0.999999f);
+    float logDepth = log(viewDepth / scene.Camera.Near) / log(scene.Camera.Far / scene.Camera.Near);
     uint zSlice = (uint)(logDepth * (float)constants.NumSlicesZ);
 
     uint clusterIndex = tileX + tileY * constants.NumTilesX + zSlice * (uint)(constants.NumTilesX * constants.NumTilesY);
@@ -97,15 +95,15 @@ kernel void deferred_cs(uint2 gtid [[thread_position_in_grid]],
 
     uint binCount = lightBinCounts[clusterIndex];
     uint binBase = clusterIndex * MAX_LIGHTS_PER_CLUSTER;
-    
+
     ahVec3 color = 0.0f;
-    
+
     // Directional light
     if (scene.Sun.Enabled) {
         float3 sunContribution = EvaluatePBR_DirectionalLight(N, V, -scene.Sun.Direction, scene.Sun.Color, scene.Sun.Intensity, albedo, metallic, roughness);
-        color += sunContribution; // TODO: Sample shadow map
+        color += sunContribution; // TODO: Sample shadow map or trace ray
     }
-    
+
     // Point lights
     for (uint i = 0; i < binCount; ++i) {
         uint lightIndex = lightBins[binBase + i];

@@ -4,9 +4,9 @@
 #include "metal/graphics_pipeline.h"
 #include "renderer/pass.h"
 
-#include "forward_plus.h"
+#include "deferred.h"
 
-constexpr const char* TONEMAP_INPUT_COLOR = FORWARD_PLUS_COLOR_OUTPUT;
+constexpr const char* TONEMAP_INPUT_COLOR = DEFERRED_COLOR;
 constexpr const char* TONEMAP_OUTPUT = "Tonemap/Output";
 
 class TonemapPass : public Pass

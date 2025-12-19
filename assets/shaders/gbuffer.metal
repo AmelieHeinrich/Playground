@@ -15,7 +15,7 @@ struct VSOutput {
 
 struct FSOutput {
     float4 albedo [[color(0)]];
-    float3 normal [[color(1)]];
+    float4 normal [[color(1)]];
     float2 metallicRoughness [[color(2)]];
 };
 
@@ -37,7 +37,7 @@ vertex VSOutput gbuffer_vs(uint vertexID [[vertex_id]],
     return out;
 }
 
-fragment FSOutput gbuffer_ps(VSOutput in [[stage_in]],
+fragment FSOutput gbuffer_fs(VSOutput in [[stage_in]],
                              const device SceneArgumentBuffer& scene [[buffer(0)]])
 {
     constexpr sampler textureSampler(
@@ -76,7 +76,7 @@ fragment FSOutput gbuffer_ps(VSOutput in [[stage_in]],
     
     FSOutput output;
     output.albedo = albedoSample;
-    output.normal = N;
+    output.normal = float4(N, 1.0f);
     output.metallicRoughness = float2(metallic, roughness);
     return output;
 }

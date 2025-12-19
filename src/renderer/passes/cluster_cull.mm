@@ -1,5 +1,5 @@
 #include "cluster_cull.h"
-#include "forward_plus.h"
+#include "gbuffer.h"
 
 #include "math/AAPLMath.h"
 #include "renderer/light.h"
@@ -50,7 +50,7 @@ ClusterCullPass::ClusterCullPass()
 
 void ClusterCullPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
-    Texture& depth = ResourceIO::GetTexture(FORWARD_PLUS_DEPTH_OUTPUT);
+    Texture& depth = ResourceIO::GetTexture(GBUFFER_DEPTH_OUTPUT);
     Buffer& clusterBuffer = ResourceIO::GetBuffer(CLUSTER_BUFFER);
     Buffer& clusterBins = ResourceIO::GetBuffer(CLUSTER_BINS_BUFFER);
     Buffer& clusterBinCounts = ResourceIO::GetBuffer(CLUSTER_BIN_COUNTS_BUFFER);

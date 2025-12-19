@@ -19,10 +19,11 @@ public:
     id<MTLTexture> GetTexture() const { return m_Texture; }
     uint64_t GetResourceID() const;
     bool Valid() { return m_Texture != nil; }
-    void SetLabel(NSString* label) { m_Texture.label = label; }
+    void SetLabel(NSString* label) { m_Label = label; m_Texture.label = label; }
     uint32_t Width() const { return (uint32_t)m_Descriptor.width; }
     uint32_t Height() const { return (uint32_t)m_Descriptor.height; }
 private:
     id<MTLTexture> m_Texture = nil;
     MTLTextureDescriptor* m_Descriptor;
+    NSString* m_Label = nil;
 };

@@ -1,5 +1,6 @@
 #include "debug_renderer.h"
-#include "forward_plus.h"
+#include "deferred.h"
+#include "gbuffer.h"
 
 #include "renderer/resource_io.h"
 #include "math/AAPLMath.h"
@@ -37,8 +38,8 @@ void DebugRendererPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& c
     memcpy(contents, s_LineVertices.data(), s_LineVertices.size() * sizeof(LineVertex));
 
     // Render
-    Texture& color = ResourceIO::GetTexture(FORWARD_PLUS_COLOR_OUTPUT);
-    Texture& depth = ResourceIO::GetTexture(FORWARD_PLUS_DEPTH_OUTPUT);
+    Texture& color = ResourceIO::GetTexture(DEFERRED_COLOR);
+    Texture& depth = ResourceIO::GetTexture(GBUFFER_DEPTH_OUTPUT);
 
     RenderPassInfo info = RenderPassInfo().AddTexture(color, false).SetName(@"Debug Renderer Pass");
     if (m_UseDepth) {

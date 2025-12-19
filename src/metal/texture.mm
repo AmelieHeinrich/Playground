@@ -60,6 +60,12 @@ void Texture::Resize(uint32_t width, uint32_t height)
 
     // Create new texture with updated dimensions
     m_Texture = [Device::GetDevice() newTextureWithDescriptor:m_Descriptor];
+    
+    // Reapply label if one was set
+    if (m_Label) {
+        m_Texture.label = m_Label;
+    }
+    
     Device::GetResidencySet().AddResource(m_Texture);
 }
 

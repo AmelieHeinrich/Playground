@@ -17,7 +17,14 @@ public:
     void Resize(int width, int height) override;
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
     void DebugUI() override;
+    
 private:
+    void BuildAccelerationStructure(CommandBuffer& cmdBuffer, World& world, Camera& camera);
+    void CullInstances(CommandBuffer& cmdBuffer, World& world, Camera& camera);
+    void RenderGBuffer(CommandBuffer& cmdBuffer, World& world, Camera& camera);
+
+private:
+    ComputePipeline m_CullPipeline;
     GraphicsPipeline m_Pipeline;
 
     bool m_FreezeICB = false;

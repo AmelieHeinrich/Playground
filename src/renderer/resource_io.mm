@@ -1,4 +1,5 @@
 #include "resource_io.h"
+#include <Foundation/Foundation.h>
 
 std::unordered_map<std::string, Resource> ResourceIO::s_Resources;
 
@@ -35,7 +36,7 @@ Resource& ResourceIO::CreateTexture(const std::string& name, MTLTextureDescripto
     s_Resources[name] = {};
     s_Resources[name].Type = ResourceType::TEXTURE;
     s_Resources[name].Texture = new Texture(descriptor);
-    s_Resources[name].Texture->SetLabel([NSString stringWithUTF8String:name.c_str()]);
+    s_Resources[name].Texture->SetLabel([NSString stringWithCString:name.c_str() encoding:NSUTF8StringEncoding]);
     s_Resources[name].Buffer = nullptr;
     return s_Resources[name];
 }
@@ -46,7 +47,7 @@ Resource& ResourceIO::CreateBuffer(const std::string& name, uint64_t size)
     s_Resources[name].Type = ResourceType::BUFFER;
     s_Resources[name].Buffer = new Buffer();
     s_Resources[name].Buffer->Initialize(size);
-    s_Resources[name].Buffer->SetLabel([NSString stringWithUTF8String:name.c_str()]);
+    s_Resources[name].Buffer->SetLabel([NSString stringWithCString:name.c_str() encoding:NSUTF8StringEncoding]);
     s_Resources[name].Texture = nullptr;
     return s_Resources[name];
 }
@@ -57,7 +58,7 @@ Resource& ResourceIO::CreateIndirectCommandBuffer(const std::string& name, bool 
     s_Resources[name].Type = ResourceType::INDIRECT_COMMAND_BUFFER;
     s_Resources[name].IndirectCommandBuffer = new IndirectCommandBuffer();
     s_Resources[name].IndirectCommandBuffer->Initialize(inherit, type, maxCommandCount);
-    s_Resources[name].IndirectCommandBuffer->SetLabel([NSString stringWithUTF8String:name.c_str()]);
+    s_Resources[name].IndirectCommandBuffer->SetLabel([NSString stringWithCString:name.c_str() encoding:NSUTF8StringEncoding]);
     s_Resources[name].Texture = nullptr;
     s_Resources[name].Buffer = nullptr;
     return s_Resources[name];
