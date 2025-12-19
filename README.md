@@ -10,6 +10,7 @@ Playground where I mess around with Metal on iOS and macOS.
 - Deferred shading
 - Clustered light culling
 - GPU driven rendering and culling
+- Raytraced sun shadows
 - Works on iOS and macOS
 
 ## Requirements
