@@ -20,7 +20,7 @@ Application::Application()
     , m_CommandQueue(nil)
     , m_Width(0)
     , m_Height(0)
-    , m_RenderScale(1.5f)
+    , m_RenderScale(0.75f)
     , m_LastRenderWidth(0)
     , m_LastRenderHeight(0)
     , m_Camera()
@@ -99,7 +99,7 @@ bool Application::Initialize(id<MTLDevice> device)
         m_InitialLightPositions.push_back(light.Position);
     }
     m_World->GetDirectionalLight() = {
-        true,
+        false,
         simd::make_float3(0.1f, -1.0f, 0.0f),
         1.0f,
         simd::make_float3(1.0f, 1.0f, 1.0f)
@@ -185,36 +185,49 @@ void Application::OnUI()
     if (ImGui::TreeNodeEx("Renderer Settings", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Separator();
 
-        const float scales[] = { 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f };
-
-        // Calculate actual resolutions for each scale
-        uint32_t renderWidth = static_cast<uint32_t>(m_Width * m_RenderScale);
-        uint32_t renderHeight = static_cast<uint32_t>(m_Height * m_RenderScale);
-
-        // Create labels with resolution info
-        char label0[64], label1[64], label2[64], label3[64], label4[64], label5[64];
-        snprintf(label0, sizeof(label0), "50%% (%ux%u)", static_cast<uint32_t>(m_Width * scales[0]), static_cast<uint32_t>(m_Height * scales[0]));
-        snprintf(label1, sizeof(label1), "75%% (%ux%u)", static_cast<uint32_t>(m_Width * scales[1]), static_cast<uint32_t>(m_Height * scales[1]));
-        snprintf(label2, sizeof(label2), "100%% (%ux%u)", static_cast<uint32_t>(m_Width * scales[2]), static_cast<uint32_t>(m_Height * scales[2]));
-        snprintf(label3, sizeof(label3), "125%% (%ux%u)", static_cast<uint32_t>(m_Width * scales[3]), static_cast<uint32_t>(m_Height * scales[3]));
-        snprintf(label4, sizeof(label4), "150%% (%ux%u)", static_cast<uint32_t>(m_Width * scales[4]), static_cast<uint32_t>(m_Height * scales[4]));
-        snprintf(label5, sizeof(label5), "200%% (%ux%u)", static_cast<uint32_t>(m_Width * scales[5]), static_cast<uint32_t>(m_Height * scales[5]));
-
-        const char* labels[] = { label0, label1, label2, label3, label4, label5 };
+        // Scale multipliers of the output resolution
+        const float scales[] = { 0.25f, 0.5f, 0.75f, 1.0f };
+        const char* scaleNames[] = { "25%", "50%", "75%", "Native" };
 
         // Find current selection index
-        int currentIndex = 2; // Default to 100%
-        for (int i = 0; i < 6; i++) {
-            if (m_RenderScale == scales[i]) {
+        int currentIndex = 2; // Default to 75%
+        for (int i = 0; i < 4; i++) {
+            if (fabsf(m_RenderScale - scales[i]) < 0.01f) {
                 currentIndex = i;
                 break;
             }
         }
 
-        ImGui::Text("Render Scale");
-        if (ImGui::Combo("##RenderScale", &currentIndex, labels, 6)) {
-            m_RenderScale = scales[currentIndex];
-            OnResize(m_Width, m_Height);
+        ImGui::Text("Render Resolution");
+        ImGui::Text("Output: %ux%u", m_Width, m_Height);
+
+        // Show actual render resolution
+        uint32_t renderWidth = static_cast<uint32_t>(m_Width * m_RenderScale);
+        uint32_t renderHeight = static_cast<uint32_t>(m_Height * m_RenderScale);
+        ImGui::Text("Internal: %ux%u", renderWidth, renderHeight);
+
+        ImGui::Separator();
+
+        // Create combo items with resolution info
+        if (ImGui::BeginCombo("Scale", scaleNames[currentIndex])) {
+            for (int i = 0; i < 4; i++) {
+                uint32_t scaledWidth = static_cast<uint32_t>(m_Width * scales[i]);
+                uint32_t scaledHeight = static_cast<uint32_t>(m_Height * scales[i]);
+
+                char label[128];
+                snprintf(label, sizeof(label), "%s - %ux%u", scaleNames[i], scaledWidth, scaledHeight);
+
+                bool isSelected = (currentIndex == i);
+                if (ImGui::Selectable(label, isSelected)) {
+                    m_RenderScale = scales[i];
+                    OnResize(m_Width, m_Height);
+                }
+
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
         }
 
         ImGui::Separator();

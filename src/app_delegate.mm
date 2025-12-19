@@ -215,8 +215,8 @@ API_AVAILABLE(ios(15.0))
     }
 
     // Send initial resize event with non-retina resolution
-    CGSize bounds = self.metalView.bounds.size;
-    _application->OnResize((uint32_t)bounds.width, (uint32_t)bounds.height);
+    CGSize size = self.metalView.drawableSize;
+    _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
 
     return YES;
 }
@@ -461,8 +461,8 @@ API_AVAILABLE(ios(15.0))
     }
 
     // Send initial resize event with non-retina resolution
-    CGSize bounds = self.metalView.bounds.size;
-    _application->OnResize((uint32_t)bounds.width, (uint32_t)bounds.height);
+    CGSize size = self.metalView.drawableSize;
+    _application->OnResize((uint32_t)size.width, (uint32_t)size.height);
 
     NSLog(@"Application initialized and window displayed");
 

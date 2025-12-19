@@ -15,12 +15,16 @@ struct Constants {
     bool Pad;
 };
 
-float3 depth_to_world_position(float2 uv, float depth, const device SceneArgumentBuffer& scene)
+float3 depth_to_world_position(uint2 pixel, float depth, constant Constants& c,
+                               const device SceneArgumentBuffer& scene)
 {
-    float2 ndc = uv * 2.0 - 1.0;
+    float2 uv = (float2(pixel) + 0.5f) / float2(c.ScreenWidth, c.ScreenHeight);
+    
+    float2 ndc;
+    ndc.x = uv.x * 2.0f - 1.0f;
+    ndc.y = (1.0f - uv.y) * 2.0f - 1.0f;
+    
     float4 clipPos = float4(ndc, depth, 1.0);
-    clipPos.y *= 1.0;
-
     float4 worldPos = scene.Camera.InverseViewProjection * clipPos;
     worldPos /= worldPos.w;
     return worldPos.xyz;
@@ -61,23 +65,22 @@ kernel void deferred_cs(uint2 gtid [[thread_position_in_grid]],
                         const device uint* lightBins [[buffer(2)]],
                         const device uint* lightBinCounts [[buffer(3)]])
 {
-    constexpr sampler textureSampler(
-        mag_filter::nearest,
-        min_filter::nearest,
-        mip_filter::nearest,
-        address::repeat,
-        lod_clamp(0.0f, MAXFLOAT)
-    );
-
-    float2 uv = float2(gtid.x, gtid.y) / float2(constants.ScreenWidth, constants.ScreenHeight);
-    float depth = depthTexture.sample(textureSampler, uv, 0).r;
-    float3 albedo = albedoTexture.sample(textureSampler, uv, 0).rgb;
-    float3 N = normalTexture.sample(textureSampler, uv, 0).rgb;
-    float2 metallicRoughness = metallicRoughnessTexture.sample(textureSampler, uv, 0).rg;
+    if (gtid.x >= (uint)constants.ScreenWidth || gtid.y >= (uint)constants.ScreenHeight) {
+        return;
+    }
+    
+    float depth = depthTexture.read(gtid).r;
+    if (depth == 1.0f) {
+        dst.write(0.0f, gtid);
+        return;
+    }
+    float3 albedo = albedoTexture.read(gtid).rgb;
+    float3 N = normalTexture.read(gtid).rgb;
+    float2 metallicRoughness = metallicRoughnessTexture.read(gtid).rg;
     float metallic = metallicRoughness.x;
     float roughness = metallicRoughness.y;
 
-    float3 worldPos = depth_to_world_position(uv, depth, scene);
+    float3 worldPos = depth_to_world_position(gtid, depth, constants, scene);
     float3 V = normalize(scene.Camera.Position - worldPos);
 
     uint tileX = min(gtid.x / (uint)constants.TileSizePx, (uint)(constants.NumTilesX - 1));
@@ -85,14 +88,11 @@ kernel void deferred_cs(uint2 gtid [[thread_position_in_grid]],
 
     float3 viewPos = (scene.Camera.View * float4(worldPos, 1.0f)).xyz;
     float viewDepth = -viewPos.z;
-
     float logDepth = log(viewDepth / scene.Camera.Near) / log(scene.Camera.Far / scene.Camera.Near);
+    
     uint zSlice = (uint)(logDepth * (float)constants.NumSlicesZ);
-
     uint clusterIndex = tileX + tileY * constants.NumTilesX + zSlice * (uint)(constants.NumTilesX * constants.NumTilesY);
-    uint clusterCount = (uint)(constants.NumTilesX * constants.NumTilesY * constants.NumSlicesZ);
-    clusterIndex = min(clusterIndex, clusterCount - 1);
-
+    
     uint binCount = lightBinCounts[clusterIndex];
     uint binBase = clusterIndex * MAX_LIGHTS_PER_CLUSTER;
 
@@ -100,11 +100,21 @@ kernel void deferred_cs(uint2 gtid [[thread_position_in_grid]],
 
     // Directional light
     if (scene.Sun.Enabled) {
-        float3 sunContribution = EvaluatePBR_DirectionalLight(N, V, -scene.Sun.Direction, scene.Sun.Color, scene.Sun.Intensity, albedo, metallic, roughness);
-        color += sunContribution; // TODO: Sample shadow map or trace ray
+        color += EvaluatePBR_DirectionalLight(
+            N, V, -scene.Sun.Direction, 
+            scene.Sun.Color, scene.Sun.Intensity, 
+            albedo, metallic, roughness
+        );
     }
 
-    // Point lights
+    // Heatmap debug visualization (early out)
+    if (constants.ShowHeatmap) {
+        float3 heatmapColor = GetHeatmapColor(binCount);
+        dst.write(float4(heatmapColor, 1.0f), gtid);
+        return;
+    }
+
+    // Point lights (only if there are any in this cluster)
     for (uint i = 0; i < binCount; ++i) {
         uint lightIndex = lightBins[binBase + i];
         PointLight l = scene.PointLights[lightIndex];
@@ -121,13 +131,6 @@ kernel void deferred_cs(uint2 gtid [[thread_position_in_grid]],
             metallic,
             roughness
         );
-    }
-
-    // Heatmap debug visualization
-    if (constants.ShowHeatmap) {
-        float3 heatmapColor = GetHeatmapColor(binCount);
-        dst.write(float4(heatmapColor, 1.0f), gtid);
-        return;
     }
 
     dst.write(float4(color, 1.0f), gtid);

@@ -72,7 +72,7 @@ void DeferredPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera
     encoder.SetBuffer(lightBins, 2);
     encoder.SetBuffer(lightBinCounts, 3);
     encoder.Dispatch(
-        MTLSizeMake((color.Width() + 8) / 7, (color.Height() + 8) + 7, 1),
+        MTLSizeMake((color.Width() + 8) / 7, (color.Height() + 8) / 7, 1),
         MTLSizeMake(8, 8, 1)
     );
     encoder.End();
