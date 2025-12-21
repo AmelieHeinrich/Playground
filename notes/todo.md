@@ -12,9 +12,9 @@
 - [x] Clustered light culling
 - [x] GPU Driven Forward+
 - [x] GPU driven culling
+- [x] Raytraced hard shadows for RT pipeline setup
 
 UNORDERED
-- [ ] Raytraced hard shadows for RT pipeline setup
 - [ ] Cascaded shadow maps
 - [ ] Pathtracing mode
 - [ ] DDGI
@@ -23,3 +23,4 @@ UNORDERED
 - [ ] Clouds
 - [ ] ReSTIR DI
 - [ ] TAA
+- [ ] MetalFX
