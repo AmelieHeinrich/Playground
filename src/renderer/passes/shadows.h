@@ -26,5 +26,5 @@ private:
     void RaytracedHard(CommandBuffer& cmdBuffer, World& world, Camera& camera);
 
     ComputePipeline m_Pipeline;
-    ShadowTechnique m_Technique = ShadowTechnique::RAYTRACED_HARD;
+    ShadowTechnique m_Technique = ShadowTechnique::NONE;
 };

@@ -6,6 +6,7 @@
 #include "passes/gbuffer.h"
 #include "passes/deferred.h"
 #include "passes/shadows.h"
+#include "passes/hi_z.h"
 
 #include "resource_io.h"
 
@@ -16,6 +17,7 @@ Renderer::Renderer()
     m_Passes = {
         new ClusterCullPass(),
         new GBufferPass(),
+        new HiZPass(),
         new ShadowPass(), // Needs to be after GBuffer because raytraced shadows uses depth and normal
         new DeferredPass(),
         new DebugRendererPass(),
