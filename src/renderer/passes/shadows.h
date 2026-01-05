@@ -51,7 +51,7 @@ private:
     void DrawCascades(CommandBuffer& cmdBuffer, World& world, Camera& camera);
     void PopulateCSMVisibility(CommandBuffer& cmdBuffer, World& world, Camera& camera);
 
-    ShadowTechnique m_Technique = ShadowTechnique::NONE;
+    ShadowTechnique m_Technique = ShadowTechnique::CSM;
 
     // Hard RT Kernel
     ComputePipeline m_HardRTKernel;
@@ -62,6 +62,7 @@ private:
     std::shared_ptr<IndirectCommandBuffer> m_CascadeICBs[SHADOW_CASCADE_COUNT];
     ShadowCascade m_Cascades[SHADOW_CASCADE_COUNT];
     float m_SplitLambda = 0.95f;
+    bool m_UpdateCascades = true;
 
     ComputePipeline m_CullCascadesKernel;
     GraphicsPipeline m_DrawCascadesKernel;

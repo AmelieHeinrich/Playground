@@ -3,6 +3,7 @@
 #include "math/AAPLMath.h"
 #include "metal/blit_encoder.h"
 #include "metal/compute_encoder.h"
+#include "renderer/passes/debug_renderer.h"
 #include "renderer/resource_io.h"
 #include "renderer/scene_ab.h"
 
@@ -16,6 +17,30 @@
 #include <simd/matrix.h>
 #include <simd/quaternion.h>
 #include <simd/vector_make.h>
+
+int ResolutionToIndex(ShadowResolution resolution)
+{
+    switch (resolution)
+    {
+        case ShadowResolution::LOW: return 0;
+        case ShadowResolution::MEDIUM: return 1;
+        case ShadowResolution::HIGH: return 2;
+        case ShadowResolution::ULTRA: return 3;
+    }
+    return 0;
+}
+
+ShadowResolution IndexToResolution(int index)
+{
+    switch (index)
+    {
+        case 0: return ShadowResolution::LOW;
+        case 1: return ShadowResolution::MEDIUM;
+        case 2: return ShadowResolution::HIGH;
+        case 3: return ShadowResolution::ULTRA;
+    }
+    return ShadowResolution::LOW;
+}
 
 ShadowPass::ShadowPass()
 {
@@ -84,11 +109,13 @@ void ShadowPass::DebugUI()
             ImGui::Separator();
 
             const char* resolutions[] = {"Low", "Medium", "High", "Ultra"};
-            int selected = static_cast<int>(m_Resolution);
+
+            int selected = ResolutionToIndex(m_Resolution);
             ImGui::Combo("Resolution", &selected, resolutions, IM_ARRAYSIZE(resolutions));
-            m_Resolution = static_cast<ShadowResolution>(selected);
+            m_Resolution = IndexToResolution(selected);
 
             ImGui::SliderFloat("Split Lambda", &m_SplitLambda, 0.01f, 1.0f);
+            ImGui::Checkbox("Update Cascades", &m_UpdateCascades);
         }
 
         ImGui::TreePop();
@@ -132,7 +159,12 @@ void ShadowPass::CSM(CommandBuffer& cmdBuffer, World& world, Camera& camera)
     // - Generate shadow maps
     // - Generate visibility mask
 
-    UpdateCascades(cmdBuffer, world, camera);
+    if (m_UpdateCascades) UpdateCascades(cmdBuffer, world, camera);
+    else {
+        for (int i = 0; i < SHADOW_CASCADE_COUNT; i++) {
+            DebugRendererPass::DrawFrustum(m_Cascades[i].Projection * m_Cascades[i].View);
+        }
+    }
     CullCascades(cmdBuffer, world, camera);
     DrawCascades(cmdBuffer, world, camera);
     PopulateCSMVisibility(cmdBuffer, world, camera);
@@ -159,7 +191,7 @@ void ShadowPass::UpdateCascades(CommandBuffer& cmdBuffer, World& world, Camera& 
         simd::float4x4 projection = matrix_perspective_right_hand(radians_from_degrees(camera.GetFieldOfView()), camera.GetAspectRatio(), splits[i], splits[i + 1]);
         std::vector<simd::float4> corners = get_frustum_corners(camera.GetViewMatrix(), projection);
 
-        simd::float3 center = simd_make_float3(0.0f);
+        simd::float3 center = simd_make_float3(0.0f, 0.0f, 0.0f);
         for (const simd::float4& corner : corners) {
             center += corner.xyz;
         }
@@ -172,14 +204,14 @@ void ShadowPass::UpdateCascades(CommandBuffer& cmdBuffer, World& world, Camera& 
         }
 
         // Calculate light-space bounding sphere
-        simd::float3 minBounds(-FLT_MIN), maxBounds(-FLT_MAX);
+        simd::float3 minBounds(FLT_MAX), maxBounds(-FLT_MAX);
         float sphereRadius = 0.0f;
         for (auto& corner : corners) {
             float dist = simd::length(corner.xyz - center);
             sphereRadius = simd::max(sphereRadius, dist);
         }
         sphereRadius = simd::ceil(sphereRadius * 16.0f) / 16.0f;
-        maxBounds = simd::make_float3(sphereRadius);
+        maxBounds = simd::make_float3(sphereRadius, sphereRadius, sphereRadius);
         minBounds = -maxBounds;
 
         // Get extents and create view matrix
@@ -192,11 +224,11 @@ void ShadowPass::UpdateCascades(CommandBuffer& cmdBuffer, World& world, Camera& 
             maxBounds.x,
             minBounds.y,
             maxBounds.y,
-            minBounds.z,
-            maxBounds.z
+            -maxBounds.z,
+            -minBounds.z
         );
 
-        // Texel snap
+        // Texel snapping
         {
             simd::float4x4 shadowMatrix = lightProjection * lightView;
             simd::float4 shadowOrigin = simd::make_float4(0.0f, 0.0f, 0.0f, 1.0f);
