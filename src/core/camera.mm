@@ -85,58 +85,6 @@ matrix_float4x4 Camera::GetViewProjectionMatrix() const
     return simd_mul(GetProjectionMatrix(), GetViewMatrix());
 }
 
-void Camera::ExtractPlanes(Plane outPlanes[6])
-{
-    simd::float4x4 VP = GetViewProjectionMatrix();
-
-    Plane planes[6];
-
-    // Left Plane
-    planes[0].normal.x = VP.columns[0][3] + VP.columns[0][0];
-    planes[0].normal.y = VP.columns[1][3] + VP.columns[1][0];
-    planes[0].normal.z = VP.columns[2][3] + VP.columns[2][0];
-    planes[0].d = VP.columns[3][3] + VP.columns[3][0];
-
-    // Right Plane
-    planes[1].normal.x = VP.columns[0][3] - VP.columns[0][0];
-    planes[1].normal.y = VP.columns[1][3] - VP.columns[1][0];
-    planes[1].normal.z = VP.columns[2][3] - VP.columns[2][0];
-    planes[1].d = VP.columns[3][3] - VP.columns[3][0];
-
-    // Bottom Plane
-    planes[2].normal.x = VP.columns[0][3] + VP.columns[0][1];
-    planes[2].normal.y = VP.columns[1][3] + VP.columns[1][1];
-    planes[2].normal.z = VP.columns[2][3] + VP.columns[2][1];
-    planes[2].d = VP.columns[3][3] + VP.columns[3][1];
-
-    // Top Plane
-    planes[3].normal.x = VP.columns[0][3] - VP.columns[0][1];
-    planes[3].normal.y = VP.columns[1][3] - VP.columns[1][1];
-    planes[3].normal.z = VP.columns[2][3] - VP.columns[2][1];
-    planes[3].d = VP.columns[3][3] - VP.columns[3][1];
-
-    // Near Plane
-    planes[4].normal.x = VP.columns[0][3] + VP.columns[0][2];
-    planes[4].normal.y = VP.columns[1][3] + VP.columns[1][2];
-    planes[4].normal.z = VP.columns[2][3] + VP.columns[2][2];
-    planes[4].d = VP.columns[3][3] + VP.columns[3][2];
-
-    // Far Plane
-    planes[5].normal.x = VP.columns[0][3] - VP.columns[0][2];
-    planes[5].normal.y = VP.columns[1][3] - VP.columns[1][2];
-    planes[5].normal.z = VP.columns[2][3] - VP.columns[2][2];
-    planes[5].d = VP.columns[3][3] - VP.columns[3][2];
-
-    // Normalize all planes
-    for (int i = 0; i < 6; ++i) {
-        float length = simd::length(planes[i].normal);
-        planes[i].normal /= length;
-        planes[i].d /= length;
-        
-        outPlanes[i] = planes[i];
-    }
-}
-
 vector_float3 Camera::GetForward() const
 {
     return m_Forward;

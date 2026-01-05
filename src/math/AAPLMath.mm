@@ -641,3 +641,79 @@ vector_float3 AAPL_SIMD_OVERLOAD xform(matrix_float4x4 m, vector_float4 v) {
     vector_float4 result = simd_mul(m, v);
     return simd_make_float3(result.x, result.y, result.z);
 }
+
+void AAPL_SIMD_OVERLOAD extract_frustum_planes(simd::float4x4 VP, Plane outPlanes[6])
+{
+    Plane planes[6];
+
+    // Left Plane
+    planes[0].normal.x = VP.columns[0][3] + VP.columns[0][0];
+    planes[0].normal.y = VP.columns[1][3] + VP.columns[1][0];
+    planes[0].normal.z = VP.columns[2][3] + VP.columns[2][0];
+    planes[0].d = VP.columns[3][3] + VP.columns[3][0];
+
+    // Right Plane
+    planes[1].normal.x = VP.columns[0][3] - VP.columns[0][0];
+    planes[1].normal.y = VP.columns[1][3] - VP.columns[1][0];
+    planes[1].normal.z = VP.columns[2][3] - VP.columns[2][0];
+    planes[1].d = VP.columns[3][3] - VP.columns[3][0];
+
+    // Bottom Plane
+    planes[2].normal.x = VP.columns[0][3] + VP.columns[0][1];
+    planes[2].normal.y = VP.columns[1][3] + VP.columns[1][1];
+    planes[2].normal.z = VP.columns[2][3] + VP.columns[2][1];
+    planes[2].d = VP.columns[3][3] + VP.columns[3][1];
+
+    // Top Plane
+    planes[3].normal.x = VP.columns[0][3] - VP.columns[0][1];
+    planes[3].normal.y = VP.columns[1][3] - VP.columns[1][1];
+    planes[3].normal.z = VP.columns[2][3] - VP.columns[2][1];
+    planes[3].d = VP.columns[3][3] - VP.columns[3][1];
+
+    // Near Plane
+    planes[4].normal.x = VP.columns[0][3] + VP.columns[0][2];
+    planes[4].normal.y = VP.columns[1][3] + VP.columns[1][2];
+    planes[4].normal.z = VP.columns[2][3] + VP.columns[2][2];
+    planes[4].d = VP.columns[3][3] + VP.columns[3][2];
+
+    // Far Plane
+    planes[5].normal.x = VP.columns[0][3] - VP.columns[0][2];
+    planes[5].normal.y = VP.columns[1][3] - VP.columns[1][2];
+    planes[5].normal.z = VP.columns[2][3] - VP.columns[2][2];
+    planes[5].d = VP.columns[3][3] - VP.columns[3][2];
+
+    // Normalize all planes
+    for (int i = 0; i < 6; ++i) {
+        float length = simd::length(planes[i].normal);
+        planes[i].normal /= length;
+        planes[i].d /= length;
+        
+        outPlanes[i] = planes[i];
+    }
+}
+
+std::vector<simd::float4> get_frustum_corners(simd::float4x4 view, simd::float4x4 proj)
+{
+    simd::float4x4 inv = inverse(proj * view);
+
+    std::vector<simd::float4> corners = {
+        simd::make_float4(-1.0f,  1.0f, 0.0f, 1.0f),
+        simd::make_float4( 1.0f,  1.0f, 0.0f, 1.0f),
+        simd::make_float4( 1.0f, -1.0f, 0.0f, 1.0f),
+        simd::make_float4(-1.0f, -1.0f, 0.0f, 1.0f),
+        simd::make_float4(-1.0f,  1.0f, 1.0f, 1.0f),
+        simd::make_float4( 1.0f,  1.0f, 1.0f, 1.0f),
+        simd::make_float4( 1.0f, -1.0f, 1.0f, 1.0f),
+        simd::make_float4(-1.0f, -1.0f, 1.0f, 1.0f),
+    };
+
+    // To convert from world space to NDC space, multiply by the inverse of the camera matrix (projection * view) then perspective divide
+    for (int i = 0; i < 8; i++) {
+        simd::float4 h = inv * corners[i];
+        h.x /= h.w;
+        h.y /= h.w;
+        h.z /= h.w;
+        corners[i] = h;
+    }
+    return corners;
+}

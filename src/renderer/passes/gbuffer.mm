@@ -66,7 +66,7 @@ void GBufferPass::CullInstances(CommandBuffer& cmdBuffer, World& world, Camera& 
     blitEncoder.End();
 
     Plane frustumPlanes[6];
-    camera.ExtractPlanes(frustumPlanes);
+    extract_frustum_planes(camera.GetViewProjectionMatrix(), frustumPlanes);
 
     uint instanceCount = world.GetInstanceCount();
     if (instanceCount > 0) {

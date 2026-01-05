@@ -33,7 +33,7 @@ public:
     LightList& GetLightList() { return m_LightList; }
     Buffer& GetSceneAB() { return m_SceneAB; }
 
-    uint GetInstanceCount() const { return m_SceneInstances.size(); }
+    uint GetInstanceCount() const { return (uint)m_SceneInstances.size(); }
     TLAS* GetTLAS() { return &m_TLAS; }
 
     DirectionalLight& GetDirectionalLight() { return m_DirectionalLight; }

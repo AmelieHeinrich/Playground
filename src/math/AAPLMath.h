@@ -9,6 +9,22 @@ Header for vector, matrix, and quaternion math utility functions useful for 3D g
 
 #include <stdlib.h>
 #include <simd/simd.h>
+#include <vector>
+
+struct Plane
+{
+    simd::float3 normal;
+    float d;
+};
+
+inline Plane NormalizePlane(const Plane& p)
+{
+    float len = simd::length(p.normal);
+    return {
+        p.normal / len,
+        p.d / len
+    };
+}
 
 constexpr uint32_t AlignUp(uint32_t value, uint32_t alignment)
 {
@@ -274,3 +290,11 @@ vector_float3 AAPL_SIMD_OVERLOAD up_direction_vector_from_quaternion(quaternion_
 /// Returns a vector in the +X direction for the given quaternion (for a left-hand coordinate system,
 ///   negate for a right-hand coordinate system).
 vector_float3 AAPL_SIMD_OVERLOAD right_direction_vector_from_quaternion(quaternion_float q);
+
+// Get frustum corners
+std::vector<simd::float4> get_frustum_corners(simd::float4x4 view, simd::float4x4 proj);
+
+/// Extracts the 6 frustum planes from a view-projection matrix.
+/// @param VP The combined view-projection matrix
+/// @param outPlanes Array of 6 planes to fill (Left, Right, Bottom, Top, Near, Far)
+void AAPL_SIMD_OVERLOAD extract_frustum_planes(simd::float4x4 VP, Plane outPlanes[6]);

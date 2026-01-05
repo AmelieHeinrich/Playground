@@ -9,21 +9,6 @@ Handles position, rotation, and view/projection matrix generation.
 #include <simd/simd.h>
 #include <math/AAPLMath.h>
 
-struct Plane
-{
-    simd::float3 normal;
-    float d;
-};
-
-inline Plane NormalizePlane(const Plane& p)
-{
-    float len = simd::length(p.normal);
-    return {
-        p.normal / len,
-        p.d / len
-    };
-}
-
 class Input;
 
 /// First person camera for 3D rendering
@@ -75,9 +60,6 @@ public:
     float GetAspectRatio() const { return m_AspectRatio; }
     float GetNearPlane() const { return m_NearPlane; }
     float GetFarPlane() const { return m_FarPlane; }
-
-    // Get frustum planes
-    void ExtractPlanes(Plane outPlanes[6]);
 
 private:
     // Transform

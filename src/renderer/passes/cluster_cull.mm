@@ -80,7 +80,7 @@ void ClusterCullPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& cam
 
     FrustumLightCullConstants frustumLightConstants{};
     frustumLightConstants.PointLightCount = lightCount;
-    camera.ExtractPlanes(frustumLightConstants.Planes);
+    extract_frustum_planes(camera.GetViewProjectionMatrix(), frustumLightConstants.Planes);
 
     // Reset light buffer
     BlitEncoder blitEncoder = cmdBuffer.BlitPass(@"Reset Light Buffer");

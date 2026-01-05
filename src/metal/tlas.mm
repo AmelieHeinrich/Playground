@@ -46,7 +46,7 @@ void TLAS::AddInstance(BLAS* blas)
     }
     if (found == -1) {
         [m_BLASMap addObject:blas->GetAccelerationStructure()];
-        found = [m_BLASMap count] - 1;
+        found = (int)[m_BLASMap count] - 1;
     }
 
     MTLAccelerationStructureInstanceDescriptor instanceDescriptor = {};

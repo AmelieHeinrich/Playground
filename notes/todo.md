@@ -18,9 +18,14 @@ UNORDERED
 - [ ] Cascaded shadow maps
 - [ ] Pathtracing mode
 - [ ] DDGI
-- [ ] Glossy SSR
-- [ ] SVGF
 - [ ] Clouds
 - [ ] ReSTIR DI
 - [ ] TAA
 - [ ] MetalFX
+
+SSR DEEP DIVE
+- [ ] Linear marched mirror SSR
+- [ ] Hi-Z marched mirror SSR
+- [ ] Write occluded rays to buffer, raytrace later
+- [ ] Glossy SSR
+- [ ] SVGF
