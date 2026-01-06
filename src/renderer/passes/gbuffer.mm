@@ -75,6 +75,7 @@ void GBufferPass::CullInstances(CommandBuffer& cmdBuffer, World& world, Camera& 
         computeEncoder.SetBuffer(world.GetSceneAB(), 0);
         computeEncoder.SetBuffer(icb.GetBuffer(), 1);
         computeEncoder.SetBytes(frustumPlanes, sizeof(frustumPlanes), 2);
+        computeEncoder.SetBytes(&instanceCount, sizeof(uint), 3);
         computeEncoder.Dispatch(MTLSizeMake(instanceCount, 1, 1), MTLSizeMake(1, 1, 1));
         computeEncoder.End();
 

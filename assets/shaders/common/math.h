@@ -18,4 +18,9 @@ inline float3 depth_to_world_position(uint2 pixel, float depth, uint width, uint
     return worldPos.xyz;
 }
 
+inline float linearize_depth(float depthNDC, float nearZ, float farZ)
+{
+    return nearZ * farZ / (farZ - depthNDC * (farZ - nearZ));
+}
+
 #endif // MATH_METAL_H

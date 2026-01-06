@@ -58,13 +58,13 @@ private:
 
     // CSM
     ShadowResolution m_Resolution = ShadowResolution::HIGH;
-    std::shared_ptr<Texture> m_ShadowCascades[SHADOW_CASCADE_COUNT];
-    std::shared_ptr<IndirectCommandBuffer> m_CascadeICBs[SHADOW_CASCADE_COUNT];
+    Texture m_ShadowCascades[SHADOW_CASCADE_COUNT];
+    IndirectCommandBuffer m_CascadeICBs[SHADOW_CASCADE_COUNT];
     ShadowCascade m_Cascades[SHADOW_CASCADE_COUNT];
     float m_SplitLambda = 0.95f;
     bool m_UpdateCascades = true;
 
     ComputePipeline m_CullCascadesKernel;
-    GraphicsPipeline m_DrawCascadesKernel;
+    GraphicsPipeline m_DrawCascadesPipeline;
     ComputePipeline m_FillCascadesKernel;
 };

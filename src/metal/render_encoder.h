@@ -17,6 +17,8 @@ public:
 
     void End();
 
+    void SetDepthClamp(bool enable);
+
     void SetGraphicsPipeline(const GraphicsPipeline& pipeline);
     void SetBytes(ShaderStage stages, const void* bytes, size_t size, int index);
 

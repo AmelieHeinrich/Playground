@@ -39,9 +39,12 @@ bool frustum_cull(constant Plane plane[6], float3 min, float3 max)
 kernel void cull_geometry(const device SceneArgumentBuffer& arguments [[buffer(0)]],
                           device ICBWrapper& icb [[buffer(1)]],
                           constant Plane* planes [[buffer(2)]],
+                          constant uint& instanceCount [[buffer(3)]],
                           uint threadID [[thread_position_in_grid]])
 {
     uint instanceIndex = threadID;
+    if (instanceIndex >= instanceCount) return;
+
     SceneInstance instance = arguments.Instances[instanceIndex];
     SceneModel model = arguments.Models[instance.ModelIndex];
 

@@ -16,6 +16,14 @@ void RenderEncoder::End()
     [m_RenderEncoder endEncoding];
 }
 
+void RenderEncoder::SetDepthClamp(bool enable)
+{
+    if (enable)
+        [m_RenderEncoder setDepthClipMode:MTLDepthClipModeClamp];
+    else
+        [m_RenderEncoder setDepthClipMode:MTLDepthClipModeClip];
+}
+
 void RenderEncoder::SetGraphicsPipeline(const GraphicsPipeline& pipeline)
 {
     [m_RenderEncoder setRenderPipelineState:pipeline.GetPipelineState()];

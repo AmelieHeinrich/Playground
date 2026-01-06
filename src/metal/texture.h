@@ -33,6 +33,10 @@ public:
     Texture(id<MTLTexture> texture);
     ~Texture();
 
+    // Initialize
+    void Initialize(MTLTextureDescriptor* descriptor);
+    void Initialize(id<MTLTexture> texture);
+
     // Create a texture view - full control
     Texture& View(MTLPixelFormat format, MTLTextureType textureType, NSRange levels, NSRange slices);
 

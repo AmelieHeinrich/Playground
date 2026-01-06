@@ -3,6 +3,10 @@
 #include "math/AAPLMath.h"
 #include "metal/blit_encoder.h"
 #include "metal/compute_encoder.h"
+#include "metal/graphics_pipeline.h"
+#include "metal/indirect_command_buffer.h"
+#include "metal/render_encoder.h"
+#include "metal/shader.h"
 #include "renderer/passes/debug_renderer.h"
 #include "renderer/resource_io.h"
 #include "renderer/scene_ab.h"
@@ -15,6 +19,7 @@
 #include <simd/geometry.h>
 #include <simd/math.h>
 #include <simd/matrix.h>
+#include <simd/matrix_types.h>
 #include <simd/quaternion.h>
 #include <simd/vector_make.h>
 
@@ -50,17 +55,28 @@ ShadowPass::ShadowPass()
     // CSM pipelines
     m_CullCascadesKernel.Initialize("cull_geometry");
 
+    GraphicsPipelineDesc drawShadowDesc;
+    drawShadowDesc.DepthEnabled = YES;
+    drawShadowDesc.DepthFormat = MTLPixelFormatDepth32Float;
+    drawShadowDesc.DepthFunc = MTLCompareFunctionLess;
+    drawShadowDesc.VertexFunctionName = "shadow_vs";
+    drawShadowDesc.FragmentFunctionName = "shadow_fs";
+    drawShadowDesc.SupportsIndirect = YES;
+    drawShadowDesc.DepthWriteEnabled = YES;
+    m_DrawCascadesPipeline = GraphicsPipeline::Create(drawShadowDesc);
+
+    m_FillCascadesKernel.Initialize("csm_visibility");
+
     // Shadow maps
     for (int i = 0; i < SHADOW_CASCADE_COUNT; ++i) {
         MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:(int)m_Resolution height:(int)m_Resolution mipmapped:NO];
         descriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite | MTLTextureUsageRenderTarget;
 
-        m_ShadowCascades[i] = std::make_shared<Texture>(descriptor);
-        m_ShadowCascades[i]->SetLabel([NSString stringWithFormat:@"Shadow Cascade %d", i]);
+        m_ShadowCascades[i].Initialize(descriptor);
+        m_ShadowCascades[i].SetLabel([NSString stringWithFormat:@"Shadow Cascade %d", i]);
 
-        m_CascadeICBs[i] = std::make_shared<IndirectCommandBuffer>();
-        m_CascadeICBs[i]->Initialize(true, MTLIndirectCommandTypeDrawIndexed, MAX_SCENE_INSTANCES);
-        m_CascadeICBs[i]->SetLabel([NSString stringWithFormat:@"Cascade Indirect Command Buffer %d", i]);
+        m_CascadeICBs[i].Initialize(true, MTLIndirectCommandTypeDrawIndexed, MAX_SCENE_INSTANCES);
+        m_CascadeICBs[i].SetLabel([NSString stringWithFormat:@"Cascade Indirect Command Buffer %d", i]);
     }
 
     // Shadow Visibility Output
@@ -74,10 +90,10 @@ void ShadowPass::Resize(int width, int height)
 {
     ResourceIO::GetTexture(SHADOW_VISIBILITY_OUTPUT).Resize(width, height);
 
-    if ((int)m_Resolution != m_ShadowCascades[0]->Width()) {
+    if ((int)m_Resolution != m_ShadowCascades[0].Width()) {
         // Resize
         for (int i = 0; i < SHADOW_CASCADE_COUNT; ++i) {
-            m_ShadowCascades[i]->Resize((int)m_Resolution, (int)m_Resolution);
+            m_ShadowCascades[i].Resize((int)m_Resolution, (int)m_Resolution);
         }
     }
 }
@@ -243,7 +259,7 @@ void ShadowPass::UpdateCascades(CommandBuffer& cmdBuffer, World& world, Camera& 
             lightProjection.columns[3] += roundedOffset;
         }
 
-        m_Cascades[i].CascadeID = m_ShadowCascades[i]->GetResourceID();
+        m_Cascades[i].CascadeID = m_ShadowCascades[i].GetResourceID();
         m_Cascades[i].Projection = lightProjection;
         m_Cascades[i].View = lightView;
         m_Cascades[i].Split = splits[i + 1];
@@ -257,7 +273,7 @@ void ShadowPass::CullCascades(CommandBuffer& cmdBuffer, World& world, Camera& ca
 
     BlitEncoder resetIcbEncoder = cmdBuffer.BlitPass(@"Reset CSM ICBs");
     for (int i = 0; i < SHADOW_CASCADE_COUNT; i++) {
-        resetIcbEncoder.ResetIndirectCommandBuffer(*m_CascadeICBs[i], MAX_SCENE_INSTANCES);
+        resetIcbEncoder.ResetIndirectCommandBuffer(m_CascadeICBs[i], MAX_SCENE_INSTANCES);
     }
     resetIcbEncoder.End();
 
@@ -271,10 +287,13 @@ void ShadowPass::CullCascades(CommandBuffer& cmdBuffer, World& world, Camera& ca
 
         uint dispatchCount = (world.GetInstanceCount() + 63) / 64;
 
+        uint instanceCount = world.GetInstanceCount();
+
         computeEncoder.PushGroup([NSString stringWithFormat:@"Cascade %d", i]);
         computeEncoder.SetBuffer(world.GetSceneAB(), 0);
-        computeEncoder.SetBuffer(m_CascadeICBs[i]->GetBuffer(), 1);
+        computeEncoder.SetBuffer(m_CascadeICBs[i].GetBuffer(), 1);
         computeEncoder.SetBytes(planes, sizeof(planes), 2);
+        computeEncoder.SetBytes(&instanceCount, sizeof(uint), 3);
         computeEncoder.Dispatch(MTLSizeMake(dispatchCount, 1, 1), MTLSizeMake(64, 1, 1));
         computeEncoder.PopGroup();
     }
@@ -283,14 +302,26 @@ void ShadowPass::CullCascades(CommandBuffer& cmdBuffer, World& world, Camera& ca
     // Optimize indirect command buffers
     BlitEncoder optimizeIcbEncoder = cmdBuffer.BlitPass(@"Optimize CSM ICBs");
     for (int i = 0; i < SHADOW_CASCADE_COUNT; i++) {
-        optimizeIcbEncoder.OptimizeIndirectCommandBuffer(*m_CascadeICBs[i], MAX_SCENE_INSTANCES);
+        optimizeIcbEncoder.OptimizeIndirectCommandBuffer(m_CascadeICBs[i], MAX_SCENE_INSTANCES);
     }
     optimizeIcbEncoder.End();
 }
 
 void ShadowPass::DrawCascades(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
-    // Generate shadow maps
+    for (int i = 0; i < SHADOW_CASCADE_COUNT; i++) {
+        simd::float4x4 vp = m_Cascades[i].Projection * m_Cascades[i].View;
+
+        RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
+                                                     .AddDepthStencilTexture(m_ShadowCascades[i], true)
+                                                     .SetName([NSString stringWithFormat:@"Shadow Pass (Cascade %d)", i]));
+        encoder.SetGraphicsPipeline(m_DrawCascadesPipeline);
+        encoder.SetDepthClamp(true);
+        encoder.SetBuffer(ShaderStage::VERTEX | ShaderStage::FRAGMENT, world.GetSceneAB(), 0);
+        encoder.SetBytes(ShaderStage::VERTEX, &vp, sizeof(vp), 1);
+        encoder.ExecuteIndirect(m_CascadeICBs[i], MAX_SCENE_INSTANCES);
+        encoder.End();
+    }
 }
 
 void ShadowPass::PopulateCSMVisibility(CommandBuffer& cmdBuffer, World& world, Camera& camera)
