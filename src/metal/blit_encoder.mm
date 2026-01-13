@@ -42,3 +42,17 @@ void BlitEncoder::ResetIndirectCommandBuffer(const IndirectCommandBuffer& indire
 {
     [m_BlitEncoder resetCommandsInBuffer:indirectCommandBuffer.GetCommandBuffer() withRange:NSMakeRange(0, count)];
 }
+
+void BlitEncoder::SignalFence()
+{
+    if (m_Fence && m_Fence->IsValid()) {
+        [m_BlitEncoder updateFence:m_Fence->GetFence()];
+    }
+}
+
+void BlitEncoder::WaitForFence()
+{
+    if (m_Fence && m_Fence->IsValid()) {
+        [m_BlitEncoder waitForFence:m_Fence->GetFence()];
+    }
+}

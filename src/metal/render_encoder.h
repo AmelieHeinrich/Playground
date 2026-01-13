@@ -37,6 +37,9 @@ public:
     void DrawIndexed(MTLPrimitiveType primitiveType, id<MTLBuffer> indexBuffer, uint32_t indexCount, uint32_t indexOffset);
     void ExecuteIndirect(const IndirectCommandBuffer& commandBuffer, uint maxCommandCount);
 
+    void SignalFence();
+    void WaitForFence();
+
     id<MTLRenderCommandEncoder> GetCommandEncoder() const { return m_RenderEncoder; }
 private:
     id<MTLRenderCommandEncoder> m_RenderEncoder;

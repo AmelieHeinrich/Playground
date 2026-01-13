@@ -7,7 +7,7 @@ struct VSOutput {
 };
 
 vertex VSOutput shadow_vs(uint vertexID [[vertex_id]],
-                          uint instanceId [[instance_id]],
+                          uint instanceId [[base_instance]],
                           const device SceneArgumentBuffer& scene [[buffer(0)]],
                           const device float4x4& vp [[buffer(1)]])
 {

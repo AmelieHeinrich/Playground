@@ -5,7 +5,10 @@
 
 CommandBuffer::CommandBuffer(NSString* name)
 {
-    m_CommandBuffer = [Device::GetCommandQueue() commandBuffer];
+    MTLCommandBufferDescriptor* descriptor = [MTLCommandBufferDescriptor new];
+    // descriptor.errorOptions = MTLCommandBufferErrorOptionEncoderExecutionStatus;
+
+    m_CommandBuffer = [Device::GetCommandQueue() commandBufferWithDescriptor:descriptor];
     m_CommandBuffer.label = name;
 }
 

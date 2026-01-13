@@ -21,6 +21,9 @@ public:
     void OptimizeIndirectCommandBuffer(const IndirectCommandBuffer& indirectCommandBuffer, uint count);
     void ResetIndirectCommandBuffer(const IndirectCommandBuffer& indirectCommandBuffer, uint count);
 
+    void SignalFence();
+    void WaitForFence();
+
     void End();
 private:
     id<MTLBlitCommandEncoder> m_BlitEncoder;

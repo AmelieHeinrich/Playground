@@ -77,3 +77,17 @@ void ComputeEncoder::Dispatch(MTLSize numGroups, MTLSize threadsPerGroup)
 {
     [m_Encoder dispatchThreadgroups:numGroups threadsPerThreadgroup:threadsPerGroup];
 }
+
+void ComputeEncoder::SignalFence()
+{
+    if (m_Fence && m_Fence->IsValid()) {
+        [m_Encoder updateFence:m_Fence->GetFence()];
+    }
+}
+
+void ComputeEncoder::WaitForFence()
+{
+    if (m_Fence && m_Fence->IsValid()) {
+        [m_Encoder waitForFence:m_Fence->GetFence()];
+    }
+}

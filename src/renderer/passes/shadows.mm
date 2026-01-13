@@ -1,27 +1,9 @@
 #include "shadows.h"
 #include "gbuffer.h"
-#include "math/AAPLMath.h"
-#include "metal/blit_encoder.h"
-#include "metal/compute_encoder.h"
-#include "metal/graphics_pipeline.h"
-#include "metal/indirect_command_buffer.h"
-#include "metal/render_encoder.h"
-#include "metal/shader.h"
 #include "renderer/passes/debug_renderer.h"
 #include "renderer/resource_io.h"
-#include "renderer/scene_ab.h"
 
-#include <Foundation/Foundation.h>
-#include <Metal/Metal.h>
-#include <cfloat>
 #include <imgui.h>
-#include <simd/common.h>
-#include <simd/geometry.h>
-#include <simd/math.h>
-#include <simd/matrix.h>
-#include <simd/matrix_types.h>
-#include <simd/quaternion.h>
-#include <simd/vector_make.h>
 
 int ResolutionToIndex(ShadowResolution resolution)
 {
@@ -220,7 +202,7 @@ void ShadowPass::UpdateCascades(CommandBuffer& cmdBuffer, World& world, Camera& 
         }
 
         // Calculate light-space bounding sphere
-        simd::float3 minBounds(FLT_MAX), maxBounds(-FLT_MAX);
+        simd::float3 minBounds(FLT_MAX), maxBounds(FLT_MIN);
         float sphereRadius = 0.0f;
         for (auto& corner : corners) {
             float dist = simd::length(corner.xyz - center);
@@ -240,8 +222,8 @@ void ShadowPass::UpdateCascades(CommandBuffer& cmdBuffer, World& world, Camera& 
             maxBounds.x,
             minBounds.y,
             maxBounds.y,
-            -maxBounds.z,
-            -minBounds.z
+            minBounds.z,
+            maxBounds.z
         );
 
         // Texel snapping
@@ -271,6 +253,8 @@ void ShadowPass::CullCascades(CommandBuffer& cmdBuffer, World& world, Camera& ca
     if (world.GetInstanceCount() == 0)
         return;
 
+    uint instanceCount = world.GetInstanceCount();
+
     BlitEncoder resetIcbEncoder = cmdBuffer.BlitPass(@"Reset CSM ICBs");
     for (int i = 0; i < SHADOW_CASCADE_COUNT; i++) {
         resetIcbEncoder.ResetIndirectCommandBuffer(m_CascadeICBs[i], MAX_SCENE_INSTANCES);
@@ -279,6 +263,8 @@ void ShadowPass::CullCascades(CommandBuffer& cmdBuffer, World& world, Camera& ca
 
     ComputeEncoder computeEncoder = cmdBuffer.ComputePass(@"Cull Cascades");
     computeEncoder.SetPipeline(m_CullCascadesKernel);
+    computeEncoder.SetBytes(&instanceCount, sizeof(uint), 3);
+    computeEncoder.SetBuffer(world.GetSceneAB(), 0);
     for (int i = 0; i < SHADOW_CASCADE_COUNT; i++) {
         // Planes
         Plane planes[6];
@@ -287,13 +273,9 @@ void ShadowPass::CullCascades(CommandBuffer& cmdBuffer, World& world, Camera& ca
 
         uint dispatchCount = (world.GetInstanceCount() + 63) / 64;
 
-        uint instanceCount = world.GetInstanceCount();
-
         computeEncoder.PushGroup([NSString stringWithFormat:@"Cascade %d", i]);
-        computeEncoder.SetBuffer(world.GetSceneAB(), 0);
         computeEncoder.SetBuffer(m_CascadeICBs[i].GetBuffer(), 1);
         computeEncoder.SetBytes(planes, sizeof(planes), 2);
-        computeEncoder.SetBytes(&instanceCount, sizeof(uint), 3);
         computeEncoder.Dispatch(MTLSizeMake(dispatchCount, 1, 1), MTLSizeMake(64, 1, 1));
         computeEncoder.PopGroup();
     }
@@ -320,18 +302,30 @@ void ShadowPass::DrawCascades(CommandBuffer& cmdBuffer, World& world, Camera& ca
         encoder.SetBuffer(ShaderStage::VERTEX | ShaderStage::FRAGMENT, world.GetSceneAB(), 0);
         encoder.SetBytes(ShaderStage::VERTEX, &vp, sizeof(vp), 1);
         encoder.ExecuteIndirect(m_CascadeICBs[i], MAX_SCENE_INSTANCES);
+        encoder.SignalFence();
         encoder.End();
     }
 }
 
 void ShadowPass::PopulateCSMVisibility(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
-    // Generate visibility mask
-
-    // TODO:
+    Texture& depth = ResourceIO::GetTexture(GBUFFER_DEPTH_OUTPUT);
+    Texture& normal = ResourceIO::GetTexture(GBUFFER_NORMAL_OUTPUT);
     Texture& visibility = ResourceIO::GetTexture(SHADOW_VISIBILITY_OUTPUT);
-    RenderEncoder encoder = cmdBuffer.RenderPass(RenderPassInfo()
-                                                 .AddTexture(visibility, true, simd::make_float4(1.0f, 1.0f, 1.0f, 1.0f))
-                                                 .SetName(@"Shadow Pass (None)"));
+
+    uint shadowResolution = (uint)m_Resolution;
+
+    ComputeEncoder encoder = cmdBuffer.ComputePass(@"Populate CSM Visibility");
+    encoder.WaitForFence();
+    encoder.SetPipeline(m_FillCascadesKernel);
+    encoder.SetBuffer(world.GetSceneAB(), 0);
+    encoder.SetBytes(m_Cascades, sizeof(m_Cascades), 1);
+    encoder.SetTexture(depth, 0);
+    encoder.SetTexture(normal, 1);
+    encoder.SetTexture(visibility, 2);
+    encoder.Dispatch(
+        MTLSizeMake((visibility.Width() + 7) / 8, (visibility.Height() + 7) / 8, 1),
+        MTLSizeMake(8, 8, 1)
+    );
     encoder.End();
 }

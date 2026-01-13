@@ -32,6 +32,9 @@ public:
 
     void Dispatch(MTLSize numGroups, MTLSize threadsPerGroup);
 
+    void SignalFence();
+    void WaitForFence();
+
     id<MTLComputeCommandEncoder> GetEncoder() { return m_Encoder; }
 private:
     id<MTLComputeCommandEncoder> m_Encoder;

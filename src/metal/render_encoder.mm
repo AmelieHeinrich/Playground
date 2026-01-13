@@ -109,3 +109,17 @@ void RenderEncoder::ExecuteIndirect(const IndirectCommandBuffer& commandBuffer, 
 {
     [m_RenderEncoder executeCommandsInBuffer:commandBuffer.GetCommandBuffer() withRange:NSMakeRange(0, maxCommandCount)];
 }
+
+void RenderEncoder::SignalFence()
+{
+    if (m_Fence && m_Fence->IsValid()) {
+        [m_RenderEncoder updateFence:m_Fence->GetFence() afterStages:MTLRenderStageFragment];
+    }
+}
+
+void RenderEncoder::WaitForFence()
+{
+    if (m_Fence && m_Fence->IsValid()) {
+        [m_RenderEncoder waitForFence:m_Fence->GetFence() beforeStages:MTLRenderStageVertex];
+    }
+}
