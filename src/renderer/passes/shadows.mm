@@ -71,13 +71,6 @@ ShadowPass::ShadowPass()
 void ShadowPass::Resize(int width, int height)
 {
     ResourceIO::GetTexture(SHADOW_VISIBILITY_OUTPUT).Resize(width, height);
-
-    if ((int)m_Resolution != m_ShadowCascades[0].Width()) {
-        // Resize
-        for (int i = 0; i < SHADOW_CASCADE_COUNT; ++i) {
-            m_ShadowCascades[i].Resize((int)m_Resolution, (int)m_Resolution);
-        }
-    }
 }
 
 void ShadowPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
@@ -117,6 +110,13 @@ void ShadowPass::DebugUI()
         }
 
         ImGui::TreePop();
+    }
+    
+    if ((int)m_Resolution != m_ShadowCascades[0].Width()) {
+        // Resize
+        for (int i = 0; i < SHADOW_CASCADE_COUNT; ++i) {
+            m_ShadowCascades[i].Resize((int)m_Resolution, (int)m_Resolution);
+        }
     }
 }
 

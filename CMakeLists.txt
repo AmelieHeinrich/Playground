@@ -87,6 +87,9 @@ file(GLOB_RECURSE FONTS "assets/fonts/*")
 # Collect all model files from assets/models/
 file(GLOB_RECURSE MODELS "assets/models/*")
 
+# Collect all model files from assets/models/
+file(GLOB_RECURSE SKIES "assets/skies/*")
+
 set_source_files_properties(
     ${CMAKE_SOURCE_DIR}/raw_assets/AppAssets.xcassets
     PROPERTIES
@@ -186,6 +189,9 @@ if(IOS)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/models"
             "$<TARGET_FILE_DIR:${PROJECT_NAME}>/models"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/skies"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/skies"
         COMMENT "Copying asset subdirectories to iOS app bundle"
     )
 else()
@@ -199,6 +205,9 @@ else()
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts"
             "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/fonts"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/skies"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/skies"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/models"
             "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/models"

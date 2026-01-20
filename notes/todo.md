@@ -13,15 +13,17 @@
 - [x] GPU Driven Forward+
 - [x] GPU driven culling
 - [x] Raytraced hard shadows for RT pipeline setup
+- [x] Cascaded shadow maps
 
 UNORDERED
-- [ ] Cascaded shadow maps
+- [ ] Any hit shaders for RT shadows
 - [ ] Pathtracing mode
 - [ ] DDGI
 - [ ] Clouds
 - [ ] ReSTIR DI
 - [ ] TAA
 - [ ] MetalFX
+- [ ] Hillaire sky & IBL
 
 SSR DEEP DIVE
 - [ ] Linear marched mirror SSR

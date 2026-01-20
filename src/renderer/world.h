@@ -37,6 +37,8 @@ public:
     TLAS* GetTLAS() { return &m_TLAS; }
 
     DirectionalLight& GetDirectionalLight() { return m_DirectionalLight; }
+    Texture* GetSkybox() { return m_Skybox; }
+
 private:
     std::vector<Entity*> m_Entities;
     LightList m_LightList;
@@ -54,4 +56,5 @@ private:
     Buffer m_CameraBuffer;
     TLAS m_TLAS;
     DirectionalLight m_DirectionalLight;
+    Texture* m_Skybox;
 };

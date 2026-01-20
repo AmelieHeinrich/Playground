@@ -1,4 +1,5 @@
 #include "world.h"
+#include "asset/sky_loader.h"
 #include "metal/acceleration_encoder.h"
 #include "metal/command_buffer.h"
 #include "passes/debug_renderer.h"
@@ -24,10 +25,13 @@ World::World()
 
     m_TLAS.Initialize();
     m_TLAS.SetLabel(@"Top Level Acceleration Structure");
+
+    m_Skybox = SkyLoader::LoadSky("skies/citrus_orchard_road_puresky_4k.hdr");
 }
 
 World::~World()
 {
+    delete m_Skybox;
     for (auto& entity : m_Entities) {
         delete entity->BLAS;
         delete entity;
