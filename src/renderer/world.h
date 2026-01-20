@@ -37,7 +37,7 @@ public:
     TLAS* GetTLAS() { return &m_TLAS; }
 
     DirectionalLight& GetDirectionalLight() { return m_DirectionalLight; }
-    Texture* GetSkybox() { return m_Skybox; }
+    Texture& GetSkybox() { return *m_Skybox; }
 
 private:
     std::vector<Entity*> m_Entities;

@@ -11,6 +11,8 @@ Playground where I mess around with Metal on iOS and macOS.
 - Clustered light culling
 - GPU driven rendering and culling
 - Raytraced sun shadows
+- Cascaded shadow mapping
+- HDR rendering and environment mapping
 - Works on iOS and macOS
 
 ## Requirements

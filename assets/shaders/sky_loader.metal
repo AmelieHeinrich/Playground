@@ -82,6 +82,9 @@ kernel void sky_loader(
     // Sample the equirectangular texture with bilinear filtering
     constexpr sampler linearSampler(filter::linear, address::repeat);
     float4 color = equirectangular.sample(linearSampler, equirectUV);
+    
+    // Tonemap
+    color = pow(color, 2.2);
 
     // Write to the appropriate cubemap face
     cubemapFaces.write(color, gid, params.face);

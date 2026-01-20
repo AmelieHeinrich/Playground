@@ -8,6 +8,7 @@
 #include "passes/shadows.h"
 #include "passes/hi_z.h"
 
+#include "renderer/passes/sky_draw.h"
 #include "resource_io.h"
 
 Renderer::Renderer()
@@ -20,6 +21,7 @@ Renderer::Renderer()
         new HiZPass(),
         new ShadowPass(), // Needs to be after GBuffer because raytraced shadows uses depth and normal
         new DeferredPass(),
+        new SkyDrawPass(),
         new DebugRendererPass(),
         new TonemapPass(),
     };
