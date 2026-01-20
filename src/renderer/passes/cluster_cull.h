@@ -12,11 +12,11 @@ constexpr const char* VISIBLE_LIGHTS_COUNT_BUFFER = "ClusterCull/VisibleLightsCo
 #if TARGET_PLATFORM_IOS
 constexpr int CLUSTER_TILE_SIZE_PX = 32;
 constexpr int CLUSTER_Z_SLICES = 18;
-constexpr int CLUSTER_MAX_LIGHTS = 256;
+constexpr int CLUSTER_MAX_LIGHTS = 32;
 #else
 constexpr int CLUSTER_TILE_SIZE_PX = 32;
 constexpr int CLUSTER_Z_SLICES = 22;
-constexpr int CLUSTER_MAX_LIGHTS = 256;
+constexpr int CLUSTER_MAX_LIGHTS = 64;
 #endif
 
 struct Cluster

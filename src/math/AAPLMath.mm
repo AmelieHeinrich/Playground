@@ -354,6 +354,16 @@ matrix_float4x4 AAPL_SIMD_OVERLOAD matrix_ortho_right_hand(float left, float rig
         0,                                   0,                   0,                               1 );
 }
 
+matrix_float4x4 AAPL_SIMD_OVERLOAD matrix_ortho_right_hand_z(float left, float right, float bottom, float top, float zNear, float zFar) {
+    // GLM-compatible: zNear/zFar are Z coordinates in eye space (can be negative), not distances.
+    // Output maps to Metal's [0, 1] depth range.
+    return matrix_make_rows(
+        2 / (right - left),                  0,                    0, -(right + left) / (right - left),
+        0,                  2 / (top - bottom),                    0, -(top + bottom) / (top - bottom),
+        0,                                   0, -1 / (zFar - zNear),        -zNear / (zFar - zNear),
+        0,                                   0,                    0,                               1 );
+}
+
 matrix_float4x4 AAPL_SIMD_OVERLOAD matrix_perspective_left_hand(float fovyRadians, float aspect, float nearZ, float farZ) {
     float ys = 1 / tanf(fovyRadians * 0.5);
     float xs = ys / aspect;

@@ -191,6 +191,11 @@ matrix_float4x4 AAPL_SIMD_OVERLOAD matrix_ortho_left_hand(float left, float righ
 /// nearZ and farZ are absolute distances from the eye to the near and far clip planes.
 matrix_float4x4 AAPL_SIMD_OVERLOAD matrix_ortho_right_hand(float left, float right, float bottom, float top, float nearZ, float farZ);
 
+/// Constructs an orthographic projection matrix using GLM-style conventions.
+/// zNear and zFar are Z coordinates in eye space (can be negative), not distances.
+/// Output maps to Metal's [0, 1] depth range.
+matrix_float4x4 AAPL_SIMD_OVERLOAD matrix_ortho_right_hand_z(float left, float right, float bottom, float top, float zNear, float zFar);
+
 /// Constructs a symmetric perspective projection matrix, from left-hand eye
 /// coordinates to left-hand clip coordinates, with a vertical viewing angle of
 /// fovyRadians, the given aspect ratio, and the given absolute near and far

@@ -32,7 +32,10 @@ float pcf_sample(texture2d<float> shadowMap,
     float2 shadowUV = ndcPosition.xy * 0.5 + 0.5;
     shadowUV.y = 1.0 - shadowUV.y;
 
-    if (ndcPosition.z > 1.0)
+    // Out of bounds check - return lit if outside shadow map
+    if (ndcPosition.z < 0.0 || ndcPosition.z > 1.0)
+        return 1.0;
+    if (shadowUV.x < 0.0 || shadowUV.x > 1.0 || shadowUV.y < 0.0 || shadowUV.y > 1.0)
         return 1.0;
 
     uint shadowMapSize = shadowMap.get_width();
@@ -41,10 +44,13 @@ float pcf_sample(texture2d<float> shadowMap,
     float shadow = 0.0;
     int sampleCount = 0;
 
+    float currentDepth = ndcPosition.z - bias;
+
     for (int x = -kernelSize; x <= kernelSize; x++) {
         for (int y = -kernelSize; y <= kernelSize; y++) {
             float2 offsetUV = shadowUV + float2(x, y) * texelSize;
-            shadow += shadowMap.sample(s, offsetUV, ndcPosition.z - bias).r;
+            float shadowMapDepth = shadowMap.sample(s, offsetUV).r;
+            shadow += (currentDepth <= shadowMapDepth) ? 1.0 : 0.0;
             sampleCount++;
         }
     }
@@ -61,12 +67,9 @@ kernel void csm_visibility(uint2 gtid [[thread_position_in_grid]],
                            texture2d<float, access::write> dst [[texture(2)]])
 {
     constexpr sampler textureSampler(
-        mag_filter::nearest,
-        min_filter::nearest,
-        mip_filter::nearest,
-        address::repeat,
-        lod_clamp(0.0f, MAXFLOAT),
-        compare_func::less_equal
+        filter::nearest,
+        address::clamp_to_edge,
+        coord::normalized
     );
 
     int screenWidth = dst.get_width();
@@ -75,7 +78,7 @@ kernel void csm_visibility(uint2 gtid [[thread_position_in_grid]],
 
     float depth = depthTexture.read(gtid).r;
     if (depth == 1.0f) {
-        dst.write(0.0f, gtid);
+        dst.write(1.0f, gtid);
         return;
     }
 
@@ -83,30 +86,26 @@ kernel void csm_visibility(uint2 gtid [[thread_position_in_grid]],
     float3 worldPos = depth_to_world_position(gtid, depth, screenWidth, screenHeight, scene);
     float3 L = -scene.Sun.Direction;
 
-    int layer = -1;
+    // Select cascade based on distance to camera
+    float distanceToCamera = length(scene.Camera.Position - worldPos.xyz);
+
+    int layer = SHADOW_CASCADE_COUNT - 1;
     for (int i = 0; i < SHADOW_CASCADE_COUNT; i++) {
-        if (abs(linearize_depth(depth, scene.Camera.Near, scene.Camera.Far)) < cascades[i].Split) {
+        if (distanceToCamera < cascades[i].Split) {
             layer = i;
             break;
         }
     }
-    if (layer == -1) {
-        layer = SHADOW_CASCADE_COUNT - 1;
-    }
 
-    // Calculate shadow cascade
-    float distanceToCamera = length(scene.Camera.Position - worldPos.xyz);
     Cascade cascade0 = cascades[layer];
     Cascade cascade1 = cascades[min(layer + 1, SHADOW_CASCADE_COUNT - 1)];
 
     float texelSize0 = cascade0.Split / shadowMapSize;
     float texelSize1 = cascade1.Split / shadowMapSize;
 
-    float slopeBias = 0.05;
-    float minBias = 0.005;
-
-    float bias0 = max(slopeBias * (1.0 - dot(N, L)), minBias) * texelSize0;
-    float bias1 = max(slopeBias * (1.0 - dot(N, L)), minBias) * texelSize1;
+    float NdotL = max(dot(N, L), 0.0);
+    float bias0 = 0.001 + 0.003 * (1.0 - NdotL);
+    float bias1 = 0.001 + 0.003 * (1.0 - NdotL);
 
     float4 worldPosXYZW = float4(worldPos, 1.0f);
     float shadow0 = pcf_sample(cascade0.Texture, textureSampler, worldPosXYZW, cascade0.View, cascade0.Projection, bias0, PCF_KERNEL_SIZE);
