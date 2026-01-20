@@ -167,6 +167,8 @@ class ConsoleViewModel {
         #if os(macOS)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
+        #elseif os(iOS)
+        UIPasteboard.general.string = text
         #endif
     }
 }
@@ -205,7 +207,11 @@ struct ConsoleView: View {
                     }
                 }
             }
+            #if os(macOS)
             .background(Color(nsColor: .textBackgroundColor))
+            #else
+            .background(Color(uiColor: .systemBackground))
+            #endif
 
             Divider()
 
@@ -242,7 +248,11 @@ struct ConsoleToolbar: View {
                 }
             }
             .padding(6)
+            #if os(macOS)
             .background(Color(nsColor: .controlBackgroundColor))
+            #else
+            .background(Color(uiColor: .secondarySystemBackground))
+            #endif
             .cornerRadius(6)
             .frame(maxWidth: 200)
 
@@ -269,11 +279,13 @@ struct ConsoleToolbar: View {
             Button(action: viewModel.copyLogs) {
                 Image(systemName: "doc.on.doc")
             }
+            .buttonStyle(.plain)
             .help("Copy logs")
 
             Button(action: viewModel.clearLogs) {
                 Image(systemName: "trash")
             }
+            .buttonStyle(.plain)
             .help("Clear logs")
         }
         .padding(.horizontal, 12)
@@ -360,7 +372,11 @@ struct ConsoleCommandInput: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        #if os(macOS)
         .background(Color(nsColor: .controlBackgroundColor))
+        #else
+        .background(Color(uiColor: .secondarySystemBackground))
+        #endif
         .onTapGesture {
             // Claim focus when clicking anywhere in the command input area
             isFocused = true

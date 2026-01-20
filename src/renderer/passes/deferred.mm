@@ -4,6 +4,7 @@
 #include "Shadows.h"
 
 #include "Renderer/ResourceIo.h"
+#include "Swift/CVarRegistry.h"
 
 
 
@@ -84,4 +85,12 @@ void DeferredPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera
 void DeferredPass::DebugUI()
 {
     // UI is now handled by SwiftUI
+}
+
+void DeferredPass::RegisterCVars()
+{
+    CVarRegistry* registry = [CVarRegistry shared];
+    [registry registerBool:@"Deferred.ShowHeatmap"
+                   pointer:&m_ShowHeatmap
+               displayName:@"Show Light Heatmap"];
 }

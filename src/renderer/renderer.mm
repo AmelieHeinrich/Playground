@@ -10,6 +10,8 @@
 #include "Passes/Reflections.h"
 #include "Passes/SkyDraw.h"
 #include "ResourceIo.h"
+#include "Swift/CVarRegistry.h"
+#include "Core/Logger.h"
 
 Renderer::Renderer()
 {
@@ -26,6 +28,30 @@ Renderer::Renderer()
         new DebugRendererPass(),
         new TonemapPass(),
     };
+    
+    // Register CVars for all passes (one-time registration)
+    LOG_INFO("Registering CVars for all passes...");
+    for (auto pass : m_Passes) {
+        pass->RegisterCVars();
+    }
+    
+    CVarRegistry* registry = [CVarRegistry shared];
+    NSArray<NSDictionary*>* allCVars = [registry allCVars];
+    LOG_INFO_FMT("Total registered CVars: %lu", (unsigned long)allCVars.count);
+    
+    for (NSDictionary* cvar in allCVars) {
+        NSString* key = cvar[@"key"];
+        NSString* displayName = cvar[@"displayName"];
+        NSNumber* typeNum = cvar[@"type"];
+        LOG_INFO_FMT("  CVar: '%@' -> '%@' (type: %d)", key, displayName, [typeNum intValue]);
+    }
+    
+    NSArray<NSString*>* categories = [registry allCategories];
+    LOG_INFO_FMT("CVar categories: %lu", (unsigned long)categories.count);
+    for (NSString* category in categories) {
+        NSArray* cvars = [registry cvarsForCategory:category];
+        LOG_INFO_FMT("  Category '%@': %lu CVars", category, (unsigned long)cvars.count);
+    }
 }
 
 Renderer::~Renderer()

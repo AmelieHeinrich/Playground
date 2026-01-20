@@ -1,6 +1,7 @@
 #include "BLAS.h"
 #include "Metal/Device.h"
 #include <Metal/Metal.h>
+#import "Swift/DebugBridge.h"
 
 struct PackedVertex
 {
@@ -38,11 +39,20 @@ BLAS::BLAS(const Model& model)
     m_Scratch.SetLabel(@"BLAS Scratch Buffer");
 
     Device::GetResidencySet().AddResource(m_AccelerationStructure);
+    
+    // Track allocation in Debug Bridge
+    NSString* name = m_AccelerationStructure.label ?: [NSString stringWithFormat:@"BLAS_%p", m_AccelerationStructure];
+    [[DebugBridge shared] trackAllocation:name
+                                     size:prebuildInfo.accelerationStructureSize
+                                     type:ResourceTypeAccelerationStructure
+                                 heapType:HeapTypePrivate];
 }
 
 BLAS::~BLAS()
 {
     if (m_AccelerationStructure) {
+        NSString* name = m_AccelerationStructure.label ?: [NSString stringWithFormat:@"BLAS_%p", m_AccelerationStructure];
+        [[DebugBridge shared] removeAllocation:name];
         Device::GetResidencySet().RemoveResource(m_AccelerationStructure);
     }
 }
@@ -55,4 +65,23 @@ uint64_t BLAS::GetResourceID()
 void BLAS::FreeScratchBuffer()
 {
     m_Scratch.Cleanup();
+}
+
+void BLAS::SetLabel(NSString* label)
+{
+    if (m_AccelerationStructure) {
+        // Remove old tracking entry
+        NSString* oldName = m_AccelerationStructure.label ?: [NSString stringWithFormat:@"BLAS_%p", m_AccelerationStructure];
+        [[DebugBridge shared] removeAllocation:oldName];
+        
+        // Update label
+        m_AccelerationStructure.label = label;
+        
+        // Re-track with new name
+        MTLAccelerationStructureSizes prebuildInfo = [Device::GetDevice() accelerationStructureSizesWithDescriptor:m_Descriptor];
+        [[DebugBridge shared] trackAllocation:label
+                                         size:prebuildInfo.accelerationStructureSize
+                                         type:ResourceTypeAccelerationStructure
+                                     heapType:HeapTypePrivate];
+    }
 }

@@ -3,16 +3,21 @@
 #include "Metal/Device.h"
 #include "Metal/GraphicsPipeline.h"
 #include <Metal/Metal.h>
+#import "Swift/DebugBridge.h"
 
 RenderEncoder::RenderEncoder(id<MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* renderPassDescriptor, NSString* name, Fence* fence)
     : m_Fence(fence)
 {
     m_RenderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
     m_RenderEncoder.label = name;
+    
+    // Track encoder in Debug Bridge
+    [[DebugBridge shared] beginEncoder:name type:EncoderTypeRender];
 }
 
 void RenderEncoder::End()
 {
+    [[DebugBridge shared] endEncoder];
     [m_RenderEncoder endEncoding];
 }
 
@@ -92,21 +97,25 @@ void RenderEncoder::ResourceBarrier(const IndirectCommandBuffer& commandBuffer)
 
 void RenderEncoder::Draw(MTLPrimitiveType primitiveType, uint32_t vertexCount, uint32_t vertexOffset)
 {
+    [[DebugBridge shared] recordDraw:vertexCount instanceCount:1 indexed:NO];
     [m_RenderEncoder drawPrimitives:primitiveType vertexStart:vertexOffset vertexCount:vertexCount];
 }
 
 void RenderEncoder::DrawIndexed(MTLPrimitiveType primitiveType, const Buffer& indexBuffer, uint32_t indexCount, uint32_t indexOffset)
 {
+    [[DebugBridge shared] recordDraw:indexCount instanceCount:1 indexed:YES];
     DrawIndexed(primitiveType, indexBuffer.GetBuffer(), indexCount, indexOffset);
 }
 
 void RenderEncoder::DrawIndexed(MTLPrimitiveType primitiveType, id<MTLBuffer> indexBuffer, uint32_t indexCount, uint32_t indexOffset)
 {
+    [[DebugBridge shared] recordDraw:indexCount instanceCount:1 indexed:YES];
     [m_RenderEncoder drawIndexedPrimitives:primitiveType indexCount:indexCount indexType:MTLIndexTypeUInt32 indexBuffer:indexBuffer indexBufferOffset:indexOffset];
 }
 
 void RenderEncoder::ExecuteIndirect(const IndirectCommandBuffer& commandBuffer, uint maxCommandCount)
 {
+    [[DebugBridge shared] recordExecuteIndirect];
     [m_RenderEncoder executeCommandsInBuffer:commandBuffer.GetCommandBuffer() withRange:NSMakeRange(0, maxCommandCount)];
 }
 

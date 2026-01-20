@@ -1,15 +1,20 @@
 #include "BlitEncoder.h"
 #include <Foundation/Foundation.h>
+#import "Swift/DebugBridge.h"
 
 BlitEncoder::BlitEncoder(id<MTLCommandBuffer> commandBuffer, NSString* label, Fence* fence)
     : m_Fence(fence)
 {
     m_BlitEncoder = [commandBuffer blitCommandEncoder];
     [m_BlitEncoder setLabel:label];
+    
+    // Track encoder in Debug Bridge
+    [[DebugBridge shared] beginEncoder:label type:EncoderTypeBlit];
 }
 
 void BlitEncoder::CopyTexture(id<MTLTexture> source, id<MTLTexture> destination)
 {
+    [[DebugBridge shared] recordCopy];
     [m_BlitEncoder copyFromTexture:source toTexture:destination];
 }
 
@@ -20,6 +25,7 @@ void BlitEncoder::CopyTexture(const Texture& source, const Texture& destination)
 
 void BlitEncoder::FillBuffer(id<MTLBuffer> buffer, uint value)
 {
+    [[DebugBridge shared] recordCopy];
     [m_BlitEncoder fillBuffer:buffer range:NSMakeRange(0, buffer.allocatedSize) value:(uint8_t)value];
 }
 
@@ -30,6 +36,7 @@ void BlitEncoder::FillBuffer(const Buffer& buffer, uint value)
 
 void BlitEncoder::End()
 {
+    [[DebugBridge shared] endEncoder];
     [m_BlitEncoder endEncoding];
 }
 

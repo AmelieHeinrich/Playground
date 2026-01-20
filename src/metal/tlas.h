@@ -13,7 +13,7 @@ public:
     void ResetInstanceBuffer();
     void AddInstance(BLAS* blas);
     void Update();
-    void SetLabel(NSString* label) { m_TLAS.label = label; }
+    void SetLabel(NSString* label);
 
     uint64_t GetResourceID();
     id<MTLAccelerationStructure> GetTLAS() { return m_TLAS; }

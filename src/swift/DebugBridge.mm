@@ -30,12 +30,18 @@ struct EncoderRecord {
     EncoderType type;
     std::vector<DrawRecord> draws;
     std::vector<DispatchRecord> dispatches;
+    int copies;
+    int executeIndirects;
+    int accelerationBuilds;
 };
 
 struct FrameRecord {
     std::vector<EncoderRecord> encoders;
     int totalDrawCalls;
     int totalDispatches;
+    int totalCopies;
+    int totalExecuteIndirects;
+    int totalAccelerationBuilds;
     long long totalVertices;
     long long totalInstances;
 };
@@ -55,9 +61,6 @@ struct FrameRecord {
     std::deque<double> _cpuTimeHistory;
     std::deque<double> _gpuTimeHistory;
     std::deque<size_t> _memoryHistory;
-    
-    // Texture debug
-    std::map<std::string, id<MTLTexture>> _debugTextures;
 }
 
 + (instancetype)shared {
@@ -116,7 +119,6 @@ struct FrameRecord {
     switch (resource.storageMode) {
         case MTLStorageModePrivate: heapType = HeapTypePrivate; break;
         case MTLStorageModeShared: heapType = HeapTypeShared; break;
-        case MTLStorageModeManaged: heapType = HeapTypeManaged; break;
         default: heapType = HeapTypePrivate; break;
     }
     
@@ -180,6 +182,9 @@ struct FrameRecord {
     EncoderRecord encoder;
     encoder.name = name;
     encoder.type = type;
+    encoder.copies = 0;
+    encoder.executeIndirects = 0;
+    encoder.accelerationBuilds = 0;
     _currentFrame.encoders.push_back(encoder);
     _currentEncoder = &_currentFrame.encoders.back();
 }
@@ -206,6 +211,21 @@ struct FrameRecord {
     _currentEncoder->dispatches.push_back(dispatch);
 }
 
+- (void)recordCopy {
+    if (!_currentEncoder) return;
+    _currentEncoder->copies++;
+}
+
+- (void)recordExecuteIndirect {
+    if (!_currentEncoder) return;
+    _currentEncoder->executeIndirects++;
+}
+
+- (void)recordAccelerationStructureBuild {
+    if (!_currentEncoder) return;
+    _currentEncoder->accelerationBuilds++;
+}
+
 - (void)endEncoder {
     _currentEncoder = nullptr;
 }
@@ -216,12 +236,18 @@ struct FrameRecord {
     // Calculate totals
     _currentFrame.totalDrawCalls = 0;
     _currentFrame.totalDispatches = 0;
+    _currentFrame.totalCopies = 0;
+    _currentFrame.totalExecuteIndirects = 0;
+    _currentFrame.totalAccelerationBuilds = 0;
     _currentFrame.totalVertices = 0;
     _currentFrame.totalInstances = 0;
     
     for (const auto& encoder : _currentFrame.encoders) {
         _currentFrame.totalDrawCalls += (int)encoder.draws.size();
         _currentFrame.totalDispatches += (int)encoder.dispatches.size();
+        _currentFrame.totalCopies += encoder.copies;
+        _currentFrame.totalExecuteIndirects += encoder.executeIndirects;
+        _currentFrame.totalAccelerationBuilds += encoder.accelerationBuilds;
         
         for (const auto& draw : encoder.draws) {
             _currentFrame.totalVertices += draw.vertexCount;
@@ -264,7 +290,10 @@ struct FrameRecord {
             @"name": encoder.name,
             @"type": @(encoder.type),
             @"draws": draws,
-            @"dispatches": dispatches
+            @"dispatches": dispatches,
+            @"copies": @(encoder.copies),
+            @"executeIndirects": @(encoder.executeIndirects),
+            @"accelerationBuilds": @(encoder.accelerationBuilds)
         }];
     }
     
@@ -272,6 +301,9 @@ struct FrameRecord {
         @"encoders": encoders,
         @"totalDrawCalls": @(frame.totalDrawCalls),
         @"totalDispatches": @(frame.totalDispatches),
+        @"totalCopies": @(frame.totalCopies),
+        @"totalExecuteIndirects": @(frame.totalExecuteIndirects),
+        @"totalAccelerationBuilds": @(frame.totalAccelerationBuilds),
         @"totalVertices": @(frame.totalVertices),
         @"totalInstances": @(frame.totalInstances)
     };
@@ -283,6 +315,18 @@ struct FrameRecord {
 
 - (int)totalDispatches {
     return _lastCompletedFrame.totalDispatches;
+}
+
+- (int)totalCopies {
+    return _lastCompletedFrame.totalCopies;
+}
+
+- (int)totalExecuteIndirects {
+    return _lastCompletedFrame.totalExecuteIndirects;
+}
+
+- (int)totalAccelerationBuilds {
+    return _lastCompletedFrame.totalAccelerationBuilds;
 }
 
 - (int)totalEncoders {
@@ -399,113 +443,6 @@ struct FrameRecord {
         if (v > maxVal) maxVal = v;
     }
     return maxVal;
-}
-
-#pragma mark - Texture Debug
-
-- (void)registerTexture:(NSString*)name texture:(id<MTLTexture>)texture {
-    _debugTextures[name.UTF8String] = texture;
-}
-
-- (void)unregisterTexture:(NSString*)name {
-    _debugTextures.erase(name.UTF8String);
-}
-
-- (NSArray<NSDictionary*>*)allTextures {
-    NSMutableArray* result = [NSMutableArray array];
-    
-    for (const auto& pair : _debugTextures) {
-        id<MTLTexture> tex = pair.second;
-        [result addObject:@{
-            @"name": [NSString stringWithUTF8String:pair.first.c_str()],
-            @"width": @(tex.width),
-            @"height": @(tex.height),
-            @"depth": @(tex.depth),
-            @"format": @(tex.pixelFormat),
-            @"mipLevels": @(tex.mipmapLevelCount),
-            @"arrayLength": @(tex.arrayLength),
-            @"textureType": @(tex.textureType)
-        }];
-    }
-    
-    [result sortUsingComparator:^NSComparisonResult(NSDictionary* a, NSDictionary* b) {
-        return [a[@"name"] compare:b[@"name"]];
-    }];
-    
-    return result;
-}
-
-- (nullable id<MTLTexture>)getTexture:(NSString*)name {
-    auto it = _debugTextures.find(name.UTF8String);
-    if (it != _debugTextures.end()) {
-        return it->second;
-    }
-    return nil;
-}
-
-- (nullable CGImageRef)createCGImageFromTexture:(id<MTLTexture>)texture
-                                       mipLevel:(NSUInteger)level
-                                          slice:(NSUInteger)slice {
-    if (!texture) return nil;
-    
-    // Only support 2D textures for now
-    if (texture.textureType != MTLTextureType2D && 
-        texture.textureType != MTLTextureType2DArray) {
-        return nil;
-    }
-    
-    // Calculate dimensions at mip level
-    NSUInteger width = std::max(1UL, texture.width >> level);
-    NSUInteger height = std::max(1UL, texture.height >> level);
-    
-    // Only support common formats for CGImage conversion
-    NSUInteger bytesPerPixel = 4;
-    CGBitmapInfo bitmapInfo = kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big;
-    
-    switch (texture.pixelFormat) {
-        case MTLPixelFormatRGBA8Unorm:
-        case MTLPixelFormatRGBA8Unorm_sRGB:
-        case MTLPixelFormatBGRA8Unorm:
-        case MTLPixelFormatBGRA8Unorm_sRGB:
-            bytesPerPixel = 4;
-            break;
-        case MTLPixelFormatRGBA16Float:
-        case MTLPixelFormatRGBA32Float:
-            // Would need conversion, skip for now
-            return nil;
-        default:
-            return nil;
-    }
-    
-    NSUInteger bytesPerRow = width * bytesPerPixel;
-    NSMutableData* data = [NSMutableData dataWithLength:height * bytesPerRow];
-    
-    MTLRegion region = MTLRegionMake2D(0, 0, width, height);
-    [texture getBytes:data.mutableBytes
-          bytesPerRow:bytesPerRow
-           fromRegion:region
-          mipmapLevel:level];
-    
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)data);
-    
-    CGImageRef image = CGImageCreate(
-        width, height,
-        8, // bits per component
-        32, // bits per pixel
-        bytesPerRow,
-        colorSpace,
-        bitmapInfo,
-        provider,
-        NULL,
-        NO,
-        kCGRenderingIntentDefault
-    );
-    
-    CGColorSpaceRelease(colorSpace);
-    CGDataProviderRelease(provider);
-    
-    return image;
 }
 
 #pragma mark - GPU Capture

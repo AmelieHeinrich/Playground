@@ -1,5 +1,6 @@
 #include "Texture.h"
 #include "Device.h"
+#import "Swift/DebugBridge.h"
 
 Texture::Texture(MTLTextureDescriptor* descriptor)
 {
@@ -37,6 +38,10 @@ void Texture::Initialize(id<MTLTexture> texture)
         m_Descriptor.usage = texture.usage;
 
         Device::GetResidencySet().AddResource(m_Texture);
+        
+        // Track allocation in Debug Bridge
+        NSString* name = m_Texture.label ?: [NSString stringWithFormat:@"Texture_%p", m_Texture];
+        [[DebugBridge shared] trackAllocation:name resource:m_Texture];
     }
 }
 
@@ -44,6 +49,8 @@ Texture::~Texture()
 {
     // Remove from residency set for both parent textures and views
     if (m_Texture) {
+        NSString* name = m_Texture.label ?: [NSString stringWithFormat:@"Texture_%p", m_Texture];
+        [[DebugBridge shared] removeAllocation:name];
         Device::GetResidencySet().RemoveResource(m_Texture);
     }
     m_Descriptor = nil;
@@ -84,6 +91,17 @@ Texture& Texture::View(MTLPixelFormat format, MTLTextureType textureType, NSRang
     // Mark it as a view and keep a reference to the parent
     viewObject.m_IsView = true;
     viewObject.m_ParentTexture = m_Texture;
+    
+    // Create detailed label with view information
+    NSString* baseLabel = m_Label ? m_Label : @"Texture";
+    NSString* viewLabel = [NSString stringWithFormat:@"%@_view_fmt%lu_mip%lu-%lu_slice%lu-%lu",
+                          baseLabel,
+                          (unsigned long)format,
+                          (unsigned long)levels.location,
+                          (unsigned long)(levels.location + levels.length - 1),
+                          (unsigned long)slices.location,
+                          (unsigned long)(slices.location + slices.length - 1)];
+    viewObject.SetLabel(viewLabel);
 
     // Update descriptor to reflect the view's properties
     viewObject.m_Descriptor.pixelFormat = format;
@@ -102,17 +120,6 @@ Texture& Texture::View(MTLPixelFormat format, MTLTextureType textureType, NSRang
 
     viewObject.m_Descriptor.width = viewWidth;
     viewObject.m_Descriptor.height = viewHeight;
-
-    // Create detailed label with view information
-    NSString* baseLabel = m_Label ? m_Label : @"Texture";
-    NSString* viewLabel = [NSString stringWithFormat:@"%@_view_fmt%lu_mip%lu-%lu_slice%lu-%lu",
-                          baseLabel,
-                          (unsigned long)format,
-                          (unsigned long)levels.location,
-                          (unsigned long)(levels.location + levels.length - 1),
-                          (unsigned long)slices.location,
-                          (unsigned long)(slices.location + slices.length - 1)];
-    viewObject.SetLabel(viewLabel);
 
     return viewObject;
 }
@@ -218,9 +225,31 @@ void Texture::Resize(uint32_t width, uint32_t height, bool recomputeMips)
     }
 
     Device::GetResidencySet().AddResource(m_Texture);
+    
+    // Track allocation in Debug Bridge
+    NSString* name = m_Label ?: [NSString stringWithFormat:@"Texture_%p", m_Texture];
+    [[DebugBridge shared] trackAllocation:name resource:m_Texture];
 }
 
 void Texture::UploadData(const void* data, uint64_t size, uint64_t bpp)
 {
     [m_Texture replaceRegion:MTLRegionMake2D(0, 0, Width(), Height()) mipmapLevel:0 withBytes:data bytesPerRow:Width() * bpp];
+}
+
+void Texture::SetLabel(NSString* label)
+{
+    if (m_Texture) {
+        // Remove old tracking entry
+        NSString* oldName = m_Label ?: [NSString stringWithFormat:@"Texture_%p", m_Texture];
+        [[DebugBridge shared] removeAllocation:oldName];
+
+        // Update label
+        m_Label = label;
+        m_Texture.label = label;
+        
+        // Re-track with new name
+        [[DebugBridge shared] trackAllocation:label resource:m_Texture];
+    } else {
+        m_Label = label;
+    }
 }

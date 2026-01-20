@@ -10,7 +10,8 @@ NS_ASSUME_NONNULL_BEGIN
 typedef NS_ENUM(NSInteger, EncoderType) {
     EncoderTypeRender,
     EncoderTypeCompute,
-    EncoderTypeBlit
+    EncoderTypeBlit,
+    EncoderTypeAcceleration
 };
 
 typedef NS_ENUM(NSInteger, ResourceType) {
@@ -59,6 +60,9 @@ typedef NS_ENUM(NSInteger, HeapType) {
            indexed:(BOOL)indexed;
 - (void)recordDispatch:(MTLSize)threadgroups
        threadsPerGroup:(MTLSize)threads;
+- (void)recordCopy;
+- (void)recordExecuteIndirect;
+- (void)recordAccelerationStructureBuild;
 - (void)endEncoder;
 - (void)endFrame;
 
@@ -69,6 +73,9 @@ typedef NS_ENUM(NSInteger, HeapType) {
 // Frame statistics
 @property (nonatomic, readonly) int totalDrawCalls;
 @property (nonatomic, readonly) int totalDispatches;
+@property (nonatomic, readonly) int totalCopies;
+@property (nonatomic, readonly) int totalExecuteIndirects;
+@property (nonatomic, readonly) int totalAccelerationBuilds;
 @property (nonatomic, readonly) int totalEncoders;
 @property (nonatomic, readonly) long long totalVertices;
 @property (nonatomic, readonly) long long totalInstances;
@@ -96,24 +103,6 @@ typedef NS_ENUM(NSInteger, HeapType) {
 
 // History configuration
 @property (nonatomic) NSUInteger maxHistorySize; // Default: 300
-
-#pragma mark - Texture Debug
-
-// Register a texture for debug viewing
-- (void)registerTexture:(NSString*)name texture:(id<MTLTexture>)texture;
-- (void)unregisterTexture:(NSString*)name;
-
-// Get list of registered textures
-- (NSArray<NSDictionary*>*)allTextures; // name, width, height, depth, format, mipLevels, arrayLength
-
-// Get a texture by name
-- (nullable id<MTLTexture>)getTexture:(NSString*)name;
-
-// Create a CGImage from texture (for preview thumbnails)
-// Note: This is expensive, use sparingly
-- (nullable CGImageRef)createCGImageFromTexture:(id<MTLTexture>)texture
-                                       mipLevel:(NSUInteger)level
-                                          slice:(NSUInteger)slice CF_RETURNS_RETAINED;
 
 #pragma mark - GPU Capture
 

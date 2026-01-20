@@ -2,6 +2,7 @@
 #include "Device.h"
 #include "Metal/RenderEncoder.h"
 #include <Metal/Metal.h>
+#import "Swift/DebugBridge.h"
 
 CommandBuffer::CommandBuffer(NSString* name)
 {
@@ -10,10 +11,16 @@ CommandBuffer::CommandBuffer(NSString* name)
 
     m_CommandBuffer = [Device::GetCommandQueue() commandBufferWithDescriptor:descriptor];
     m_CommandBuffer.label = name;
+    
+    // Begin frame tracking in Debug Bridge
+    [[DebugBridge shared] beginFrame];
 }
 
 void CommandBuffer::Commit()
 {
+    // End frame tracking in Debug Bridge before committing
+    [[DebugBridge shared] endFrame];
+    
     [m_CommandBuffer commit];
     [m_CommandBuffer waitUntilCompleted];
 }

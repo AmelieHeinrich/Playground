@@ -17,6 +17,7 @@ public:
     void Resize(int width, int height) override;
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
     void DebugUI() override;
+    void RegisterCVars() override;
 
     // Accessors for SwiftUI bridge
     bool GetFreezeICB() const { return m_FreezeICB; }

@@ -3,10 +3,13 @@
 #include "Renderer/SceneAb.h"
 #include <Metal/Metal.h>
 #include <simd/matrix.h>
+#import "Swift/DebugBridge.h"
 
 TLAS::~TLAS()
 {
     if (m_TLAS) {
+        NSString* name = m_TLAS.label ?: [NSString stringWithFormat:@"TLAS_%p", m_TLAS];
+        [[DebugBridge shared] removeAllocation:name];
         Device::GetResidencySet().RemoveResource(m_TLAS);
     }
 }
@@ -27,6 +30,13 @@ void TLAS::Initialize()
 
     m_TLAS = [Device::GetDevice() newAccelerationStructureWithSize:sizes.accelerationStructureSize];
     Device::GetResidencySet().AddResource(m_TLAS);
+    
+    // Track allocation in Debug Bridge
+    NSString* name = m_TLAS.label ?: [NSString stringWithFormat:@"TLAS_%p", m_TLAS];
+    [[DebugBridge shared] trackAllocation:name
+                                     size:sizes.accelerationStructureSize
+                                     type:ResourceTypeAccelerationStructure
+                                 heapType:HeapTypePrivate];
 }
 
 void TLAS::ResetInstanceBuffer()
@@ -69,4 +79,24 @@ void TLAS::Update()
 uint64_t TLAS::GetResourceID()
 {
     return m_TLAS.gpuResourceID._impl;
+}
+
+void TLAS::SetLabel(NSString* label)
+{
+    if (m_TLAS) {
+        // Remove old tracking entry
+        NSString* oldName = m_TLAS.label ?: [NSString stringWithFormat:@"TLAS_%p", m_TLAS];
+        [[DebugBridge shared] removeAllocation:oldName];
+        
+        // Update label
+        m_TLAS.label = label;
+        
+        // Re-track with new name
+        MTLInstanceAccelerationStructureDescriptor* descriptor = m_Descriptor;
+        MTLAccelerationStructureSizes sizes = [Device::GetDevice() accelerationStructureSizesWithDescriptor:descriptor];
+        [[DebugBridge shared] trackAllocation:label
+                                         size:sizes.accelerationStructureSize
+                                         type:ResourceTypeAccelerationStructure
+                                     heapType:HeapTypePrivate];
+    }
 }

@@ -76,6 +76,13 @@ file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.mm" "src/*.m" "src/*.c")
 list(FILTER SOURCES EXCLUDE REGEX ".*AppDelegate\\.mm$")
 list(FILTER SOURCES EXCLUDE REGEX ".*Main\\.mm$")
 
+# Remove platform-specific input files
+if(IOS)
+    list(FILTER SOURCES EXCLUDE REGEX ".*MacosInput\\.mm$")
+else()
+    list(FILTER SOURCES EXCLUDE REGEX ".*IosInput\\.mm$")
+endif()
+
 # Collect all header files from src/
 file(GLOB_RECURSE HEADERS "src/*.h")
 

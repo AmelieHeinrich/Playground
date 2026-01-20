@@ -33,9 +33,28 @@ struct CVarSettingsView: View {
     private let registry = CVarRegistry.shared()
 
     var body: some View {
-        List {
-            ForEach(categories, id: \.self) { category in
-                CVarCategorySection(category: category, registry: registry, refreshTrigger: $refreshTrigger)
+        Group {
+            if categories.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text("No Settings Available")
+                        .font(.headline)
+                    Text("CVars will appear here once registered")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                    Button("Refresh") {
+                        refreshData()
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(categories, id: \.self) { category in
+                        CVarCategorySection(category: category, registry: registry, refreshTrigger: $refreshTrigger)
+                    }
+                }
             }
         }
         .onAppear {
@@ -47,7 +66,21 @@ struct CVarSettingsView: View {
     }
 
     private func refreshData() {
-        categories = registry.allCategories() as? [String] ?? []
+        let allCVars = registry.allCVars() as? [[String: Any]] ?? []
+        let allCategories = registry.allCategories() as? [String] ?? []
+
+        print("CVarSettingsView: Refreshing data")
+        print("  Total CVars: \(allCVars.count)")
+        print("  Categories: \(allCategories)")
+
+        for cvar in allCVars {
+            if let key = cvar["key"] as? String,
+               let displayName = cvar["displayName"] as? String {
+                print("    - \(key): \(displayName)")
+            }
+        }
+
+        categories = allCategories
     }
 }
 
@@ -89,6 +122,8 @@ struct CVarRow: View {
             CVarEnumRow(cvar: cvar, registry: registry)
         case .color:
             CVarColorRow(cvar: cvar, registry: registry)
+        case .vector3:
+            CVarVector3Row(cvar: cvar, registry: registry)
         @unknown default:
             Text("Unknown type: \(cvar.displayName)")
         }
@@ -215,6 +250,71 @@ struct CVarColorRow: View {
                     opacity: Double(simdColor.w)
                 )
             }
+    }
+}
+
+struct CVarVector3Row: View {
+    let cvar: CVarItem
+    let registry: CVarRegistry
+
+    @State private var x: Float = 0
+    @State private var y: Float = 0
+    @State private var z: Float = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(cvar.displayName)
+                .font(.headline)
+
+            VStack(spacing: 4) {
+                HStack {
+                    Text("X:")
+                        .frame(width: 20, alignment: .leading)
+                        .foregroundColor(.secondary)
+                    Slider(value: $x, in: cvar.minFloat...cvar.maxFloat)
+                        .onChange(of: x) { _, _ in updateVector() }
+                    Text(String(format: "%.2f", x))
+                        .monospacedDigit()
+                        .frame(width: 50, alignment: .trailing)
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Text("Y:")
+                        .frame(width: 20, alignment: .leading)
+                        .foregroundColor(.secondary)
+                    Slider(value: $y, in: cvar.minFloat...cvar.maxFloat)
+                        .onChange(of: y) { _, _ in updateVector() }
+                    Text(String(format: "%.2f", y))
+                        .monospacedDigit()
+                        .frame(width: 50, alignment: .trailing)
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Text("Z:")
+                        .frame(width: 20, alignment: .leading)
+                        .foregroundColor(.secondary)
+                    Slider(value: $z, in: cvar.minFloat...cvar.maxFloat)
+                        .onChange(of: z) { _, _ in updateVector() }
+                    Text(String(format: "%.2f", z))
+                        .monospacedDigit()
+                        .frame(width: 50, alignment: .trailing)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .onAppear {
+            let vec = registry.getVector3(cvar.key)
+            x = vec.x
+            y = vec.y
+            z = vec.z
+        }
+    }
+
+    private func updateVector() {
+        registry.setVector3(cvar.key, value: simd_float3(x, y, z))
     }
 }
 

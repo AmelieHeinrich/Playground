@@ -2,8 +2,8 @@
 
 Playground where I mess around with Metal on iOS and macOS.
 
-![](.github/wed17dec25.png)
-(Screenshot taken Wed 17th December 2025)
+![](.github/tue20jan26.png)
+(Screenshot taken Tue 20th January 2026)
 
 ## Features
 

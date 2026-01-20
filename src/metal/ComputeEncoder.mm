@@ -1,14 +1,19 @@
 #include "ComputeEncoder.h"
+#import "Swift/DebugBridge.h"
 
 ComputeEncoder::ComputeEncoder(id<MTLCommandBuffer> buffer, NSString* label, Fence* fence)
     : m_Fence(fence)
 {
     m_Encoder = [buffer computeCommandEncoder];
     [m_Encoder setLabel:label];
+    
+    // Track encoder in Debug Bridge
+    [[DebugBridge shared] beginEncoder:label type:EncoderTypeCompute];
 }
 
 void ComputeEncoder::End()
 {
+    [[DebugBridge shared] endEncoder];
     [m_Encoder endEncoding];
 }
 
@@ -75,6 +80,7 @@ void ComputeEncoder::PopGroup()
 
 void ComputeEncoder::Dispatch(MTLSize numGroups, MTLSize threadsPerGroup)
 {
+    [[DebugBridge shared] recordDispatch:numGroups threadsPerGroup:threadsPerGroup];
     [m_Encoder dispatchThreadgroups:numGroups threadsPerThreadgroup:threadsPerGroup];
 }
 

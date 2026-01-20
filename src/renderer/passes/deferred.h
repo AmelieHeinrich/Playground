@@ -13,6 +13,7 @@ public:
     void Resize(int width, int height) override;
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
     void DebugUI() override;
+    void RegisterCVars() override;
 
     // Accessors for SwiftUI bridge
     bool GetShowHeatmap() const { return m_ShowHeatmap; }

@@ -4,7 +4,8 @@
 
 #include "Renderer/ResourceIo.h"
 #include "math/AAPLMath.h"
-
+#include "Swift/CVarRegistry.h"
+#include "Core/Logger.h"
 
 #include <simd/vector_make.h>
 #include <cmath>
@@ -61,6 +62,16 @@ void DebugRendererPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& c
 void DebugRendererPass::DebugUI()
 {
     // UI is now handled by SwiftUI
+}
+
+void DebugRendererPass::RegisterCVars()
+{
+    LOG_INFO("DebugRendererPass: Registering CVars");
+    CVarRegistry* registry = [CVarRegistry shared];
+    [registry registerBool:@"DebugRenderer.UseDepth"
+                   pointer:&m_UseDepth
+               displayName:@"Use Depth"];
+    LOG_INFO_FMT("DebugRendererPass: Registered UseDepth at pointer %p with value %d", &m_UseDepth, m_UseDepth);
 }
 
 void DebugRendererPass::DrawLine(const simd::float4& start, const simd::float4& end, const simd::float3& color)

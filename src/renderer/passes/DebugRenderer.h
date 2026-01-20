@@ -20,6 +20,7 @@ public:
 
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
     void DebugUI() override;
+    void RegisterCVars() override;
 
     // Accessors for SwiftUI bridge
     bool GetUseDepth() const { return m_UseDepth; }

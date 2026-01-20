@@ -8,7 +8,8 @@
 #include "Metal/Shader.h"
 #include "Renderer/Passes/DebugRenderer.h"
 #include "Renderer/Renderer.h"
-
+#include "Swift/CVarRegistry.h"
+#include "Swift/ActionsBridge.h"
 
 #include <simd/simd.h>
 
@@ -17,13 +18,25 @@ Application::Application()
     , m_CommandQueue(nil)
     , m_Width(0)
     , m_Height(0)
-    , m_RenderScale(0.75f)
+    , m_RenderScaleEnum(2)  // Default to 75%
     , m_LastRenderWidth(0)
     , m_LastRenderHeight(0)
     , m_Camera()
     , m_Input()
     , m_LightsToAdd(10)
 {
+}
+
+// Helper function to convert enum to scale
+static float RenderScaleEnumToFloat(int scaleEnum)
+{
+    switch (scaleEnum) {
+        case 0: return 0.25f;  // 25%
+        case 1: return 0.5f;   // 50%
+        case 2: return 0.75f;  // 75%
+        case 3: return 1.0f;   // 100% (Native)
+        default: return 0.75f;
+    }
 }
 
 Application::~Application()
@@ -67,7 +80,7 @@ bool Application::Initialize(id<MTLDevice> device)
 
     // World
     m_World = new World();
-    m_World->AddModel("models/MirrorTest/MirrorTest.mesh");
+    m_World->AddModel("models/Sponza/Sponza.mesh");
 
     // Directional light
     m_World->GetDirectionalLight() = {
@@ -79,14 +92,79 @@ bool Application::Initialize(id<MTLDevice> device)
 
     m_World->Prepare();
 
+    // Register application CVars
+    RegisterCVars();
+
     LOG_INFO_FMT("Application initialized successfully with Metal device: %@", [m_Device name]);
     return true;
 }
 
-void Application::SetRenderScale(float scale)
+float Application::GetRenderScale() const
 {
-    m_RenderScale = scale;
-    OnResize(m_Width, m_Height);
+    return RenderScaleEnumToFloat(m_RenderScaleEnum);
+}
+
+void Application::RegisterCVars()
+{
+    CVarRegistry* registry = [CVarRegistry shared];
+    ActionsBridge* actions = [ActionsBridge shared];
+    
+    // Directional light settings
+    DirectionalLight& dirLight = m_World->GetDirectionalLight();
+    
+    [registry registerBool:@"Application.DirectionalLightEnabled"
+                   pointer:&dirLight.Enabled
+               displayName:@"Directional Light Enabled"];
+    
+    [registry registerFloat:@"Application.DirectionalLightIntensity"
+                    pointer:&dirLight.Intensity
+                        min:0.0f
+                        max:10.0f
+                displayName:@"Directional Light Intensity"];
+    
+    [registry registerVector3:@"Application.DirectionalLightDirection"
+                      pointer:&dirLight.Direction
+                          min:-1.0f
+                          max:1.0f
+                  displayName:@"Direction"];
+    
+    [registry registerVector3:@"Application.DirectionalLightColor"
+                      pointer:&dirLight.Color
+                          min:0.0f
+                          max:1.0f
+                  displayName:@"Color"];
+    
+    // Register actions for point lights
+    [actions registerAction:@"Application.AddLights"
+                   callback:^{
+                       AddRandomLights(10);
+                   }
+                displayName:@"Add 10 Random Lights"
+                   category:@"Lights"];
+    
+    [actions registerAction:@"Application.Add100Lights"
+                   callback:^{
+                       AddRandomLights(100);
+                   }
+                displayName:@"Add 100 Random Lights"
+                   category:@"Lights"];
+    
+    [actions registerAction:@"Application.ClearLights"
+                   callback:^{
+                       ClearAllLights();
+                   }
+                displayName:@"Clear All Lights"
+                   category:@"Lights"];
+    
+    LOG_INFO("Application: Registered CVars and Actions");
+}
+
+void Application::SetRenderScale(int scaleEnum)
+{
+    if (scaleEnum >= 0 && scaleEnum <= 3) {
+        m_RenderScaleEnum = scaleEnum;
+        OnResize(m_Width, m_Height);
+    }
 }
 
 void Application::ClearAllLights()
@@ -127,8 +205,9 @@ void Application::AddRandomLights(int count)
 void Application::OnResize(uint32_t width, uint32_t height)
 {
     // Apply render scale to actual render resolution
-    uint32_t renderWidth = static_cast<uint32_t>(width * m_RenderScale);
-    uint32_t renderHeight = static_cast<uint32_t>(height * m_RenderScale);
+    float renderScale = GetRenderScale();
+    uint32_t renderWidth = static_cast<uint32_t>(width * renderScale);
+    uint32_t renderHeight = static_cast<uint32_t>(height * renderScale);
 
     // Skip resize if nothing has changed (both window size and render size)
     if (m_Width == width && m_Height == height &&
@@ -149,7 +228,7 @@ void Application::OnResize(uint32_t width, uint32_t height)
         m_Renderer->Resize(renderWidth, renderHeight);
         m_LastRenderWidth = renderWidth;
         m_LastRenderHeight = renderHeight;
-        LOG_INFO_FMT("Render targets resized to: %ux%u (%.0f%%)", renderWidth, renderHeight, m_RenderScale * 100.0f);
+        LOG_INFO_FMT("Render targets resized to: %ux%u (%.0f%%)", renderWidth, renderHeight, GetRenderScale() * 100.0f);
     }
 
     LOG_INFO_FMT("Application resized to: %ux%u", width, height);
@@ -199,4 +278,5 @@ void Application::OnRender(id<CAMetalDrawable> drawable)
     cmdBuffer.SetDrawable(drawable.texture);
     m_Renderer->Render(cmdBuffer, *m_World, m_Camera);
     cmdBuffer.Commit();
+    [cmdBuffer.GetCommandBuffer() waitUntilCompleted];
 }

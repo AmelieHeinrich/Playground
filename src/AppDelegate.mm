@@ -599,6 +599,7 @@ API_AVAILABLE(ios(15.0))
         // Present
         [presentationCommandBuffer presentDrawable:view.currentDrawable];
         [presentationCommandBuffer commit];
+        [presentationCommandBuffer waitUntilCompleted];
 
         // Update and Render additional Platform Windows
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {

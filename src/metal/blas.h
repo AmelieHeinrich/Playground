@@ -11,7 +11,7 @@ public:
     ~BLAS();
 
     uint64_t GetResourceID();
-    void SetLabel(NSString* label) { m_AccelerationStructure.label = label; }
+    void SetLabel(NSString* label);
 
     id<MTLAccelerationStructure> GetAccelerationStructure() const { return m_AccelerationStructure; }
     MTLPrimitiveAccelerationStructureDescriptor* GetDescriptor() const { return m_Descriptor; }

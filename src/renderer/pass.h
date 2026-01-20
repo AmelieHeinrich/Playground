@@ -14,4 +14,5 @@ public:
     virtual void Resize(int width, int height) {}
     virtual void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) = 0;
     virtual void DebugUI() {}
+    virtual void RegisterCVars() {}
 };

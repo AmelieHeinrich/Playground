@@ -2,6 +2,7 @@
 #include "GBuffer.h"
 #include "Renderer/Passes/DebugRenderer.h"
 #include "Renderer/ResourceIo.h"
+#include "Swift/CVarRegistry.h"
 
 
 
@@ -98,6 +99,33 @@ void ShadowPass::DebugUI()
             m_ShadowCascades[i].Resize((int)m_Resolution, (int)m_Resolution);
         }
     }
+}
+
+void ShadowPass::RegisterCVars()
+{
+    CVarRegistry* registry = [CVarRegistry shared];
+    
+    int* techniquePtr = reinterpret_cast<int*>(&m_Technique);
+    [registry registerEnum:@"Shadows.Technique"
+                   pointer:techniquePtr
+                   options:@[@"None", @"Raytraced Hard", @"CSM"]
+               displayName:@"Shadow Technique"];
+    
+    int* resolutionPtr = reinterpret_cast<int*>(&m_Resolution);
+    [registry registerEnum:@"Shadows.Resolution"
+                   pointer:resolutionPtr
+                   options:@[@"Low (512)", @"Medium (1024)", @"High (2048)", @"Ultra (4096)"]
+               displayName:@"Shadow Resolution"];
+    
+    [registry registerFloat:@"Shadows.SplitLambda"
+                    pointer:&m_SplitLambda
+                        min:0.0f
+                        max:1.0f
+                displayName:@"CSM Split Lambda"];
+    
+    [registry registerBool:@"Shadows.UpdateCascades"
+                   pointer:&m_UpdateCascades
+               displayName:@"Update Cascades"];
 }
 
 void ShadowPass::None(CommandBuffer& cmdBuffer, World& world, Camera& camera)

@@ -28,6 +28,9 @@ public:
 
     // Initialize with Metal device
     bool Initialize(id<MTLDevice> device);
+    
+    // Register console variables
+    void RegisterCVars();
 
     // Event callbacks
     void OnResize(uint32_t width, uint32_t height);
@@ -46,8 +49,9 @@ public:
     Camera& GetCamera() { return m_Camera; }
     const Camera& GetCamera() const { return m_Camera; }
 
-    float GetRenderScale() const { return m_RenderScale; }
-    void SetRenderScale(float scale);
+    int GetRenderScaleEnum() const { return m_RenderScaleEnum; }
+    float GetRenderScale() const;
+    void SetRenderScale(int scaleEnum);
 
     // Accessors for SwiftUI bridge
     World* GetWorld() { return m_World; }
@@ -74,7 +78,7 @@ private:
 
     uint32_t m_Width;
     uint32_t m_Height;
-    float m_RenderScale;
+    int m_RenderScaleEnum;  // 0=25%, 1=50%, 2=75%, 3=100%
     uint32_t m_LastRenderWidth;
     uint32_t m_LastRenderHeight;
 

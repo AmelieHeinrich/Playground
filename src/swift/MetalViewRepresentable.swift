@@ -148,11 +148,37 @@ struct MetalViewRepresentable: NSViewRepresentable {
 
 #else
 // iOS implementation
+import GameController
+
+class GameControllerMTKView: MTKView {
+    var virtualController: GCVirtualController?
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+
+        if window != nil && virtualController == nil {
+            setupVirtualController()
+        }
+    }
+
+    private func setupVirtualController() {
+        let config = GCVirtualController.Configuration()
+        config.elements = [GCInputLeftThumbstick, GCInputRightThumbstick]
+
+        virtualController = GCVirtualController(configuration: config)
+        virtualController?.connect()
+    }
+
+    deinit {
+        virtualController?.disconnect()
+    }
+}
+
 struct MetalViewRepresentable: UIViewRepresentable {
     let bridge: ApplicationBridge
 
-    func makeUIView(context: Context) -> MTKView {
-        let mtkView = MTKView(frame: .zero, device: bridge.device)
+    func makeUIView(context: Context) -> GameControllerMTKView {
+        let mtkView = GameControllerMTKView(frame: .zero, device: bridge.device)
         mtkView.delegate = bridge
         mtkView.enableSetNeedsDisplay = false
         mtkView.preferredFramesPerSecond = 60
@@ -162,7 +188,7 @@ struct MetalViewRepresentable: UIViewRepresentable {
         return mtkView
     }
 
-    func updateUIView(_ uiView: MTKView, context: Context) {
+    func updateUIView(_ uiView: GameControllerMTKView, context: Context) {
         // Nothing to update
     }
 }

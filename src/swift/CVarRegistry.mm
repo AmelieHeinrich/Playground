@@ -87,6 +87,20 @@ struct CVarEntry {
     _cvars[key.UTF8String] = entry;
 }
 
+- (void)registerVector3:(NSString*)key
+                pointer:(simd_float3*)ptr
+                    min:(float)min
+                    max:(float)max
+            displayName:(NSString*)name {
+    CVarEntry entry;
+    entry.type = CVarTypeVector3;
+    entry.displayName = name;
+    entry.pointer = ptr;
+    entry.minFloat = min;
+    entry.maxFloat = max;
+    _cvars[key.UTF8String] = entry;
+}
+
 - (void)unregister:(NSString*)key {
     _cvars.erase(key.UTF8String);
 }
@@ -170,6 +184,24 @@ struct CVarEntry {
     }
 }
 
+- (simd_float3)getVector3:(NSString*)key {
+    auto it = _cvars.find(key.UTF8String);
+    if (it != _cvars.end() && it->second.type == CVarTypeVector3) {
+        return *static_cast<simd_float3*>(it->second.pointer);
+    }
+    return simd_make_float3(0, 0, 0);
+}
+
+- (void)setVector3:(NSString*)key value:(simd_float3)value {
+    auto it = _cvars.find(key.UTF8String);
+    if (it != _cvars.end() && it->second.type == CVarTypeVector3) {
+        simd_float3* ptr = static_cast<simd_float3*>(it->second.pointer);
+        ptr->x = fmaxf(it->second.minFloat, fminf(it->second.maxFloat, value.x));
+        ptr->y = fmaxf(it->second.minFloat, fminf(it->second.maxFloat, value.y));
+        ptr->z = fmaxf(it->second.minFloat, fminf(it->second.maxFloat, value.z));
+    }
+}
+
 - (NSArray<NSDictionary*>*)allCVars {
     NSMutableArray* result = [NSMutableArray array];
     
@@ -203,6 +235,15 @@ struct CVarEntry {
                 dict[@"g"] = @(color.y);
                 dict[@"b"] = @(color.z);
                 dict[@"a"] = @(color.w);
+                break;
+            }
+            case CVarTypeVector3: {
+                simd_float3 vec = *static_cast<simd_float3*>(pair.second.pointer);
+                dict[@"x"] = @(vec.x);
+                dict[@"y"] = @(vec.y);
+                dict[@"z"] = @(vec.z);
+                dict[@"min"] = @(pair.second.minFloat);
+                dict[@"max"] = @(pair.second.maxFloat);
                 break;
             }
         }

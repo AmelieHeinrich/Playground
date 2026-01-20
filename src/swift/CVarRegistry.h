@@ -10,7 +10,8 @@ typedef NS_ENUM(NSInteger, CVarType) {
     CVarTypeInt,
     CVarTypeBool,
     CVarTypeEnum,
-    CVarTypeColor
+    CVarTypeColor,
+    CVarTypeVector3
 };
 
 @interface CVarRegistry : NSObject
@@ -43,6 +44,12 @@ typedef NS_ENUM(NSInteger, CVarType) {
               pointer:(simd_float4*)ptr
           displayName:(NSString*)name;
 
+- (void)registerVector3:(NSString*)key
+                pointer:(simd_float3*)ptr
+                    min:(float)min
+                    max:(float)max
+            displayName:(NSString*)name;
+
 // Unregister (for cleanup)
 - (void)unregister:(NSString*)key;
 
@@ -61,6 +68,9 @@ typedef NS_ENUM(NSInteger, CVarType) {
 
 - (simd_float4)getColor:(NSString*)key;
 - (void)setColor:(NSString*)key value:(simd_float4)value;
+
+- (simd_float3)getVector3:(NSString*)key;
+- (void)setVector3:(NSString*)key value:(simd_float3)value;
 
 // UI generation - returns array of CVar descriptors
 // Each descriptor contains: key, type, displayName, min, max, options (for enum)

@@ -4,6 +4,7 @@
 #include "HiZ.h"
 
 #include "Renderer/ResourceIo.h"
+#include "Swift/CVarRegistry.h"
 
 #include <Metal/Metal.h>
 
@@ -46,6 +47,17 @@ void ReflectionPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& came
 void ReflectionPass::DebugUI()
 {
     // UI is now handled by SwiftUI
+}
+
+void ReflectionPass::RegisterCVars()
+{
+    CVarRegistry* registry = [CVarRegistry shared];
+    
+    int* techniquePtr = reinterpret_cast<int*>(&m_Technique);
+    [registry registerEnum:@"Reflections.Technique"
+                   pointer:techniquePtr
+                   options:@[@"None", @"Screen Space Mirror", @"Hybrid Mirror", @"Screen Space Glossy", @"Hybrid Glossy"]
+               displayName:@"Reflection Technique"];
 }
 
 void ReflectionPass::ScreenSpaceMirror(CommandBuffer& cmdBuffer, World& world, Camera& camera)

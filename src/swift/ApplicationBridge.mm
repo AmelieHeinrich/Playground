@@ -1,4 +1,5 @@
 #import "ApplicationBridge.h"
+#import "DebugBridge.h"
 
 #include "Application.h"
 #include "Renderer/Renderer.h"
@@ -79,7 +80,18 @@
 }
 
 - (void)setRenderScale:(float)renderScale {
-    _application->SetRenderScale(renderScale);
+    // Convert float to enum (0=25%, 1=50%, 2=75%, 3=100%)
+    int scaleEnum;
+    if (renderScale <= 0.25f) {
+        scaleEnum = 0;
+    } else if (renderScale <= 0.5f) {
+        scaleEnum = 1;
+    } else if (renderScale <= 0.75f) {
+        scaleEnum = 2;
+    } else {
+        scaleEnum = 3;
+    }
+    _application->SetRenderScale(scaleEnum);
 }
 
 #pragma mark - Point Lights
@@ -325,13 +337,28 @@
         _frameTime = deltaTime * 1000.0f; // Convert to milliseconds
         _fps = 1.0f / deltaTime;
         
+        // Push frame time to Debug Bridge
+        [[DebugBridge shared] pushFrameTime:_frameTime];
+        
+        // Track memory usage
+        size_t memoryUsage = [[DebugBridge shared] totalMemoryUsed];
+        [[DebugBridge shared] pushMemoryUsage:memoryUsage];
+        
         // Update application
+        CFTimeInterval updateStart = CACurrentMediaTime();
         _application->OnUpdate(deltaTime);
+        CFTimeInterval updateEnd = CACurrentMediaTime();
+        double cpuTime = (updateEnd - updateStart) * 1000.0; // Convert to ms
+        [[DebugBridge shared] pushCPUTime:cpuTime];
         
         // Render
         id<CAMetalDrawable> drawable = view.currentDrawable;
         if (drawable) {
+            CFTimeInterval renderStart = CACurrentMediaTime();
             _application->OnRender(drawable);
+            CFTimeInterval renderEnd = CACurrentMediaTime();
+            double gpuTime = (renderEnd - renderStart) * 1000.0; // Convert to ms
+            [[DebugBridge shared] pushGPUTime:gpuTime];
             
             // Present the drawable
             id<MTLCommandBuffer> presentCommandBuffer = [_commandQueue commandBuffer];

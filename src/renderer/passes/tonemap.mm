@@ -2,6 +2,7 @@
 #include "Metal/CommandBuffer.h"
 #include "Metal/GraphicsPipeline.h"
 #include "Renderer/ResourceIo.h"
+#include "Swift/CVarRegistry.h"
 
 #include <Metal/Metal.h>
 
@@ -56,4 +57,14 @@ void TonemapPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 void TonemapPass::DebugUI()
 {
     // UI is now handled by SwiftUI
+}
+
+void TonemapPass::RegisterCVars()
+{
+    CVarRegistry* registry = [CVarRegistry shared];
+    [registry registerFloat:@"Tonemap.Gamma"
+                    pointer:&m_Gamma
+                        min:1.0f
+                        max:3.0f
+                displayName:@"Gamma Correction"];
 }

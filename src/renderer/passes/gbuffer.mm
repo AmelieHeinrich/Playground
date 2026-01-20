@@ -1,5 +1,6 @@
 #include "GBuffer.h"
 #include "Renderer/ResourceIo.h"
+#include "Swift/CVarRegistry.h"
 
 
 
@@ -109,4 +110,12 @@ void GBufferPass::RenderGBuffer(CommandBuffer& cmdBuffer, World& world, Camera& 
 void GBufferPass::DebugUI()
 {
     // UI is now handled by SwiftUI
+}
+
+void GBufferPass::RegisterCVars()
+{
+    CVarRegistry* registry = [CVarRegistry shared];
+    [registry registerBool:@"GBuffer.FreezeICB"
+                   pointer:&m_FreezeICB
+               displayName:@"Freeze Indirect Command Buffer"];
 }

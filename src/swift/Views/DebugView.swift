@@ -3,7 +3,11 @@ import MetalKit
 
 // Main Debug View with tabs for different debug panels
 struct DebugView: View {
-    @State private var selectedTab: DebugTab = .performance
+    @State var selectedTab: DebugTab
+
+    init(selectedTab: DebugTab = .performance) {
+        self.selectedTab = selectedTab
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -19,16 +23,18 @@ struct DebugView: View {
             Divider()
 
             // Content
-            switch selectedTab {
-            case .performance:
-                PerformanceView()
-            case .memory:
-                MemoryView()
-            case .encoders:
-                EncodersView()
-            case .textures:
-                TexturesView()
+            Group {
+                switch selectedTab {
+                case .performance:
+                    PerformanceView()
+                case .memory:
+                    MemoryView()
+                case .encoders:
+                    EncodersView()
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
         }
     }
 }
@@ -37,7 +43,6 @@ enum DebugTab: String, CaseIterable, Identifiable {
     case performance = "Performance"
     case memory = "Memory"
     case encoders = "Encoders"
-    case textures = "Textures"
 
     var id: String { rawValue }
 }
@@ -93,13 +98,16 @@ struct PerformanceView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Stats header
-                HStack(spacing: 24) {
-                    StatBox(title: "FPS", value: String(format: "%.1f", viewModel.currentFPS), color: .green)
-                    StatBox(title: "Frame Time", value: String(format: "%.2f ms", viewModel.averageFrameTime), color: .blue)
-                    StatBox(title: "CPU", value: String(format: "%.2f ms", viewModel.averageCPUTime), color: .orange)
-                    StatBox(title: "GPU", value: String(format: "%.2f ms", viewModel.averageGPUTime), color: .purple)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        CompactStatBox(title: "FPS", value: String(format: "%.1f", viewModel.currentFPS), color: .green)
+                        CompactStatBox(title: "Frame", value: String(format: "%.2f ms", viewModel.averageFrameTime), color: .blue)
+                        CompactStatBox(title: "CPU", value: String(format: "%.2f ms", viewModel.averageCPUTime), color: .orange)
+                        CompactStatBox(title: "GPU", value: String(format: "%.2f ms", viewModel.averageGPUTime), color: .purple)
+                    }
+                    .padding(.horizontal)
                 }
-                .padding()
+                .padding(.vertical)
 
                 Divider()
 
@@ -130,10 +138,9 @@ struct PerformanceView: View {
                 }
                 .font(.caption)
                 .padding(.horizontal)
-
-                Spacer()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             viewModel.startPolling()
         }
@@ -201,7 +208,11 @@ struct PerformanceGraph: View {
                 TargetLine(targetValue: 16.67, maxValue: maxValue)
             }
         }
+        #if os(macOS)
         .background(Color(nsColor: .controlBackgroundColor))
+        #else
+        .background(Color(uiColor: .secondarySystemBackground))
+        #endif
         .cornerRadius(8)
     }
 }
@@ -306,41 +317,53 @@ struct MemoryView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Memory summary
-            HStack(spacing: 16) {
-                VStack(alignment: .leading) {
-                    Text("Total Memory")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(formatBytes(totalMemory))
-                        .font(.system(.title2, design: .monospaced, weight: .semibold))
-                }
-
-                Divider().frame(height: 40)
-
-                // Memory by type
-                ForEach(Array(memoryByType.keys.sorted()), id: \.self) { typeRaw in
-                    let type = ResourceType(rawValue: typeRaw) ?? .other
-                    VStack(alignment: .leading) {
-                        Text(typeName(for: type))
+            VStack(spacing: 8) {
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Total Memory")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text(formatBytes(memoryByType[typeRaw] ?? 0))
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundColor(typeColor(for: type))
+                        Text(formatBytes(totalMemory))
+                            .font(.system(.body, design: .monospaced, weight: .semibold))
+                            .lineLimit(1)
                     }
-                }
+                    .frame(minWidth: 100)
 
-                Spacer()
+                    Divider().frame(height: 30)
 
-                Button("Refresh") {
-                    refresh()
+                    // Memory by type
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(Array(memoryByType.keys.sorted()), id: \.self) { typeRaw in
+                                let type = ResourceType(rawValue: typeRaw) ?? .other
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(typeName(for: type))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text(formatBytes(memoryByType[typeRaw] ?? 0))
+                                        .font(.system(.caption, design: .monospaced))
+                                        .foregroundColor(typeColor(for: type))
+                                        .lineLimit(1)
+                                }
+                                .frame(minWidth: 60)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    Button("Refresh") {
+                        refresh()
+                    }
+                    .buttonStyle(.borderless)
                 }
             }
             .padding()
+            .frame(height: 80)
 
             Divider()
 
             // Allocations table
+            #if os(macOS)
             Table(allocationItems, sortOrder: $sortOrder) {
                 TableColumn("Name", value: \.name) { item in
                     Text(item.name)
@@ -368,7 +391,35 @@ struct MemoryView: View {
             .onChange(of: sortOrder) { _, newOrder in
                 // Table handles sorting automatically
             }
+            .frame(maxHeight: .infinity)
+            #else
+            // iOS: Use List instead of Table
+            List(allocationItems) { item in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(item.name)
+                            .font(.system(.body, design: .monospaced))
+                        Spacer()
+                        Text(formatBytes(item.bytes))
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
+                    HStack(spacing: 12) {
+                        Label(typeName(for: ResourceType(rawValue: item.typeRaw) ?? .other), systemImage: "memorychip")
+                            .font(.caption)
+                            .foregroundColor(typeColor(for: ResourceType(rawValue: item.typeRaw) ?? .other))
+
+                        Label(heapTypeName(for: HeapType(rawValue: item.heapTypeRaw) ?? .private), systemImage: "square.stack.3d.up")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .listStyle(.plain)
+            #endif
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             refresh()
         }
@@ -455,6 +506,9 @@ struct EncodersView: View {
     @State private var frameHierarchy: [String: Any] = [:]
     @State private var totalDrawCalls: Int = 0
     @State private var totalDispatches: Int = 0
+    @State private var totalCopies: Int = 0
+    @State private var totalExecuteIndirects: Int = 0
+    @State private var totalAccelerationBuilds: Int = 0
     @State private var totalVertices: Int64 = 0
     @State private var totalInstances: Int64 = 0
 
@@ -463,25 +517,36 @@ struct EncodersView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Stats header
-            HStack(spacing: 24) {
-                StatBox(title: "Draw Calls", value: "\(totalDrawCalls)", color: .blue)
-                StatBox(title: "Dispatches", value: "\(totalDispatches)", color: .purple)
-                StatBox(title: "Vertices", value: formatNumber(totalVertices), color: .green)
-                StatBox(title: "Instances", value: formatNumber(totalInstances), color: .orange)
-
-                Spacer()
-
-                Button("Refresh") {
-                    refresh()
+            VStack(spacing: 8) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        CompactStatBox(title: "Draw Calls", value: "\(totalDrawCalls)", color: .blue)
+                        CompactStatBox(title: "Dispatches", value: "\(totalDispatches)", color: .purple)
+                        CompactStatBox(title: "Copies", value: "\(totalCopies)", color: .orange)
+                        CompactStatBox(title: "Execute Indirect", value: "\(totalExecuteIndirects)", color: .pink)
+                        CompactStatBox(title: "AS Builds", value: "\(totalAccelerationBuilds)", color: .cyan)
+                        CompactStatBox(title: "Vertices", value: formatNumber(totalVertices), color: .green)
+                        CompactStatBox(title: "Instances", value: formatNumber(totalInstances), color: .yellow)
+                    }
                 }
 
-                if debugBridge.gpuCaptureAvailable {
-                    Button("Capture GPU") {
-                        debugBridge.triggerGPUCapture()
+                HStack {
+                    Spacer()
+                    Button("Refresh") {
+                        refresh()
+                    }
+                    .buttonStyle(.borderless)
+
+                    if debugBridge.gpuCaptureAvailable {
+                        Button("Capture GPU") {
+                            debugBridge.triggerGPUCapture()
+                        }
+                        .buttonStyle(.borderless)
                     }
                 }
             }
             .padding()
+            .frame(height: 80)
 
             Divider()
 
@@ -496,7 +561,9 @@ struct EncodersView: View {
                 }
                 .padding()
             }
+            .frame(maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             refresh()
         }
@@ -506,6 +573,9 @@ struct EncodersView: View {
         frameHierarchy = debugBridge.currentFrameHierarchy() as? [String: Any] ?? [:]
         totalDrawCalls = Int(debugBridge.totalDrawCalls)
         totalDispatches = Int(debugBridge.totalDispatches)
+        totalCopies = Int(debugBridge.totalCopies)
+        totalExecuteIndirects = Int(debugBridge.totalExecuteIndirects)
+        totalAccelerationBuilds = Int(debugBridge.totalAccelerationBuilds)
         totalVertices = debugBridge.totalVertices
         totalInstances = debugBridge.totalInstances
     }
@@ -517,6 +587,29 @@ struct EncodersView: View {
             return String(format: "%.1fK", Double(value) / 1_000.0)
         }
         return "\(value)"
+    }
+}
+
+struct CompactStatBox: View {
+    let title: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.system(.body, design: .monospaced, weight: .medium))
+                .foregroundColor(color)
+                .lineLimit(1)
+        }
+        .frame(minWidth: 60)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.1))
+        .cornerRadius(6)
     }
 }
 
@@ -532,6 +625,9 @@ struct EncoderRow: View {
         let type = EncoderType(rawValue: typeRaw) ?? .render
         let draws = encoder["draws"] as? [[String: Any]] ?? []
         let dispatches = encoder["dispatches"] as? [[String: Any]] ?? []
+        let copies = (encoder["copies"] as? NSNumber)?.intValue ?? 0
+        let executeIndirects = (encoder["executeIndirects"] as? NSNumber)?.intValue ?? 0
+        let accelerationBuilds = (encoder["accelerationBuilds"] as? NSNumber)?.intValue ?? 0
 
         DisclosureGroup(isExpanded: $isExpanded) {
             VStack(alignment: .leading, spacing: 4) {
@@ -575,12 +671,33 @@ struct EncoderRow: View {
                         let tgZ = (dispatch["threadgroupsZ"] as? NSNumber)?.intValue ?? 0
 
                         Text("  Dispatch \(dispatchIndex): [\(tgX), \(tgY), \(tgZ)]")
-                            .font(.system(.caption, design: .monospaced))
-                    }
+                        .font(.system(.caption, design: .monospaced))
                 }
             }
-            .padding(.leading, 16)
-        } label: {
+
+            if copies > 0 {
+                Text("Copies: \(copies)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
+            }
+
+            if executeIndirects > 0 {
+                Text("Execute Indirect: \(executeIndirects)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
+            }
+
+            if accelerationBuilds > 0 {
+                Text("Acceleration Structure Builds: \(accelerationBuilds)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
+            }
+        }
+        .padding(.leading, 16)
+    } label: {
             HStack {
                 Image(systemName: encoderIcon(for: type))
                     .foregroundColor(encoderColor(for: type))
@@ -607,6 +724,7 @@ struct EncoderRow: View {
         case .render: return "Render"
         case .compute: return "Compute"
         case .blit: return "Blit"
+        case .acceleration: return "AccelStruct"
         @unknown default: return "Unknown"
         }
     }
@@ -616,6 +734,7 @@ struct EncoderRow: View {
         case .render: return "paintpalette"
         case .compute: return "cpu"
         case .blit: return "arrow.right.arrow.left"
+        case .acceleration: return "cube.transparent"
         @unknown default: return "questionmark"
         }
     }
@@ -625,343 +744,8 @@ struct EncoderRow: View {
         case .render: return .green
         case .compute: return .purple
         case .blit: return .orange
+        case .acceleration: return .cyan
         @unknown default: return .secondary
-        }
-    }
-}
-
-// MARK: - Textures View
-
-struct TextureItem: Identifiable {
-    let id: String
-    let name: String
-    let width: Int
-    let height: Int
-    let depth: Int
-    let format: Int
-    let mipLevels: Int
-    let arrayLength: Int
-
-    init(from dict: [String: Any]) {
-        self.name = dict["name"] as? String ?? UUID().uuidString
-        self.id = self.name
-        self.width = (dict["width"] as? NSNumber)?.intValue ?? 0
-        self.height = (dict["height"] as? NSNumber)?.intValue ?? 0
-        self.depth = (dict["depth"] as? NSNumber)?.intValue ?? 1
-        self.format = (dict["format"] as? NSNumber)?.intValue ?? 0
-        self.mipLevels = (dict["mipLevels"] as? NSNumber)?.intValue ?? 1
-        self.arrayLength = (dict["arrayLength"] as? NSNumber)?.intValue ?? 1
-    }
-
-    var formatName: String {
-        switch format {
-        case 70: return "RGBA8"
-        case 71: return "RGBA8_sRGB"
-        case 80: return "BGRA8"
-        case 81: return "BGRA8_sRGB"
-        case 115: return "RGBA16F"
-        case 125: return "RGBA32F"
-        case 252: return "Depth32F"
-        case 253: return "Stencil8"
-        case 260: return "Depth32F_S8"
-        default: return "Format \(format)"
-        }
-    }
-}
-
-struct TexturesView: View {
-    @State private var textures: [TextureItem] = []
-    @State private var selectedTexture: String?
-
-    private let debugBridge = DebugBridge.shared()
-
-    var body: some View {
-        HSplitView {
-            // Texture list
-            List(selection: $selectedTexture) {
-                ForEach(textures) { texture in
-                    TextureListRow(texture: texture)
-                        .tag(texture.name)
-                }
-            }
-            .frame(minWidth: 250)
-
-            // Texture preview
-            if let selected = selectedTexture,
-               let texture = debugBridge.getTexture(selected) {
-                TexturePreviewView(name: selected, texture: texture)
-            } else {
-                VStack {
-                    Image(systemName: "photo")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary)
-                    Text("Select a texture to preview")
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-        .onAppear {
-            refresh()
-        }
-    }
-
-    private func refresh() {
-        let dicts = debugBridge.allTextures() as? [[String: Any]] ?? []
-        textures = dicts.map { TextureItem(from: $0) }
-    }
-}
-
-struct TextureListRow: View {
-    let texture: TextureItem
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(texture.name)
-                .font(.system(.body, design: .monospaced))
-                .lineLimit(1)
-
-            HStack {
-                Text("\(texture.width)x\(texture.height)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Text(texture.formatName)
-                    .font(.caption)
-                    .foregroundColor(.blue)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-struct TexturePreviewView: View {
-    let name: String
-    let texture: MTLTexture
-
-    @State private var mipLevel: Int = 0
-    @State private var slice: Int = 0
-    @State private var zoom: CGFloat = 1.0
-    @State private var showChannelR = true
-    @State private var showChannelG = true
-    @State private var showChannelB = true
-    @State private var showChannelA = false
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Toolbar
-            HStack {
-                Text(name)
-                    .font(.headline)
-
-                Spacer()
-
-                // Mip level picker
-                if texture.mipmapLevelCount > 1 {
-                    Picker("Mip", selection: $mipLevel) {
-                        ForEach(0..<Int(texture.mipmapLevelCount), id: \.self) { level in
-                            Text("Mip \(level)").tag(level)
-                        }
-                    }
-                    .frame(width: 100)
-                }
-
-                // Slice picker for arrays
-                if texture.arrayLength > 1 {
-                    Picker("Slice", selection: $slice) {
-                        ForEach(0..<Int(texture.arrayLength), id: \.self) { s in
-                            Text("Slice \(s)").tag(s)
-                        }
-                    }
-                    .frame(width: 100)
-                }
-
-                Divider().frame(height: 20)
-
-                // Channel toggles
-                Toggle("R", isOn: $showChannelR)
-                Toggle("G", isOn: $showChannelG)
-                Toggle("B", isOn: $showChannelB)
-                Toggle("A", isOn: $showChannelA)
-
-                Divider().frame(height: 20)
-
-                // Zoom controls
-                Button("-") { zoom = max(0.25, zoom - 0.25) }
-                Text("\(Int(zoom * 100))%")
-                    .frame(width: 50)
-                Button("+") { zoom = min(4.0, zoom + 0.25) }
-            }
-            .padding()
-
-            Divider()
-
-            // Texture info
-            HStack {
-                Text("\(texture.width)x\(texture.height)")
-                Text("Mips: \(texture.mipmapLevelCount)")
-                if texture.arrayLength > 1 {
-                    Text("Layers: \(texture.arrayLength)")
-                }
-                Spacer()
-            }
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .padding(.horizontal)
-            .padding(.vertical, 4)
-
-            // Preview
-            ScrollView([.horizontal, .vertical]) {
-                MetalTexturePreview(
-                    texture: texture,
-                    mipLevel: mipLevel,
-                    slice: slice,
-                    zoom: zoom
-                )
-                .frame(
-                    width: CGFloat(max(1, Int(texture.width) >> mipLevel)) * zoom,
-                    height: CGFloat(max(1, Int(texture.height) >> mipLevel)) * zoom
-                )
-            }
-            .background(checkerboardPattern())
-        }
-    }
-
-    private func checkerboardPattern() -> some View {
-        Canvas { context, size in
-            let squareSize: CGFloat = 10
-            let rows = Int(size.height / squareSize) + 1
-            let cols = Int(size.width / squareSize) + 1
-
-            for row in 0..<rows {
-                for col in 0..<cols {
-                    let isLight = (row + col) % 2 == 0
-                    let rect = CGRect(
-                        x: CGFloat(col) * squareSize,
-                        y: CGFloat(row) * squareSize,
-                        width: squareSize,
-                        height: squareSize
-                    )
-                    context.fill(
-                        Path(rect),
-                        with: .color(isLight ? Color(white: 0.2) : Color(white: 0.3))
-                    )
-                }
-            }
-        }
-    }
-}
-
-struct MetalTexturePreview: NSViewRepresentable {
-    let texture: MTLTexture
-    let mipLevel: Int
-    let slice: Int
-    let zoom: CGFloat
-
-    func makeNSView(context: Context) -> MTKView {
-        let view = MTKView()
-        view.device = texture.device
-        view.delegate = context.coordinator
-        view.colorPixelFormat = .bgra8Unorm
-        view.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
-        view.isPaused = true
-        view.enableSetNeedsDisplay = true
-        return view
-    }
-
-    func updateNSView(_ view: MTKView, context: Context) {
-        context.coordinator.texture = texture
-        context.coordinator.mipLevel = mipLevel
-        context.coordinator.slice = slice
-        view.setNeedsDisplay(view.bounds)
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(texture: texture, mipLevel: mipLevel, slice: slice)
-    }
-
-    class Coordinator: NSObject, MTKViewDelegate {
-        var texture: MTLTexture
-        var mipLevel: Int
-        var slice: Int
-
-        private var commandQueue: MTLCommandQueue?
-        private var pipelineState: MTLRenderPipelineState?
-
-        init(texture: MTLTexture, mipLevel: Int, slice: Int) {
-            self.texture = texture
-            self.mipLevel = mipLevel
-            self.slice = slice
-            super.init()
-
-            setupPipeline()
-        }
-
-        private func setupPipeline() {
-            let device = texture.device
-            commandQueue = device.makeCommandQueue()
-
-            // Create simple blit shader inline
-            let shaderSource = """
-            #include <metal_stdlib>
-            using namespace metal;
-
-            struct VertexOut {
-                float4 position [[position]];
-                float2 texCoord;
-            };
-
-            vertex VertexOut vertexShader(uint vid [[vertex_id]]) {
-                float2 positions[] = {
-                    float2(-1, -1), float2(1, -1), float2(-1, 1),
-                    float2(1, -1), float2(1, 1), float2(-1, 1)
-                };
-                float2 texCoords[] = {
-                    float2(0, 1), float2(1, 1), float2(0, 0),
-                    float2(1, 1), float2(1, 0), float2(0, 0)
-                };
-
-                VertexOut out;
-                out.position = float4(positions[vid], 0, 1);
-                out.texCoord = texCoords[vid];
-                return out;
-            }
-
-            fragment float4 fragmentShader(VertexOut in [[stage_in]],
-                                          texture2d<float> tex [[texture(0)]]) {
-                constexpr sampler s(filter::nearest);
-                return tex.sample(s, in.texCoord);
-            }
-            """
-
-            do {
-                let library = try device.makeLibrary(source: shaderSource, options: nil)
-                let descriptor = MTLRenderPipelineDescriptor()
-                descriptor.vertexFunction = library.makeFunction(name: "vertexShader")
-                descriptor.fragmentFunction = library.makeFunction(name: "fragmentShader")
-                descriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-                pipelineState = try device.makeRenderPipelineState(descriptor: descriptor)
-            } catch {
-                print("Failed to create pipeline: \(error)")
-            }
-        }
-
-        func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
-
-        func draw(in view: MTKView) {
-            guard let drawable = view.currentDrawable,
-                  let descriptor = view.currentRenderPassDescriptor,
-                  let commandBuffer = commandQueue?.makeCommandBuffer(),
-                  let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor),
-                  let pipeline = pipelineState else { return }
-
-            encoder.setRenderPipelineState(pipeline)
-            encoder.setFragmentTexture(texture, index: 0)
-            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
-            encoder.endEncoding()
-
-            commandBuffer.present(drawable)
-            commandBuffer.commit()
         }
     }
 }
