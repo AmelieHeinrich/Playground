@@ -1,7 +1,7 @@
 #include "gbuffer.h"
 #include "renderer/resource_io.h"
 
-#include <imgui.h>
+
 
 GBufferPass::GBufferPass()
 {
@@ -108,8 +108,5 @@ void GBufferPass::RenderGBuffer(CommandBuffer& cmdBuffer, World& world, Camera& 
 
 void GBufferPass::DebugUI()
 {
-    if (ImGui::TreeNodeEx("GBuffer", ImGuiTreeNodeFlags_Framed)) {
-        ImGui::Checkbox("Freeze ICB", &m_FreezeICB);
-        ImGui::TreePop();
-    }
+    // UI is now handled by SwiftUI
 }

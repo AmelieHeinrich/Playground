@@ -3,7 +3,7 @@
 #include "renderer/passes/debug_renderer.h"
 #include "renderer/resource_io.h"
 
-#include <imgui.h>
+
 
 int ResolutionToIndex(ShadowResolution resolution)
 {
@@ -90,30 +90,10 @@ void ShadowPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 
 void ShadowPass::DebugUI()
 {
-    if (ImGui::TreeNodeEx("Shadows", ImGuiTreeNodeFlags_Framed)) {
-        const char* techniques[] = {"None", "Raytraced Hard", "CSM"};
-        int selected = static_cast<int>(m_Technique);
-        ImGui::Combo("Technique", &selected, techniques, IM_ARRAYSIZE(techniques));
-        m_Technique = static_cast<ShadowTechnique>(selected);
-
-        if (m_Technique == ShadowTechnique::CSM) {
-            ImGui::Separator();
-
-            const char* resolutions[] = {"Low", "Medium", "High", "Ultra"};
-
-            int selected = ResolutionToIndex(m_Resolution);
-            ImGui::Combo("Resolution", &selected, resolutions, IM_ARRAYSIZE(resolutions));
-            m_Resolution = IndexToResolution(selected);
-
-            ImGui::SliderFloat("Split Lambda", &m_SplitLambda, 0.01f, 1.0f);
-            ImGui::Checkbox("Update Cascades", &m_UpdateCascades);
-        }
-
-        ImGui::TreePop();
-    }
+    // UI is now handled by SwiftUI
     
+    // Check if resolution changed and resize shadow cascades
     if ((int)m_Resolution != m_ShadowCascades[0].Width()) {
-        // Resize
         for (int i = 0; i < SHADOW_CASCADE_COUNT; ++i) {
             m_ShadowCascades[i].Resize((int)m_Resolution, (int)m_Resolution);
         }

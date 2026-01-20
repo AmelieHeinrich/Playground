@@ -5,7 +5,7 @@
 
 #include "renderer/resource_io.h"
 
-#include <imgui.h>
+
 
 struct DeferredConstants
 {
@@ -83,8 +83,5 @@ void DeferredPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera
 
 void DeferredPass::DebugUI()
 {
-    if (ImGui::TreeNodeEx("Deferred", ImGuiTreeNodeFlags_Framed)) {
-        ImGui::Checkbox("Show Cluster Heatmap", &m_ShowHeatmap);
-        ImGui::TreePop();
-    }
+    // UI is now handled by SwiftUI
 }

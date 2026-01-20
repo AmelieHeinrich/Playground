@@ -6,7 +6,7 @@
 #include "renderer/resource_io.h"
 
 #include <Metal/Metal.h>
-#include <imgui.h>
+
 
 ReflectionPass::ReflectionPass()
 {
@@ -45,14 +45,7 @@ void ReflectionPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& came
 
 void ReflectionPass::DebugUI()
 {
-    if (ImGui::TreeNodeEx("Reflections", ImGuiTreeNodeFlags_Framed)) {
-        const char* techniques[] = {"None", "Screen Space (Mirror)", "Screen Space (Glossy)", "Hybrid SSRT (Mirror)", "Hybrid SSRT (Glossy)"};
-        int selected = static_cast<int>(m_Technique);
-        ImGui::Combo("Technique", &selected, techniques, IM_ARRAYSIZE(techniques));
-        m_Technique = static_cast<ReflectionTechnique>(selected);
-
-        ImGui::TreePop();
-    }
+    // UI is now handled by SwiftUI
 }
 
 void ReflectionPass::ScreenSpaceMirror(CommandBuffer& cmdBuffer, World& world, Camera& camera)

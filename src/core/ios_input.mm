@@ -1,7 +1,6 @@
 #include "ios_input.h"
 
 #import <GameController/GameController.h>
-#include <imgui.h>
 
 IOSInput::IOSInput()
     : m_MoveVector(simd_make_float3(0.0f, 0.0f, 0.0f))

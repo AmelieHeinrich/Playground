@@ -19,6 +19,10 @@ public:
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
     void DebugUI() override;
 
+    // Accessors for SwiftUI bridge
+    float GetGamma() const { return m_Gamma; }
+    void SetGamma(float g) { m_Gamma = g; }
+
 private:
     ComputePipeline m_Pipeline;
     GraphicsPipeline m_BlitPipeline;

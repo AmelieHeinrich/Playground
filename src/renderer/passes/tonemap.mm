@@ -4,7 +4,7 @@
 #include "renderer/resource_io.h"
 
 #include <Metal/Metal.h>
-#include <imgui.h>
+
 
 TonemapPass::TonemapPass()
 {
@@ -55,8 +55,5 @@ void TonemapPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 
 void TonemapPass::DebugUI()
 {
-    if (ImGui::TreeNodeEx("Tonemap + Gamma", ImGuiTreeNodeFlags_Framed)) {
-        ImGui::SliderFloat("Gamma", &m_Gamma, 0.1f, 5.0f);
-        ImGui::TreePop();
-    }
+    // UI is now handled by SwiftUI
 }

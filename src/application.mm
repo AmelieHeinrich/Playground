@@ -8,7 +8,7 @@
 #include "renderer/passes/debug_renderer.h"
 #include "renderer/renderer.h"
 
-#include <imgui.h>
+
 #include <simd/simd.h>
 
 Application::Application()
@@ -80,6 +80,18 @@ bool Application::Initialize(id<MTLDevice> device)
 
     NSLog(@"Application initialized successfully with Metal device: %@", [m_Device name]);
     return true;
+}
+
+void Application::SetRenderScale(float scale)
+{
+    m_RenderScale = scale;
+    OnResize(m_Width, m_Height);
+}
+
+void Application::ClearAllLights()
+{
+    m_World->GetLightList().GetPointLights().clear();
+    m_InitialLightPositions.clear();
 }
 
 void Application::AddRandomLights(int count)
@@ -165,113 +177,15 @@ void Application::OnUpdate(float deltaTime)
     }
 
     m_World->Update(m_Camera);
-    m_Input.Update(deltaTime);
+    // IMPORTANT: Camera must update BEFORE Input.Update() so it can read the mouse delta
+    // Input.Update() saves current position as previous for the next frame
     m_Camera.Update(m_Input, deltaTime);
+    m_Input.Update(deltaTime);
 }
 
 void Application::OnUI()
 {
-    ImGui::Begin("Application");
-    ImGui::Text("Metal Playground by Amélie Heinrich");
-    ImGui::Text("%.3f ms (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-#if !TARGET_OS_IPHONE
-    ImGui::Separator();
-    ImGui::Text("Camera Controls");
-    ImGui::Text("WASD - Move, Space/Shift - Up/Down");
-    ImGui::Text("Right Mouse Button - Look Around");
-#endif
-
-    if (ImGui::TreeNodeEx("World Settings", ImGuiTreeNodeFlags_Framed)) {
-        ImGui::Separator();
-
-        // Point lights
-        auto& lights = m_World->GetLightList().GetPointLights();
-        ImGui::Text("Point Lights: %zu", lights.size());
-
-        ImGui::SliderInt("Lights to Add", &m_LightsToAdd, 1, 100);
-
-        if (ImGui::Button("Add Random Lights")) {
-            AddRandomLights(m_LightsToAdd);
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button("Clear All Lights")) {
-            lights.clear();
-            m_InitialLightPositions.clear();
-        }
-
-        ImGui::Separator();
-
-        // Directional light
-        DirectionalLight& sun = m_World->GetDirectionalLight();
-        ImGui::Checkbox("Directional Light", &sun.Enabled);
-
-        if (sun.Enabled) {
-            ImGui::DragFloat3("Direction", (float*)&sun.Direction, 0.01f);
-            sun.Direction = simd::normalize(sun.Direction);
-            ImGui::ColorEdit3("Color",(float*)&sun.Color);
-            ImGui::SliderFloat("Intensity", &sun.Intensity, 0.0f, 10.0f);
-        }
-
-        ImGui::TreePop();
-    }
-
-    if (ImGui::TreeNodeEx("Renderer Settings", ImGuiTreeNodeFlags_Framed)) {
-        ImGui::Separator();
-
-        // Scale multipliers of the output resolution
-        const float scales[] = { 0.25f, 0.5f, 0.75f, 1.0f };
-        const char* scaleNames[] = { "25%", "50%", "75%", "Native" };
-
-        // Find current selection index
-        int currentIndex = 2; // Default to 75%
-        for (int i = 0; i < 4; i++) {
-            if (fabsf(m_RenderScale - scales[i]) < 0.01f) {
-                currentIndex = i;
-                break;
-            }
-        }
-
-        ImGui::Text("Render Resolution");
-        ImGui::Text("Output: %ux%u", m_Width, m_Height);
-
-        // Show actual render resolution
-        uint32_t renderWidth = static_cast<uint32_t>(m_Width * m_RenderScale);
-        uint32_t renderHeight = static_cast<uint32_t>(m_Height * m_RenderScale);
-        ImGui::Text("Internal: %ux%u", renderWidth, renderHeight);
-
-        ImGui::Separator();
-
-        // Create combo items with resolution info
-        if (ImGui::BeginCombo("Scale", scaleNames[currentIndex])) {
-            for (int i = 0; i < 4; i++) {
-                uint32_t scaledWidth = static_cast<uint32_t>(m_Width * scales[i]);
-                uint32_t scaledHeight = static_cast<uint32_t>(m_Height * scales[i]);
-
-                char label[128];
-                snprintf(label, sizeof(label), "%s - %ux%u", scaleNames[i], scaledWidth, scaledHeight);
-
-                bool isSelected = (currentIndex == i);
-                if (ImGui::Selectable(label, isSelected)) {
-                    m_RenderScale = scales[i];
-                    OnResize(m_Width, m_Height);
-                }
-
-                if (isSelected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-        ImGui::Separator();
-        m_Renderer->DebugUI();
-        ImGui::TreePop();
-    }
-
-    ImGui::End();
+    // UI is now handled by SwiftUI - this method is kept for compatibility
 }
 
 void Application::OnRender(id<CAMetalDrawable> drawable)

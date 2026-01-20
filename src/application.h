@@ -35,7 +35,7 @@ public:
     // Update callback - called before rendering
     void OnUpdate(float deltaTime);
 
-    // UI callback - override this to draw ImGui UI
+    // UI callback - kept for compatibility (UI is now handled by SwiftUI)
     virtual void OnUI();
 
     // Rendering - now called by delegate, takes command buffer and drawable
@@ -47,9 +47,26 @@ public:
     const Camera& GetCamera() const { return m_Camera; }
 
     float GetRenderScale() const { return m_RenderScale; }
+    void SetRenderScale(float scale);
+
+    // Accessors for SwiftUI bridge
+    World* GetWorld() { return m_World; }
+    Renderer* GetRenderer() { return m_Renderer; }
+    void AddRandomLights(int count);
+    void ClearAllLights();
+
+    uint32_t GetOutputWidth() const { return m_Width; }
+    uint32_t GetOutputHeight() const { return m_Height; }
+    uint32_t GetRenderWidth() const { return m_LastRenderWidth; }
+    uint32_t GetRenderHeight() const { return m_LastRenderHeight; }
+
+#if TARGET_OS_IPHONE
+    IOSInput& GetInput() { return m_Input; }
+#else
+    MacOSInput& GetInput() { return m_Input; }
+#endif
 
 private:
-    void AddRandomLights(int count);
 
     id<MTLDevice> m_Device;
     id<MTLCommandQueue> m_CommandQueue;

@@ -21,6 +21,10 @@ public:
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
     void DebugUI() override;
 
+    // Accessors for SwiftUI bridge
+    bool GetUseDepth() const { return m_UseDepth; }
+    void SetUseDepth(bool use) { m_UseDepth = use; }
+
     static void DrawLine(const simd::float4& start, const simd::float4& end, const simd::float3& color = simd::make_float3(1.0f, 1.0f, 1.0f));
     static void DrawLineV3(const simd::float3& start, const simd::float3& end, const simd::float3& color = simd::make_float3(1.0f, 1.0f, 1.0f));
     static void DrawTriangle(simd::float4x4 transform, const simd::float3& a, const simd::float3& b, const simd::float3& c, const simd::float3& color = simd::make_float3(1.0f, 1.0f, 1.0f));

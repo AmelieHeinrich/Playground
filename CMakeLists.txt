@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
-project(Playground VERSION 1.0.0 LANGUAGES C CXX)
+project(Playground VERSION 1.0.0 LANGUAGES C CXX Swift)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Swift settings
+set(CMAKE_Swift_LANGUAGE_VERSION 5)
 
 # Export compile commands for clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -25,8 +28,8 @@ endif()
 # Third-party Libraries
 # ============================================================================
 
-# Add ImGui library
-add_subdirectory(thirdparty/imgui)
+# ImGui removed - using SwiftUI now
+# add_subdirectory(thirdparty/imgui)
 
 # Add libktx library
 # Configure libktx options before adding subdirectory
@@ -66,11 +69,18 @@ add_subdirectory(tools)
 # Main Executable Target
 # ============================================================================
 
-# Collect all source files from src/
+# Collect all source files from src/ (excluding old app_delegate and main for SwiftUI build)
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.mm" "src/*.m" "src/*.c")
+
+# Remove old entry points (SwiftUI has its own entry point)
+list(FILTER SOURCES EXCLUDE REGEX ".*app_delegate\\.mm$")
+list(FILTER SOURCES EXCLUDE REGEX ".*main\\.mm$")
 
 # Collect all header files from src/
 file(GLOB_RECURSE HEADERS "src/*.h")
+
+# Collect Swift source files
+file(GLOB_RECURSE SWIFT_SOURCES "src/swift/*.swift")
 
 # Collect all shader files from assets/shaders/ (excluding common subdirectory)
 file(GLOB SHADERS "assets/shaders/*.metal")
@@ -112,7 +122,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 # Create the executable as an application bundle (works for both macOS and iOS)
-add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${SHADERS} ${SHADER_HEADERS} ${CMAKE_SOURCE_DIR}/raw_assets/AppAssets.xcassets)
+add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${SWIFT_SOURCES} ${SHADERS} ${SHADER_HEADERS} ${CMAKE_SOURCE_DIR}/raw_assets/AppAssets.xcassets)
 
 if (IOS)
     set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -126,8 +136,16 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     "Metal30"
 )
 
+# Swift/Objective-C bridging header
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/swift/Playground-Bridging-Header.h"
+    XCODE_ATTRIBUTE_DEFINES_MODULE YES
+    XCODE_ATTRIBUTE_SWIFT_VERSION "5.0"
+)
+
 # Source group for Xcode
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SOURCES} ${HEADERS})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SOURCES} ${HEADERS} ${SWIFT_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/assets FILES ${SHADERS} ${SHADER_HEADERS})
 
 # Add src/ to include directories
@@ -141,8 +159,8 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-fobjc-arc>
 )
 
-# Link ImGui and libktx libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE imgui ktx)
+# Link libktx library (ImGui removed - using SwiftUI now)
+target_link_libraries(${PROJECT_NAME} PRIVATE ktx)
 
 # Add libktx include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -226,7 +244,7 @@ if(IOS)
         MACOSX_BUNDLE_GUI_IDENTIFIER "amelieheinrich.${PROJECT_NAME}"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info-iOS.plist.in"
         XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"  # iPhone and iPad
-        XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.0"
+        XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "17.0"  # Required for @Observable
         XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
         XCODE_ATTRIBUTE_DEVELOPMENT_TEAM ""
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "amelieheinrich.${PROJECT_NAME}"
@@ -237,6 +255,7 @@ if(IOS)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         "-framework Foundation"
         "-framework UIKit"
+        "-framework SwiftUI"
         "-framework Metal"
         "-framework MetalKit"
         "-framework QuartzCore"
@@ -252,7 +271,7 @@ elseif(MACOS)
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
         MACOSX_BUNDLE_GUI_IDENTIFIER "amelieheinrich.${PROJECT_NAME}"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info-macOS.plist.in"
-        XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET "15.0"
+        XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET "14.0"  # Required for @Observable
         XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon macOS"
     )
 
@@ -260,9 +279,11 @@ elseif(MACOS)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         "-framework Foundation"
         "-framework Cocoa"
+        "-framework SwiftUI"
         "-framework Metal"
         "-framework MetalKit"
         "-framework QuartzCore"
+        "-framework GameController"
     )
 endif()
 

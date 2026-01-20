@@ -11,6 +11,10 @@ public:
     vector_float2 GetRotateVector() const override;
     void Update(float deltaTime) override;
 
+    // Mouse event handling (called from view)
+    void SetMousePosition(vector_float2 position);
+    void SetRightMouseDown(bool down);
+
 private:
     vector_float2 m_CurrentMousePos;
     vector_float2 m_PreviousMousePos;

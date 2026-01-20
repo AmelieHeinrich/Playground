@@ -5,7 +5,7 @@
 #include "renderer/resource_io.h"
 #include "math/AAPLMath.h"
 
-#include <imgui.h>
+
 #include <simd/vector_make.h>
 #include <cmath>
 
@@ -60,10 +60,7 @@ void DebugRendererPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& c
 
 void DebugRendererPass::DebugUI()
 {
-    if (ImGui::TreeNodeEx("Debug Renderer", ImGuiTreeNodeFlags_Framed)) {
-        ImGui::Checkbox("Use Depth", &m_UseDepth);
-        ImGui::TreePop();
-    }
+    // UI is now handled by SwiftUI
 }
 
 void DebugRendererPass::DrawLine(const simd::float4& start, const simd::float4& end, const simd::float3& color)

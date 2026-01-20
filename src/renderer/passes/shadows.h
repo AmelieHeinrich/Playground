@@ -41,6 +41,20 @@ public:
     void Resize(int width, int height) override;
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
     void DebugUI() override;
+
+    // Accessors for SwiftUI bridge
+    ShadowTechnique GetTechnique() const { return m_Technique; }
+    void SetTechnique(ShadowTechnique t) { m_Technique = t; }
+    
+    ShadowResolution GetResolution() const { return m_Resolution; }
+    void SetResolution(ShadowResolution r) { m_Resolution = r; }
+    
+    float GetSplitLambda() const { return m_SplitLambda; }
+    void SetSplitLambda(float l) { m_SplitLambda = l; }
+    
+    bool GetUpdateCascades() const { return m_UpdateCascades; }
+    void SetUpdateCascades(bool u) { m_UpdateCascades = u; }
+
 private:
     void None(CommandBuffer& cmdBuffer, World& world, Camera& camera);
     void RaytracedHard(CommandBuffer& cmdBuffer, World& world, Camera& camera);

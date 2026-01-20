@@ -17,7 +17,11 @@ public:
     void Resize(int width, int height) override;
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
     void DebugUI() override;
-    
+
+    // Accessors for SwiftUI bridge
+    bool GetFreezeICB() const { return m_FreezeICB; }
+    void SetFreezeICB(bool freeze) { m_FreezeICB = freeze; }
+
 private:
     void BuildAccelerationStructure(CommandBuffer& cmdBuffer, World& world, Camera& camera);
     void CullInstances(CommandBuffer& cmdBuffer, World& world, Camera& camera);

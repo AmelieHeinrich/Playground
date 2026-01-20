@@ -13,6 +13,11 @@ public:
     void Resize(int width, int height) override;
     void Render(CommandBuffer& cmdBuffer, World& world, Camera& camera) override;
     void DebugUI() override;
+
+    // Accessors for SwiftUI bridge
+    bool GetShowHeatmap() const { return m_ShowHeatmap; }
+    void SetShowHeatmap(bool show) { m_ShowHeatmap = show; }
+
 private:
     ComputePipeline m_Pipeline;
 
