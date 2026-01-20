@@ -8,10 +8,6 @@
 #include "renderer/passes/debug_renderer.h"
 #include "renderer/renderer.h"
 
-#import <Metal/Metal.h>
-#include <simd/matrix.h>
-#import <MetalKit/MetalKit.h>
-
 #include <imgui.h>
 #include <simd/simd.h>
 
@@ -70,7 +66,7 @@ bool Application::Initialize(id<MTLDevice> device)
 
     // World
     m_World = new World();
-    m_World->AddModel("models/Sponza/Sponza.mesh");
+    m_World->AddModel("models/MirrorTest/MirrorTest.mesh");
 
     // Directional light
     m_World->GetDirectionalLight() = {
@@ -188,37 +184,37 @@ void Application::OnUI()
 
     if (ImGui::TreeNodeEx("World Settings", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Separator();
-        
+
         // Point lights
         auto& lights = m_World->GetLightList().GetPointLights();
         ImGui::Text("Point Lights: %zu", lights.size());
-        
+
         ImGui::SliderInt("Lights to Add", &m_LightsToAdd, 1, 100);
-        
+
         if (ImGui::Button("Add Random Lights")) {
             AddRandomLights(m_LightsToAdd);
         }
-        
+
         ImGui::SameLine();
-        
+
         if (ImGui::Button("Clear All Lights")) {
             lights.clear();
             m_InitialLightPositions.clear();
         }
-        
+
         ImGui::Separator();
-        
+
         // Directional light
         DirectionalLight& sun = m_World->GetDirectionalLight();
         ImGui::Checkbox("Directional Light", &sun.Enabled);
-        
+
         if (sun.Enabled) {
             ImGui::DragFloat3("Direction", (float*)&sun.Direction, 0.01f);
             sun.Direction = simd::normalize(sun.Direction);
             ImGui::ColorEdit3("Color",(float*)&sun.Color);
             ImGui::SliderFloat("Intensity", &sun.Intensity, 0.0f, 10.0f);
         }
-        
+
         ImGui::TreePop();
     }
 

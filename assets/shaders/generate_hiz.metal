@@ -19,7 +19,6 @@ kernel void generate_hiz(texture2d<float> src [[texture(0)]],
     float d2 = (base.y + 1 < src_h) ? src.read(base + uint2(0, 1)).r : d0;
     float d3 = (base.x + 1 < src_w && base.y + 1 < src_h) ? src.read(base + uint2(1, 1)).r : d0;
 
-    // Use max for furthest depth (reverse-Z: max = furthest)
-    float hiz = max(max(d0, d1), max(d2, d3));
+    float hiz = min(min(d0, d1), min(d2, d3));
     dst.write(hiz, gid);
 }
