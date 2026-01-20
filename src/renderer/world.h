@@ -1,16 +1,16 @@
 #pragma once
 
-#include "asset/mesh_loader.h"
+#include "Asset/MeshLoader.h"
 
 #include <simd/quaternion.h>
 #include <simd/simd.h>
 #include <vector>
 
-#include "core/camera.h"
-#include "metal/blas.h"
-#include "metal/tlas.h"
-#include "renderer/light.h"
-#include "scene_ab.h"
+#include "Core/Camera.h"
+#include "Metal/BLAS.h"
+#include "Metal/TLAS.h"
+#include "Renderer/Light.h"
+#include "SceneAb.h"
 
 struct Entity
 {

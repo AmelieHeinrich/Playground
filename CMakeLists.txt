@@ -73,14 +73,14 @@ add_subdirectory(tools)
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.mm" "src/*.m" "src/*.c")
 
 # Remove old entry points (SwiftUI has its own entry point)
-list(FILTER SOURCES EXCLUDE REGEX ".*app_delegate\\.mm$")
-list(FILTER SOURCES EXCLUDE REGEX ".*main\\.mm$")
+list(FILTER SOURCES EXCLUDE REGEX ".*AppDelegate\\.mm$")
+list(FILTER SOURCES EXCLUDE REGEX ".*Main\\.mm$")
 
 # Collect all header files from src/
 file(GLOB_RECURSE HEADERS "src/*.h")
 
 # Collect Swift source files
-file(GLOB_RECURSE SWIFT_SOURCES "src/swift/*.swift")
+file(GLOB_RECURSE SWIFT_SOURCES "src/Swift/*.swift")
 
 # Collect all shader files from assets/shaders/ (excluding common subdirectory)
 file(GLOB SHADERS "assets/shaders/*.metal")
@@ -139,7 +139,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 # Swift/Objective-C bridging header
 set_target_properties(${PROJECT_NAME} PROPERTIES
     XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/swift/Playground-Bridging-Header.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Swift/Playground-Bridging-Header.h"
     XCODE_ATTRIBUTE_DEFINES_MODULE YES
     XCODE_ATTRIBUTE_SWIFT_VERSION "5.0"
 )

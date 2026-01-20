@@ -1,4 +1,4 @@
-#include "device.h"
+#include "Device.h"
 #include <Metal/Metal.h>
 
 id<MTLDevice> Device::m_Device;

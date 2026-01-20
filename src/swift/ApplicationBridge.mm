@@ -1,19 +1,20 @@
 #import "ApplicationBridge.h"
 
-#include "application.h"
-#include "renderer/renderer.h"
-#include "renderer/passes/shadows.h"
-#include "renderer/passes/deferred.h"
-#include "renderer/passes/reflections.h"
-#include "renderer/passes/gbuffer.h"
-#include "renderer/passes/tonemap.h"
-#include "renderer/passes/debug_renderer.h"
+#include "Application.h"
+#include "Renderer/Renderer.h"
+#include "Renderer/Passes/Shadows.h"
+#include "Renderer/Passes/Deferred.h"
+#include "Renderer/Passes/Reflections.h"
+#include "Renderer/Passes/GBuffer.h"
+#include "Renderer/Passes/Tonemap.h"
+#include "Renderer/Passes/DebugRenderer.h"
 
 @implementation ApplicationBridge {
     Application* _application;
     CFTimeInterval _lastFrameTime;
     float _fps;
     float _frameTime;
+    BOOL _inputEnabled;
 }
 
 - (instancetype)initWithDevice:(id<MTLDevice>)device {
@@ -31,6 +32,7 @@
         _fps = 0.0f;
         _frameTime = 0.0f;
         _lastFrameTime = 0.0;
+        _inputEnabled = YES; // Input enabled by default
     }
     return self;
 }
@@ -281,14 +283,30 @@
 
 - (void)setMousePosition:(simd_float2)position {
 #if !TARGET_OS_IPHONE
-    _application->GetInput().SetMousePosition(position);
+    if (_inputEnabled) {
+        _application->GetInput().SetMousePosition(position);
+    }
 #endif
 }
 
 - (void)setRightMouseDown:(BOOL)down {
 #if !TARGET_OS_IPHONE
-    _application->GetInput().SetRightMouseDown(down);
+    if (_inputEnabled) {
+        _application->GetInput().SetRightMouseDown(down);
+    }
 #endif
+}
+
+#pragma mark - Input Control
+
+- (BOOL)inputEnabled {
+    return _inputEnabled;
+}
+
+- (void)setInputEnabled:(BOOL)enabled {
+    _inputEnabled = enabled;
+    // Update the application's input system
+    _application->GetInput().SetEnabled(enabled);
 }
 
 #pragma mark - MTKViewDelegate

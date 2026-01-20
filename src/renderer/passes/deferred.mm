@@ -1,9 +1,9 @@
-#include "deferred.h"
-#include "cluster_cull.h"
-#include "gbuffer.h"
-#include "shadows.h"
+#include "Deferred.h"
+#include "ClusterCull.h"
+#include "GBuffer.h"
+#include "Shadows.h"
 
-#include "renderer/resource_io.h"
+#include "Renderer/ResourceIo.h"
 
 
 

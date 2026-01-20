@@ -1,5 +1,5 @@
-#include "camera.h"
-#include "input.h"
+#include "Camera.h"
+#include "Input.h"
 
 #include <cmath>
 #include <simd/quaternion.h>

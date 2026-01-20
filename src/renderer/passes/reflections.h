@@ -1,8 +1,8 @@
 #pragma once
 
-#include "metal/compute_encoder.h"
-#include "metal/compute_pipeline.h"
-#include "renderer/pass.h"
+#include "Metal/ComputeEncoder.h"
+#include "Metal/ComputePipeline.h"
+#include "Renderer/Pass.h"
 
 enum class ReflectionTechnique
 {

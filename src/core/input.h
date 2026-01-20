@@ -9,4 +9,10 @@ public:
     virtual vector_float3 GetMoveVector() const = 0;
     virtual vector_float2 GetRotateVector() const = 0;
     virtual void Update(float deltaTime) = 0;
+    
+    void SetEnabled(bool enabled) { m_Enabled = enabled; }
+    bool IsEnabled() const { return m_Enabled; }
+
+protected:
+    bool m_Enabled = true;
 };

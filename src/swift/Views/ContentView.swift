@@ -2,6 +2,12 @@ import SwiftUI
 
 struct ContentView: View {
     let bridge: ApplicationBridge
+    @State private var inputController: InputController
+
+    init(bridge: ApplicationBridge) {
+        self.bridge = bridge
+        self._inputController = State(initialValue: InputController(bridge: bridge))
+    }
 
     #if os(iOS)
     @State private var showSettings = false
@@ -13,6 +19,7 @@ struct ContentView: View {
     @State private var showBottomPanel = true
 
     var body: some View {
+        Group {
         #if os(macOS)
         GeometryReader { geometry in
             HStack(spacing: 0) {
@@ -157,6 +164,8 @@ struct ContentView: View {
             .presentationDragIndicator(.visible)
         }
         #endif
+        }
+        .environment(\.inputController, inputController)
     }
 }
 

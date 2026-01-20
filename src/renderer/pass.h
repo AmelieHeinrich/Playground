@@ -1,9 +1,9 @@
 #pragma once
 
-#include "core/camera.h"
-#include "metal/command_buffer.h"
+#include "Core/Camera.h"
+#include "Metal/CommandBuffer.h"
 
-#include "world.h"
+#include "World.h"
 
 class Pass
 {

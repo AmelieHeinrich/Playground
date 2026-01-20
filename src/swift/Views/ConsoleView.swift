@@ -217,6 +217,8 @@ struct ConsoleView: View {
 
 struct ConsoleToolbar: View {
     @Bindable var viewModel: ConsoleViewModel
+    @FocusState private var searchFocused: Bool
+    @Environment(\.inputController) private var inputController
 
     var body: some View {
         HStack(spacing: 12) {
@@ -226,6 +228,11 @@ struct ConsoleToolbar: View {
                     .foregroundColor(.secondary)
                 TextField("Search...", text: $viewModel.searchText)
                     .textFieldStyle(.plain)
+                    .focused($searchFocused)
+                    .onChange(of: searchFocused) { _, focused in
+                        // Disable app input when search field is focused
+                        inputController?.setInputEnabled(!focused)
+                    }
                 if !viewModel.searchText.isEmpty {
                     Button(action: { viewModel.searchText = "" }) {
                         Image(systemName: "xmark.circle.fill")
@@ -322,6 +329,7 @@ struct ConsoleLogRow: View {
 struct ConsoleCommandInput: View {
     @Bindable var viewModel: ConsoleViewModel
     @FocusState private var isFocused: Bool
+    @Environment(\.inputController) private var inputController
 
     var body: some View {
         HStack(spacing: 8) {
@@ -356,6 +364,10 @@ struct ConsoleCommandInput: View {
         .onTapGesture {
             // Claim focus when clicking anywhere in the command input area
             isFocused = true
+        }
+        .onChange(of: isFocused) { _, focused in
+            // Disable app input when command field is focused
+            inputController?.setInputEnabled(!focused)
         }
     }
 }

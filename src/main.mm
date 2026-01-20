@@ -1,4 +1,4 @@
-#include "app_delegate.h"
+#include "AppDelegate.h"
 
 #if TARGET_OS_IPHONE
 // iOS Entry Point

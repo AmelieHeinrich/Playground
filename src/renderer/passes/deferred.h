@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer/pass.h"
+#include "Renderer/Pass.h"
 
 constexpr const char* DEFERRED_COLOR = "Deferred/Color";
 

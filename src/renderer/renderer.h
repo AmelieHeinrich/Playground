@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/camera.h"
-#include "metal/command_buffer.h"
-#include "pass.h"
+#include "Core/Camera.h"
+#include "Metal/CommandBuffer.h"
+#include "Pass.h"
 
 class Renderer
 {

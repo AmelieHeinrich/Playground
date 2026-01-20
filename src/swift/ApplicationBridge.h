@@ -71,6 +71,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setMousePosition:(simd_float2)position;
 - (void)setRightMouseDown:(BOOL)down;
 
+// Input control (to disable input when UI elements have focus)
+@property (nonatomic) BOOL inputEnabled;
+
 @end
 
 NS_ASSUME_NONNULL_END

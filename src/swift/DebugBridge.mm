@@ -1,5 +1,6 @@
 #import "DebugBridge.h"
 #import <Metal/MTLCaptureManager.h>
+#include "Core/Logger.h"
 
 #import <map>
 #import <string>
@@ -518,7 +519,7 @@ struct FrameRecord {
         
         NSError* error = nil;
         if (![captureManager startCaptureWithDescriptor:descriptor error:&error]) {
-            NSLog(@"Failed to start GPU capture: %@", error);
+            LOG_ERROR_FMT("Failed to start GPU capture: %@", error);
         }
     }
 }

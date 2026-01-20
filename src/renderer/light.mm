@@ -1,4 +1,4 @@
-#include "light.h"
+#include "Light.h"
 
 LightList::LightList()
 {

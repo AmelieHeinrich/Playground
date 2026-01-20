@@ -1,9 +1,9 @@
-#include "world.h"
-#include "asset/sky_loader.h"
-#include "metal/acceleration_encoder.h"
-#include "metal/command_buffer.h"
-#include "passes/debug_renderer.h"
-#include <CoreData/CoreData.h>
+#include "World.h"
+#include "Asset/SkyLoader.h"
+#include "Metal/AccelerationEncoder.h"
+#include "Metal/CommandBuffer.h"
+#include "Passes/DebugRenderer.h"
+
 #include <simd/quaternion.h>
 
 World::World()

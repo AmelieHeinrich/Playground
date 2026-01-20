@@ -1,5 +1,5 @@
-#include "fence.h"
-#include "device.h"
+#include "Fence.h"
+#include "Device.h"
 
 Fence::Fence()
 {

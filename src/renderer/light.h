@@ -1,6 +1,6 @@
 #pragma once
 
-#include "metal/buffer.h"
+#include "Metal/Buffer.h"
 #include <simd/simd.h>
 
 #include <vector>

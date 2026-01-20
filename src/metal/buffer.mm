@@ -1,5 +1,5 @@
-#include "buffer.h"
-#include "device.h"
+#include "Buffer.h"
+#include "Device.h"
 
 Buffer::Buffer(const void* data, uint64_t size)
 {

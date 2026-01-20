@@ -1,8 +1,8 @@
 #pragma once
 
-#include "metal/graphics_pipeline.h"
-#include "metal/indirect_command_buffer.h"
-#include "renderer/pass.h"
+#include "Metal/GraphicsPipeline.h"
+#include "Metal/IndirectCommandBuffer.h"
+#include "Renderer/Pass.h"
 
 constexpr const char* SHADOW_VISIBILITY_OUTPUT = "Shadow/Visibility";
 

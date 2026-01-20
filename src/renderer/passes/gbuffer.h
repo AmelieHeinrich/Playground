@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer/pass.h"
+#include "Renderer/Pass.h"
 
 constexpr const char* GBUFFER_DEPTH_OUTPUT = "GBuffer/Depth";
 constexpr const char* GBUFFER_NORMAL_OUTPUT = "GBuffer/Normal";

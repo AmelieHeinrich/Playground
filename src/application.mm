@@ -1,12 +1,13 @@
-#include "application.h"
-#include "metal/fence.h"
-#include "asset/astc_loader.h"
-#include "asset/texture_cache.h"
-#include "metal/command_buffer.h"
-#include "metal/graphics_pipeline.h"
-#include "metal/shader.h"
-#include "renderer/passes/debug_renderer.h"
-#include "renderer/renderer.h"
+#include "Application.h"
+#include "Core/Logger.h"
+#include "Metal/Fence.h"
+#include "Asset/AstcLoader.h"
+#include "Asset/TextureCache.h"
+#include "Metal/CommandBuffer.h"
+#include "Metal/GraphicsPipeline.h"
+#include "Metal/Shader.h"
+#include "Renderer/Passes/DebugRenderer.h"
+#include "Renderer/Renderer.h"
 
 
 #include <simd/simd.h>
@@ -38,7 +39,7 @@ Application::~Application()
 bool Application::Initialize(id<MTLDevice> device)
 {
     if (!device) {
-        NSLog(@"Failed to initialize: Metal device is nil");
+        LOG_ERROR("Failed to initialize: Metal device is nil");
         return false;
     }
 
@@ -48,7 +49,7 @@ bool Application::Initialize(id<MTLDevice> device)
     // Create command queue
     m_CommandQueue = [m_Device newCommandQueue];
     if (!m_CommandQueue) {
-        NSLog(@"Failed to create Metal command queue");
+        LOG_ERROR("Failed to create Metal command queue");
         return false;
     }
     Device::SetCommandQueue(m_CommandQueue);
@@ -78,7 +79,7 @@ bool Application::Initialize(id<MTLDevice> device)
 
     m_World->Prepare();
 
-    NSLog(@"Application initialized successfully with Metal device: %@", [m_Device name]);
+    LOG_INFO_FMT("Application initialized successfully with Metal device: %@", [m_Device name]);
     return true;
 }
 
@@ -148,10 +149,10 @@ void Application::OnResize(uint32_t width, uint32_t height)
         m_Renderer->Resize(renderWidth, renderHeight);
         m_LastRenderWidth = renderWidth;
         m_LastRenderHeight = renderHeight;
-        NSLog(@"Render targets resized to: %ux%u (%.0f%%)", renderWidth, renderHeight, m_RenderScale * 100.0f);
+        LOG_INFO_FMT("Render targets resized to: %ux%u (%.0f%%)", renderWidth, renderHeight, m_RenderScale * 100.0f);
     }
 
-    NSLog(@"Application resized to: %ux%u", width, height);
+    LOG_INFO_FMT("Application resized to: %ux%u", width, height);
 }
 
 void Application::OnUpdate(float deltaTime)

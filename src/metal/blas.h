@@ -2,7 +2,7 @@
 
 #include <Metal/Metal.h>
 
-#include "asset/mesh_loader.h"
+#include "Asset/MeshLoader.h"
 
 class BLAS
 {

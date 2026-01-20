@@ -1,7 +1,7 @@
-#include "shadows.h"
-#include "gbuffer.h"
-#include "renderer/passes/debug_renderer.h"
-#include "renderer/resource_io.h"
+#include "Shadows.h"
+#include "GBuffer.h"
+#include "Renderer/Passes/DebugRenderer.h"
+#include "Renderer/ResourceIo.h"
 
 
 

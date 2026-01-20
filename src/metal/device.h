@@ -1,6 +1,6 @@
 #pragma once
 
-#include "metal/residency_set.h"
+#include "Metal/ResidencySet.h"
 #include <Metal/Metal.h>
 
 class Device

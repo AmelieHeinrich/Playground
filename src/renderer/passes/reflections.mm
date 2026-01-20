@@ -1,9 +1,9 @@
-#include "reflections.h"
-#include "gbuffer.h"
-#include "deferred.h"
-#include "hi_z.h"
+#include "Reflections.h"
+#include "GBuffer.h"
+#include "Deferred.h"
+#include "HiZ.h"
 
-#include "renderer/resource_io.h"
+#include "Renderer/ResourceIo.h"
 
 #include <Metal/Metal.h>
 

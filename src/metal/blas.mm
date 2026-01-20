@@ -1,5 +1,5 @@
-#include "blas.h"
-#include "metal/device.h"
+#include "BLAS.h"
+#include "Metal/Device.h"
 #include <Metal/Metal.h>
 
 struct PackedVertex

@@ -1,6 +1,6 @@
-#include "tlas.h"
-#include "device.h"
-#include "renderer/scene_ab.h"
+#include "TLAS.h"
+#include "Device.h"
+#include "Renderer/SceneAb.h"
 #include <Metal/Metal.h>
 #include <simd/matrix.h>
 

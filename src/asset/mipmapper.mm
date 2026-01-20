@@ -1,4 +1,5 @@
-#include "mipmapper.h"
+#include "Mipmapper.h"
+#include "Core/Logger.h"
 #include <Foundation/Foundation.h>
 
 std::vector<id<MTLTexture>> Mipmapper::s_PendingTextures;
@@ -6,34 +7,34 @@ std::vector<id<MTLTexture>> Mipmapper::s_PendingTextures;
 void Mipmapper::RequestMipmaps(id<MTLTexture> texture)
 {
     if (!texture) {
-        NSLog(@"Mipmapper: Cannot request mipmaps for nil texture");
+        LOG_WARNING("Mipmapper: Cannot request mipmaps for nil texture");
         return;
     }
     
     // Check if texture supports mipmap generation
     if (texture.mipmapLevelCount <= 1) {
-        NSLog(@"Mipmapper: Texture has only 1 mip level, skipping");
+        LOG_WARNING("Mipmapper: Texture has only 1 mip level, skipping");
         return;
     }
     
     if (!(texture.usage & MTLTextureUsageShaderWrite)) {
-        NSLog(@"Mipmapper: Texture doesn't have ShaderWrite usage, cannot generate mipmaps");
+        LOG_WARNING("Mipmapper: Texture doesn't have ShaderWrite usage, cannot generate mipmaps");
         return;
     }
     
     // Add to pending list
     s_PendingTextures.push_back(texture);
-    NSLog(@"Mipmapper: Queued texture for mipmap generation (%lu total pending)", s_PendingTextures.size());
+    LOG_DEBUG_FMT("Mipmapper: Queued texture for mipmap generation (%lu total pending)", s_PendingTextures.size());
 }
 
 void Mipmapper::Flush(id<MTLCommandQueue> queue)
 {
     if (s_PendingTextures.empty()) {
-        NSLog(@"Mipmapper: No pending textures to process");
+        LOG_DEBUG("Mipmapper: No pending textures to process");
         return;
     }
     
-    NSLog(@"Mipmapper: Flushing %lu texture(s) for mipmap generation", s_PendingTextures.size());
+    LOG_INFO_FMT("Mipmapper: Flushing %lu texture(s) for mipmap generation", s_PendingTextures.size());
     
     // Create command buffer
     id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
@@ -54,7 +55,7 @@ void Mipmapper::Flush(id<MTLCommandQueue> queue)
     [commandBuffer commit];
     [commandBuffer waitUntilCompleted];
     
-    NSLog(@"Mipmapper: Successfully generated mipmaps for %lu texture(s)", s_PendingTextures.size());
+    LOG_INFO_FMT("Mipmapper: Successfully generated mipmaps for %lu texture(s)", s_PendingTextures.size());
     
     // Clear the pending list
     s_PendingTextures.clear();
@@ -63,5 +64,5 @@ void Mipmapper::Flush(id<MTLCommandQueue> queue)
 void Mipmapper::Clear()
 {
     s_PendingTextures.clear();
-    NSLog(@"Mipmapper: Cleared all pending mipmap requests");
+    LOG_DEBUG("Mipmapper: Cleared all pending mipmap requests");
 }

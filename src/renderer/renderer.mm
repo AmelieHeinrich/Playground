@@ -1,15 +1,15 @@
-#include "renderer.h"
+#include "Renderer.h"
 
-#include "passes/cluster_cull.h"
-#include "passes/tonemap.h"
-#include "passes/debug_renderer.h"
-#include "passes/gbuffer.h"
-#include "passes/deferred.h"
-#include "passes/shadows.h"
-#include "passes/hi_z.h"
-#include "passes/reflections.h"
-#include "passes/sky_draw.h"
-#include "resource_io.h"
+#include "Passes/ClusterCull.h"
+#include "Passes/Tonemap.h"
+#include "Passes/DebugRenderer.h"
+#include "Passes/GBuffer.h"
+#include "Passes/Deferred.h"
+#include "Passes/Shadows.h"
+#include "Passes/HiZ.h"
+#include "Passes/Reflections.h"
+#include "Passes/SkyDraw.h"
+#include "ResourceIo.h"
 
 Renderer::Renderer()
 {

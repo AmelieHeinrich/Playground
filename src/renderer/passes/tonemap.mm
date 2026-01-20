@@ -1,7 +1,7 @@
-#include "tonemap.h"
-#include "metal/command_buffer.h"
-#include "metal/graphics_pipeline.h"
-#include "renderer/resource_io.h"
+#include "Tonemap.h"
+#include "Metal/CommandBuffer.h"
+#include "Metal/GraphicsPipeline.h"
+#include "Renderer/ResourceIo.h"
 
 #include <Metal/Metal.h>
 

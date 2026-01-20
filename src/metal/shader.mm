@@ -1,4 +1,5 @@
-#include "shader.h"
+#include "Shader.h"
+#include "Core/Logger.h"
 
 #include <Metal/Metal.h>
 
@@ -8,7 +9,7 @@ void ShaderLibrary::Initialize(id<MTLDevice> device)
 {
     s_DefaultLibrary = [device newDefaultLibrary];
     if (!s_DefaultLibrary) {
-        NSLog(@"Failed to load default Metal library");
+        LOG_ERROR("Failed to load default Metal library");
     }
 }
 
@@ -20,7 +21,7 @@ id<MTLLibrary> ShaderLibrary::GetDefaultLibrary()
 id<MTLFunction> ShaderLibrary::GetFunction(const std::string& name)
 {
     if (!s_DefaultLibrary) {
-        NSLog(@"Default library not initialized");
+        LOG_ERROR("Default library not initialized");
         return nil;
     }
     
@@ -28,7 +29,7 @@ id<MTLFunction> ShaderLibrary::GetFunction(const std::string& name)
     id<MTLFunction> function = [s_DefaultLibrary newFunctionWithName:functionName];
     
     if (!function) {
-        NSLog(@"Failed to find function: %s", name.c_str());
+        LOG_ERROR_FMT("Failed to find function: %s", name.c_str());
     }
     
     return function;

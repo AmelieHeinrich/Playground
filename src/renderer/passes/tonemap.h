@@ -1,10 +1,10 @@
 #pragma once
 
-#include "metal/compute_pipeline.h"
-#include "metal/graphics_pipeline.h"
-#include "renderer/pass.h"
+#include "Metal/ComputePipeline.h"
+#include "Metal/GraphicsPipeline.h"
+#include "Renderer/Pass.h"
 
-#include "deferred.h"
+#include "Deferred.h"
 
 constexpr const char* TONEMAP_INPUT_COLOR = DEFERRED_COLOR;
 constexpr const char* TONEMAP_OUTPUT = "Tonemap/Output";

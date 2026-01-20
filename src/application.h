@@ -1,24 +1,24 @@
 #pragma once
 
-#include "asset/mesh_loader.h"
-#include "metal/residency_set.h"
-#include "metal/texture.h"
-#include "renderer/world.h"
+#include "Asset/MeshLoader.h"
+#include "Metal/ResidencySet.h"
+#include "Metal/Texture.h"
+#include "Renderer/World.h"
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 
 #if TARGET_OS_IPHONE
     #import <UIKit/UIKit.h>
-    #import "core/ios_input.h"
+    #import "Core/IosInput.h"
 #else
     #import <Cocoa/Cocoa.h>
-    #import "core/macos_input.h"
+    #import "Core/MacosInput.h"
 #endif
 
-#include "metal/device.h"
-#include "metal/graphics_pipeline.h"
-#include "core/camera.h"
-#include "renderer/renderer.h"
+#include "Metal/Device.h"
+#include "Metal/GraphicsPipeline.h"
+#include "Core/Camera.h"
+#include "Renderer/Renderer.h"
 
 class API_AVAILABLE(macos(15.0), ios(16.0)) Application
 {

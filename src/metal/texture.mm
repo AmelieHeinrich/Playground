@@ -1,5 +1,5 @@
-#include "texture.h"
-#include "device.h"
+#include "Texture.h"
+#include "Device.h"
 
 Texture::Texture(MTLTextureDescriptor* descriptor)
 {
