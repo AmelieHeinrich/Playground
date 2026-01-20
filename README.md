@@ -3,6 +3,7 @@
 Playground where I mess around with Metal on iOS and macOS.
 
 ![](.github/wed17dec25.png)
+(Screenshot taken Wed 17th December 2025)
 
 ## Features
 
@@ -14,6 +15,9 @@ Playground where I mess around with Metal on iOS and macOS.
 - Cascaded shadow mapping
 - HDR rendering and environment mapping
 - Works on iOS and macOS
+
+## WIP
+- Reflections (screen space hi-z traced + raytraced)
 
 ## Requirements
 
