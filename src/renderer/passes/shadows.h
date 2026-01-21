@@ -18,11 +18,24 @@ enum class ShadowTechnique
 
 enum class ShadowResolution
 {
-    LOW = 512,
-    MEDIUM = 1024,
-    HIGH = 2048,
-    ULTRA = 4096
+    LOW = 0,
+    MEDIUM = 1,
+    HIGH = 2,
+    ULTRA = 3
 };
+
+// Helper function to convert enum to cascade size
+inline int ShadowResolutionToSize(ShadowResolution resolution)
+{
+    switch (resolution)
+    {
+        case ShadowResolution::LOW:    return 512;
+        case ShadowResolution::MEDIUM: return 1024;
+        case ShadowResolution::HIGH:   return 2048;
+        case ShadowResolution::ULTRA:  return 4096;
+        default:                       return 2048;
+    }
+}
 
 struct ShadowCascade
 {

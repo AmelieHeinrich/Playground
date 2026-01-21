@@ -6,29 +6,7 @@
 
 
 
-int ResolutionToIndex(ShadowResolution resolution)
-{
-    switch (resolution)
-    {
-        case ShadowResolution::LOW: return 0;
-        case ShadowResolution::MEDIUM: return 1;
-        case ShadowResolution::HIGH: return 2;
-        case ShadowResolution::ULTRA: return 3;
-    }
-    return 0;
-}
 
-ShadowResolution IndexToResolution(int index)
-{
-    switch (index)
-    {
-        case 0: return ShadowResolution::LOW;
-        case 1: return ShadowResolution::MEDIUM;
-        case 2: return ShadowResolution::HIGH;
-        case 3: return ShadowResolution::ULTRA;
-    }
-    return ShadowResolution::LOW;
-}
 
 ShadowPass::ShadowPass()
 {
@@ -52,7 +30,8 @@ ShadowPass::ShadowPass()
 
     // Shadow maps
     for (int i = 0; i < SHADOW_CASCADE_COUNT; ++i) {
-        MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:(int)m_Resolution height:(int)m_Resolution mipmapped:NO];
+        int cascadeSize = ShadowResolutionToSize(m_Resolution);
+        MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:cascadeSize height:cascadeSize mipmapped:NO];
         descriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite | MTLTextureUsageRenderTarget;
 
         m_ShadowCascades[i].Initialize(descriptor);
@@ -76,6 +55,13 @@ void ShadowPass::Resize(int width, int height)
 
 void ShadowPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 {
+    int cascadeSize = ShadowResolutionToSize(m_Resolution);
+    if (cascadeSize != m_ShadowCascades[0].Width()) {
+        for (int i = 0; i < SHADOW_CASCADE_COUNT; ++i) {
+            m_ShadowCascades[i].Resize(cascadeSize, cascadeSize);
+        }
+    }
+    
     switch (m_Technique) {
         case ShadowTechnique::NONE:
             None(cmdBuffer, world, camera);
@@ -91,14 +77,6 @@ void ShadowPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
 
 void ShadowPass::DebugUI()
 {
-    // UI is now handled by SwiftUI
-    
-    // Check if resolution changed and resize shadow cascades
-    if ((int)m_Resolution != m_ShadowCascades[0].Width()) {
-        for (int i = 0; i < SHADOW_CASCADE_COUNT; ++i) {
-            m_ShadowCascades[i].Resize((int)m_Resolution, (int)m_Resolution);
-        }
-    }
 }
 
 void ShadowPass::RegisterCVars()
@@ -181,7 +159,7 @@ void ShadowPass::UpdateCascades(CommandBuffer& cmdBuffer, World& world, Camera& 
     float near = camera.GetNearPlane();
     float far = camera.GetFarPlane();
 
-    uint cascadeSize = (uint)m_Resolution;
+    uint cascadeSize = ShadowResolutionToSize(m_Resolution);
     std::vector<float> splits(SHADOW_CASCADE_COUNT + 1);
 
     splits[0] = near;
@@ -257,9 +235,11 @@ void ShadowPass::CullCascades(CommandBuffer& cmdBuffer, World& world, Camera& ca
     for (int i = 0; i < SHADOW_CASCADE_COUNT; i++) {
         resetIcbEncoder.ResetIndirectCommandBuffer(m_CascadeICBs[i], MAX_SCENE_INSTANCES);
     }
+    resetIcbEncoder.SignalFence();
     resetIcbEncoder.End();
 
     ComputeEncoder computeEncoder = cmdBuffer.ComputePass(@"Cull Cascades");
+    computeEncoder.WaitForFence();
     computeEncoder.SetPipeline(m_CullCascadesKernel);
     computeEncoder.SetBytes(&instanceCount, sizeof(uint), 3);
     computeEncoder.SetBuffer(world.GetSceneAB(), 0);
@@ -277,13 +257,16 @@ void ShadowPass::CullCascades(CommandBuffer& cmdBuffer, World& world, Camera& ca
         computeEncoder.Dispatch(MTLSizeMake(dispatchCount, 1, 1), MTLSizeMake(64, 1, 1));
         computeEncoder.PopGroup();
     }
+    computeEncoder.SignalFence();
     computeEncoder.End();
 
     // Optimize indirect command buffers
     BlitEncoder optimizeIcbEncoder = cmdBuffer.BlitPass(@"Optimize CSM ICBs");
+    optimizeIcbEncoder.WaitForFence();
     for (int i = 0; i < SHADOW_CASCADE_COUNT; i++) {
         optimizeIcbEncoder.OptimizeIndirectCommandBuffer(m_CascadeICBs[i], MAX_SCENE_INSTANCES);
     }
+    optimizeIcbEncoder.SignalFence();
     optimizeIcbEncoder.End();
 }
 
@@ -310,8 +293,6 @@ void ShadowPass::PopulateCSMVisibility(CommandBuffer& cmdBuffer, World& world, C
     Texture& depth = ResourceIO::GetTexture(GBUFFER_DEPTH_OUTPUT);
     Texture& normal = ResourceIO::GetTexture(GBUFFER_NORMAL_OUTPUT);
     Texture& visibility = ResourceIO::GetTexture(SHADOW_VISIBILITY_OUTPUT);
-
-    uint shadowResolution = (uint)m_Resolution;
 
     ComputeEncoder encoder = cmdBuffer.ComputePass(@"Populate CSM Visibility");
     encoder.WaitForFence();

@@ -7,6 +7,7 @@ enum DockPanel: String, CaseIterable, Identifiable {
     case console = "Console"
     case debug = "Debug"
     case actions = "Actions"
+    case about = "About"
 
     var id: String { rawValue }
 
@@ -16,6 +17,7 @@ enum DockPanel: String, CaseIterable, Identifiable {
         case .console: return "terminal"
         case .debug: return "chart.xyaxis.line"
         case .actions: return "bolt.fill"
+        case .about: return "info.circle"
         }
     }
 
@@ -25,6 +27,7 @@ enum DockPanel: String, CaseIterable, Identifiable {
         case .console: return .bottom
         case .debug: return .right
         case .actions: return .bottom
+        case .about: return .right
         }
     }
 }
@@ -195,6 +198,11 @@ struct ContentView: View {
                         .tabItem {
                             Label("Actions", systemImage: "bolt.fill")
                         }
+
+                    AboutView(bridge: bridge)
+                        .tabItem {
+                            Label("About", systemImage: "info.circle")
+                        }
                 }
                 .navigationTitle("Panels")
                 .navigationBarTitleDisplayMode(.inline)
@@ -313,6 +321,9 @@ struct PanelContainer: View {
                 .clipped()
         case .actions:
             ActionsView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .about:
+            AboutView(bridge: bridge)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }

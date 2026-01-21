@@ -43,7 +43,10 @@ void TonemapPass::Render(CommandBuffer& cmdBuffer, World& world, Camera& camera)
     encoder.SetTexture(input, 0);
     encoder.SetTexture(output, 1);
     encoder.SetBytes(&m_Gamma, sizeof(float), 2);
-    encoder.Dispatch(MTLSizeMake(output.Width() / 8, output.Height() / 8, 1), MTLSizeMake(8, 8, 1));
+    encoder.Dispatch(
+        MTLSizeMake((output.Width() + 7) / 8, (output.Height() + 7) / 8, 1),
+        MTLSizeMake(8, 8, 1)
+    );
     encoder.End();
 
     // Copy to drawable
