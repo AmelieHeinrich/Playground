@@ -7,7 +7,7 @@ Handles position, rotation, and view/projection matrix generation.
 #pragma once
 
 #include <simd/simd.h>
-#include <math/AAPLMath.h>
+#include <Math/AAPLMath.h>
 
 class Input;
 

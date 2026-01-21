@@ -10,6 +10,7 @@
 #include <simd/vector_make.h>
 
 #include <vector>
+#include <QuartzCore/CAMetalLayer.h>
 
 struct RenderPassInfo
 {
@@ -72,11 +73,12 @@ public:
     BlitEncoder BlitPass(NSString* name = @"Blit Pass");
     AccelerationEncoder AccelerationPass(NSString* name = @"Acceleration Pass");
 
-    void Commit();
+    void Commit(bool waitUntilCompleted = false);
     id<MTLCommandBuffer> GetCommandBuffer() { return m_CommandBuffer; }
     id<MTLTexture> GetDrawable() { return m_Drawable; }
 
     void SetDrawable(id<MTLTexture> drawable) { m_Drawable = drawable; }
+    void Present(id<CAMetalDrawable> drawable) { [m_CommandBuffer presentDrawable:drawable]; }
 private:
     id<MTLCommandBuffer> m_CommandBuffer;
     id<MTLTexture> m_Drawable;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BLAS.h"
+#include "Blas.h"
 #include <Foundation/Foundation.h>
 
 class TLAS

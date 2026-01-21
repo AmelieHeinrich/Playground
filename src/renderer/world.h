@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "Core/Camera.h"
-#include "Metal/BLAS.h"
-#include "Metal/TLAS.h"
+#include "Metal/Blas.h"
+#include "Metal/Tlas.h"
 #include "Renderer/Light.h"
 #include "SceneAb.h"
 

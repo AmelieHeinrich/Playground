@@ -76,9 +76,9 @@ class PerformanceViewModel {
     }
 
     func refresh() {
-        frameTimeHistory = (debugBridge.frameTimeHistory(120) as? [NSNumber])?.map { $0.doubleValue } ?? []
-        cpuTimeHistory = (debugBridge.cpuTimeHistory(120) as? [NSNumber])?.map { $0.doubleValue } ?? []
-        gpuTimeHistory = (debugBridge.gpuTimeHistory(120) as? [NSNumber])?.map { $0.doubleValue } ?? []
+        frameTimeHistory = (debugBridge.frameTimeHistory(120) as [NSNumber]).map { $0.doubleValue }
+        cpuTimeHistory = (debugBridge.cpuTimeHistory(120) as [NSNumber]).map { $0.doubleValue }
+        gpuTimeHistory = (debugBridge.gpuTimeHistory(120) as [NSNumber]).map { $0.doubleValue }
         averageFrameTime = debugBridge.averageFrameTime()
         averageCPUTime = debugBridge.averageCPUTime()
         averageGPUTime = debugBridge.averageGPUTime()
@@ -441,11 +441,10 @@ struct MemoryView: View {
         allocations = debugBridge.allAllocations() as? [[String: Any]] ?? []
         totalMemory = UInt64(debugBridge.totalMemoryUsed())
 
-        if let byType = debugBridge.memoryByType() as? [NSNumber: NSNumber] {
-            memoryByType = Dictionary(uniqueKeysWithValues: byType.map {
-                ($0.key.intValue, $0.value.uint64Value)
-            })
-        }
+        let byType = debugBridge.memoryByType()
+        memoryByType = Dictionary(uniqueKeysWithValues: byType.map {
+            ($0.key.intValue, $0.value.uint64Value)
+        })
     }
 
     private func formatBytes(_ bytes: UInt64) -> String {
@@ -748,9 +747,4 @@ struct EncoderRow: View {
         @unknown default: return .secondary
         }
     }
-}
-
-#Preview {
-    DebugView()
-        .frame(width: 800, height: 600)
 }

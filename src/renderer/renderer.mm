@@ -21,10 +21,9 @@ Renderer::Renderer()
         new ClusterCullPass(),
         new GBufferPass(),
         new HiZPass(),
-        new ShadowPass(), // Needs to be after GBuffer because raytraced shadows uses depth and normal
+        new ShadowPass(),
         new DeferredPass(),
         new SkyDrawPass(),
-        new ReflectionPass(),
         new DebugRendererPass(),
         new TonemapPass(),
     };

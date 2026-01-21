@@ -1,7 +1,7 @@
 #pragma once
 
-#include "BLAS.h"
-#include "TLAS.h"
+#include "Blas.h"
+#include "Tlas.h"
 #include "Fence.h"
 
 class AccelerationEncoder

@@ -16,13 +16,18 @@ CommandBuffer::CommandBuffer(NSString* name)
     [[DebugBridge shared] beginFrame];
 }
 
-void CommandBuffer::Commit()
+void CommandBuffer::Commit(bool waitUntilCompleted)
 {
     // End frame tracking in Debug Bridge before committing
     [[DebugBridge shared] endFrame];
     
     [m_CommandBuffer commit];
-    [m_CommandBuffer waitUntilCompleted];
+    
+    // Optional synchronous wait - avoid using this unless necessary for debugging
+    // as it causes CPU-GPU sync stalls and kills performance
+    if (waitUntilCompleted) {
+        [m_CommandBuffer waitUntilCompleted];
+    }
 }
 
 RenderEncoder CommandBuffer::RenderPass(const RenderPassInfo& info)

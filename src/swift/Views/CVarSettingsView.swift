@@ -67,7 +67,7 @@ struct CVarSettingsView: View {
 
     private func refreshData() {
         let allCVars = registry.allCVars() as? [[String: Any]] ?? []
-        let allCategories = registry.allCategories() as? [String] ?? []
+        let allCategories = registry.allCategories()
 
         print("CVarSettingsView: Refreshing data")
         print("  Total CVars: \(allCVars.count)")
@@ -316,8 +316,4 @@ struct CVarVector3Row: View {
     private func updateVector() {
         registry.setVector3(cvar.key, value: simd_float3(x, y, z))
     }
-}
-
-#Preview {
-    CVarSettingsView()
 }

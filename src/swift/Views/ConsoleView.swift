@@ -387,8 +387,3 @@ struct ConsoleCommandInput: View {
         }
     }
 }
-
-#Preview {
-    ConsoleView()
-        .frame(width: 800, height: 400)
-}

@@ -3,7 +3,7 @@
 #include "GBuffer.h"
 
 #include "Renderer/ResourceIo.h"
-#include "math/AAPLMath.h"
+#include "Math/AAPLMath.h"
 #include "Swift/CVarRegistry.h"
 #include "Core/Logger.h"
 

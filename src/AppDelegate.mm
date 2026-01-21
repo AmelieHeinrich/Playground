@@ -287,54 +287,8 @@ API_AVAILABLE(ios(15.0))
 
         _application->OnUpdate(deltaTime);
 
-        ImGuiIO& io = ImGui::GetIO();
-        io.DisplaySize.x = view.bounds.size.width;
-        io.DisplaySize.y = view.bounds.size.height;
-        io.DeltaTime = deltaTime;
-
-        CGFloat framebufferScale = view.window.screen.scale ?: UIScreen.mainScreen.scale;
-        io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
-
-        MTLRenderPassDescriptor* renderPassDescriptor = view.currentRenderPassDescriptor;
-
-        if (renderPassDescriptor == nil) {
-            return;
-        }
-
-        // Start the Dear ImGui frame
-        ImGui_ImplMetal_NewFrame(renderPassDescriptor);
-        ImGui::NewFrame();
-
-        // Call application UI callback
-        _application->OnUI();
-
-        // Rendering
-        ImGui::Render();
-
-        // Application rendering (separate command buffer for compute, blit, AS, etc.)
+        // Application handles rendering and presentation
         _application->OnRender(view.currentDrawable);
-
-        // Presentation command buffer (for final UI and presentation)
-        id<MTLCommandBuffer> presentationCommandBuffer = [self.commandQueue commandBuffer];
-        [presentationCommandBuffer setLabel:@"Presentation"];
-
-        // Simple clear color
-        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.1, 0.1, 0.1, 1.0);
-        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
-        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-
-        id<MTLRenderCommandEncoder> renderEncoder = [presentationCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-
-        // Render ImGui
-        [renderEncoder pushDebugGroup:@"ImGui"];
-        ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), presentationCommandBuffer, renderEncoder);
-        [renderEncoder popDebugGroup];
-
-        [renderEncoder endEncoding];
-
-        // Present
-        [presentationCommandBuffer presentDrawable:view.currentDrawable];
-        [presentationCommandBuffer commit];
     }
 }
 
@@ -551,61 +505,8 @@ API_AVAILABLE(ios(15.0))
 
         _application->OnUpdate(deltaTime);
 
-        ImGuiIO& io = ImGui::GetIO();
-        io.DisplaySize.x = view.bounds.size.width;
-        io.DisplaySize.y = view.bounds.size.height;
-
-        CGFloat framebufferScale = view.window.screen.backingScaleFactor ?: NSScreen.mainScreen.backingScaleFactor;
-        io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
-
-        MTLRenderPassDescriptor* renderPassDescriptor = view.currentRenderPassDescriptor;
-        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
-        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-
-        if (renderPassDescriptor == nil) {
-            return;
-        }
-
-        // Start the Dear ImGui frame
-        ImGui_ImplMetal_NewFrame(renderPassDescriptor);
-        ImGui_ImplOSX_NewFrame(view);
-        ImGui::NewFrame();
-
-        // Call application UI callback
-        _application->OnUI();
-
-        // Rendering
-        ImGui::Render();
-
-        // Application rendering (separate command buffer for compute, blit, AS, etc.)
+        // Application handles rendering and presentation
         _application->OnRender(view.currentDrawable);
-
-        // Presentation command buffer (for final UI and presentation)
-        id<MTLCommandBuffer> presentationCommandBuffer = [self.commandQueue commandBuffer];
-        [presentationCommandBuffer setLabel:@"Presentation"];
-
-        // Simple clear color
-        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.1, 0.1, 0.1, 1.0);
-
-        id<MTLRenderCommandEncoder> renderEncoder = [presentationCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-
-        // Render ImGui
-        [renderEncoder pushDebugGroup:@"ImGui"];
-        ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), presentationCommandBuffer, renderEncoder);
-        [renderEncoder popDebugGroup];
-
-        [renderEncoder endEncoding];
-
-        // Present
-        [presentationCommandBuffer presentDrawable:view.currentDrawable];
-        [presentationCommandBuffer commit];
-        [presentationCommandBuffer waitUntilCompleted];
-
-        // Update and Render additional Platform Windows
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-        }
     }
 }
 

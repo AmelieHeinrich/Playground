@@ -41,9 +41,9 @@ public:
     // UI callback - kept for compatibility (UI is now handled by SwiftUI)
     virtual void OnUI();
 
-    // Rendering - now called by delegate, takes command buffer and drawable
-    // Can create any encoder type (render, compute, blit, acceleration structure, etc.)
-    // Delegate will handle presentation in a separate command buffer after this
+    // Rendering - takes the drawable and handles presentation internally
+    // Creates a command buffer and can use any encoder type (render, compute, blit, acceleration structure, etc.)
+    // The application will present the drawable using its own command buffer
     void OnRender(id<CAMetalDrawable> drawable);
 
     Camera& GetCamera() { return m_Camera; }

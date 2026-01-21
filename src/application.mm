@@ -108,32 +108,32 @@ void Application::RegisterCVars()
 {
     CVarRegistry* registry = [CVarRegistry shared];
     ActionsBridge* actions = [ActionsBridge shared];
-    
+
     // Directional light settings
     DirectionalLight& dirLight = m_World->GetDirectionalLight();
-    
+
     [registry registerBool:@"Application.DirectionalLightEnabled"
                    pointer:&dirLight.Enabled
                displayName:@"Directional Light Enabled"];
-    
+
     [registry registerFloat:@"Application.DirectionalLightIntensity"
                     pointer:&dirLight.Intensity
                         min:0.0f
                         max:10.0f
                 displayName:@"Directional Light Intensity"];
-    
+
     [registry registerVector3:@"Application.DirectionalLightDirection"
                       pointer:&dirLight.Direction
                           min:-1.0f
                           max:1.0f
                   displayName:@"Direction"];
-    
+
     [registry registerVector3:@"Application.DirectionalLightColor"
                       pointer:&dirLight.Color
                           min:0.0f
                           max:1.0f
                   displayName:@"Color"];
-    
+
     // Register actions for point lights
     [actions registerAction:@"Application.AddLights"
                    callback:^{
@@ -141,21 +141,21 @@ void Application::RegisterCVars()
                    }
                 displayName:@"Add 10 Random Lights"
                    category:@"Lights"];
-    
+
     [actions registerAction:@"Application.Add100Lights"
                    callback:^{
                        AddRandomLights(100);
                    }
                 displayName:@"Add 100 Random Lights"
                    category:@"Lights"];
-    
+
     [actions registerAction:@"Application.ClearLights"
                    callback:^{
                        ClearAllLights();
                    }
                 displayName:@"Clear All Lights"
                    category:@"Lights"];
-    
+
     LOG_INFO("Application: Registered CVars and Actions");
 }
 
@@ -257,8 +257,6 @@ void Application::OnUpdate(float deltaTime)
     }
 
     m_World->Update(m_Camera);
-    // IMPORTANT: Camera must update BEFORE Input.Update() so it can read the mouse delta
-    // Input.Update() saves current position as previous for the next frame
     m_Camera.Update(m_Input, deltaTime);
     m_Input.Update(deltaTime);
 }
@@ -277,6 +275,6 @@ void Application::OnRender(id<CAMetalDrawable> drawable)
     CommandBuffer cmdBuffer;
     cmdBuffer.SetDrawable(drawable.texture);
     m_Renderer->Render(cmdBuffer, *m_World, m_Camera);
+    cmdBuffer.Present(drawable);
     cmdBuffer.Commit();
-    [cmdBuffer.GetCommandBuffer() waitUntilCompleted];
 }

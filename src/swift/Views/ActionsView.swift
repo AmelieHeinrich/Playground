@@ -33,7 +33,7 @@ struct ActionsView: View {
     }
 
     private func refreshCategories() {
-        categories = actionsBridge.allCategories() as? [String] ?? []
+        categories = actionsBridge.allCategories()
     }
 }
 
@@ -152,9 +152,4 @@ struct ActionToolbarButton: View {
         }
         .help(action.displayName)
     }
-}
-
-#Preview {
-    ActionsView()
-        .frame(width: 300, height: 400)
 }

@@ -319,8 +319,3 @@ struct PanelContainer: View {
 }
 
 // MARK: - Preview
-
-#Preview {
-    ContentView(bridge: ApplicationBridge(device: MTLCreateSystemDefaultDevice()!)!)
-        .frame(width: 1400, height: 900)
-}

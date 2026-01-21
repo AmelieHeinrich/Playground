@@ -1,7 +1,7 @@
 #include "ClusterCull.h"
 #include "GBuffer.h"
 
-#include "math/AAPLMath.h"
+#include "Math/AAPLMath.h"
 #include "Renderer/Light.h"
 #include "Renderer/ResourceIo.h"
 #include <Metal/Metal.h>

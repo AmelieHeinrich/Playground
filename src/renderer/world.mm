@@ -47,7 +47,9 @@ void World::Prepare()
         encoder.BuildBLAS(entity->BLAS);
     }
     encoder.End();
-    cmdBuffer.Commit();
+    // Must wait synchronously here because we're freeing scratch buffers immediately after
+    // The scratch buffers are still in use by the GPU during BLAS build
+    cmdBuffer.Commit(true);
 
     for (auto& entity : m_Entities) {
         entity->BLAS->FreeScratchBuffer();
